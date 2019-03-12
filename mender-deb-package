@@ -1,0 +1,107 @@
+#/bin/bash
+
+set -ex
+
+show_help_and_exit() {
+  cat << EOF
+
+Usage: $0 mender-version
+
+NOTE: The script expects an /output directory where to store the generated packages. If
+running it from a container, create a volume for such directory
+
+EOF
+  exit 1
+}
+
+version=""
+
+while (( "$#" )); do
+  case "$1" in
+    -*)
+      echo "Error: unsupported option $1"
+      show_help_and_exit_error
+      ;;
+    *)
+      version="$1"
+      shift
+      ;;
+  esac
+done
+
+if [ -z "$version"]; then
+	show_help_and_exit
+fi
+
+if [ ! -d "/output" ]; then
+  echo "Error: /output directory doesn't exist"
+  show_help_and_exit
+fi
+
+#Print misc env variables for debug
+echo "WORKDIR="`pwd`
+echo "PATH="$PATH
+echo "CC="$CC
+echo "GOPATH="$GOPATH
+echo "version=$version"
+
+mkdir debian && mkdir debian/source
+
+#TODO: find a way to take this from the Changelog itself
+dch --create -v ${version}-1 --package mender "Release ${version}. See online docs for Changelog"
+
+echo "10" > debian/compat
+
+echo "3.0 (quilt)" > debian/source/format
+
+cat << EOF > debian/control
+Source: mender
+Maintainer: Mender Team <menderall@northern.tech>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: mender
+Architecture: armhf
+Depends: \${shlibs:Depends}, \${misc:Depends}
+Description: mender client
+ Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
+EOF
+
+cp LICENSE debian/copyright
+
+cat << EOF > debian/rules
+#!/usr/bin/make -f
+
+%:
+	dh \$@
+
+override_dh_auto_build:
+	env CGO_CFLAGS="-I/usr/local/include" CGO_LDFLAGS="-L/usr/local/lib" \
+	GOOS=linux GOARCH=arm GOARM=5 CGO_ENABLED=1 \
+	make build
+
+override_dh_auto_test:
+	true
+
+override_dh_shlibdeps:
+	true
+
+EOF
+
+#sed -i 's/prefix ?=/prefix="\$\${DESTDIR}"/' Makefile
+
+cat << EOF > debian/mender.dirs
+etc/mender
+usr/share/mender
+usr/share/doc/mender
+usr/bin
+lib/systemd/system
+EOF
+
+dpkg-buildpackage -aarmhf -us -uc -b
+
+for file in $(find ../ -maxdepth 1 -type f); do
+  cp ${file} /output
+done
