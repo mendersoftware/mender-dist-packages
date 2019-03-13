@@ -88,6 +88,12 @@ override_dh_auto_test:
 override_dh_shlibdeps:
 	true
 
+override_dh_systemd_enable:
+	true
+
+override_dh_systemd_start:
+	true
+
 EOF
 
 #sed -i 's/prefix ?=/prefix="\$\${DESTDIR}"/' Makefile
