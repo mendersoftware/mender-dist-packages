@@ -4,11 +4,12 @@ FROM debian:stretch
 ARG MENDER_VERSION=2.0.0-beta
 ARG GOLANG_VERSION=1.11.5
 
-RUN apt-get update && apt-get install -y \
+RUN dpkg --add-architecture armhf && \
+    apt-get update && apt-get install -y \
+    build-essential crossbuild-essential-armhf \
     git wget \
-    build-essential debhelper devscripts \
-    gcc-arm-linux-gnueabihf \
-    liblzma-dev
+    debhelper devscripts \
+    liblzma-dev:armhf
 
 # Set cross-compiler
 ENV CC "arm-linux-gnueabihf-gcc"
@@ -18,14 +19,6 @@ RUN wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
 ENV GOPATH "/root/go"
 ENV PATH "$PATH:/usr/local/go/bin"
-
-# CGO dependencies: liblzma
-RUN wget -q https://tukaani.org/xz/xz-5.2.4.tar.gz \
-    && tar -C /root -xzf xz-5.2.4.tar.gz
-WORKDIR /root/xz-5.2.4
-RUN ./configure --host=arm-linux-gnueabihf
-RUN make
-RUN make install
 
 # Prepare the mender client source
 RUN go get -d github.com/mendersoftware/mender

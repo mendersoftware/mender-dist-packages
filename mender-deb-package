@@ -78,14 +78,9 @@ cat << EOF > debian/rules
 	dh \$@
 
 override_dh_auto_build:
-	env CGO_CFLAGS="-I/usr/local/include" CGO_LDFLAGS="-L/usr/local/lib" \
-	GOOS=linux GOARCH=arm GOARM=5 CGO_ENABLED=1 \
-	make build
+	env GOOS=linux GOARCH=arm GOARM=5 CGO_ENABLED=1 make build
 
 override_dh_auto_test:
-	true
-
-override_dh_shlibdeps:
 	true
 
 override_dh_systemd_enable:
