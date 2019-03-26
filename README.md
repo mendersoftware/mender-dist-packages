@@ -29,7 +29,7 @@ docker build --tag=mender-dist-packages .
 Create a directory output:
 
 ```bash
-mkdir output
+mkdir -p output
 ```
 
 Create the deb package:
