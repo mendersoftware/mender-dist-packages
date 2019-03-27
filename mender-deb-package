@@ -38,13 +38,6 @@ if [ ! -d "/output" ]; then
   show_help_and_exit
 fi
 
-#Print misc env variables for debug
-echo "WORKDIR="`pwd`
-echo "PATH="$PATH
-echo "CC="$CC
-echo "GOPATH="$GOPATH
-echo "version=$version"
-
 mkdir debian && mkdir debian/source
 
 #TODO: find a way to take this from the Changelog itself
@@ -64,7 +57,7 @@ Build-Depends: debhelper (>= 9)
 
 Package: mender
 Architecture: armhf
-Depends: \${shlibs:Depends}, \${misc:Depends}
+Depends: libc6 (>= 2.12), liblzma5 (>= 5.1)
 Description: mender client
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
 EOF
@@ -78,7 +71,8 @@ cat << EOF > debian/rules
 	dh \$@
 
 override_dh_auto_build:
-	env GOOS=linux GOARCH=arm GOARM=5 CGO_ENABLED=1 make build
+	make CGO_CFLAGS="-I${LIBLZMA_INSTALL_PATH}/include" CGO_LDFLAGS="-L${LIBLZMA_INSTALL_PATH}/lib" \
+        CC=$CC GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=1 build
 
 override_dh_auto_test:
 	true
@@ -87,6 +81,12 @@ override_dh_systemd_enable:
 	true
 
 override_dh_systemd_start:
+	true
+
+override_dh_strip:
+	\${CROSS_COMPILE}-strip --remove-section=.comment --remove-section=.note debian/mender/usr/bin/mender
+
+override_dh_shlibdeps:
 	true
 
 EOF
