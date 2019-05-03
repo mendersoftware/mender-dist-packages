@@ -8,6 +8,10 @@ dist: xenial
 
 before_script:
     - git clone git://github.com/mendersoftware/mendertesting
+    - sudo apt-get update && sudo apt-get upgrade
+    - sudo apt-get install python3-setuptools python3-pip
+    - sudo pip3 install --upgrade pip
+    - sudo pip3 install -r tests/requirements.txt
 
 script:
     # Check commit compliance.
@@ -18,3 +22,7 @@ script:
     - docker build --tag=mender-dist-packages .
     # Run docker container
     - mkdir -p output && docker run -v $(pwd)/output:/output --rm mender-dist-packages
+    # Tests dependencies
+    - (cd tests && ./docker-build)
+    # Test execution
+    - (cd tests && python3 -m pytest -v)
