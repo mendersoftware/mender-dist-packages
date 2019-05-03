@@ -1,4 +1,8 @@
+# Directory where the packages are extracted
 output/
+
+# Python files
+tests/__pycache__
 
 # Files downloaded through prepare-raspbian-img.sh
 tests/docker-files/2019-04-08-raspbian-mender-testing.img
