@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+scriptdir=$(cd `dirname $0` && pwd)
+
+(cd ${scriptdir}/docker-files && ./prepare-raspbian-img.sh)
+
+docker build -t mender-dist-packages-testing ${scriptdir}/docker-files/
+
+echo "Done!"
+echo " you can start the DUT with \"docker run --network host mender-dist-packages-testing\""
+echo " and access via SSH with \"ssh -p 5555 -i ${scriptdir}/docker-files/ssh-keys/key pi@localhost\""
