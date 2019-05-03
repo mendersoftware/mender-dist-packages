@@ -4,7 +4,7 @@ language: minimal
 git:
     depth: false
 
-dist: trusty
+dist: xenial
 
 before_script:
     - git clone git://github.com/mendersoftware/mendertesting
