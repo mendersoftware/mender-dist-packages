@@ -1,1 +1,6 @@
 output/
+
+# Files downloaded through prepare-raspbian-img.sh
+tests/docker-files/2019-04-08-raspbian-mender-testing.img
+tests/docker-files/kernel-qemu-4.14.79-stretch
+tests/docker-files/versatile-pb.dtb
