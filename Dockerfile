@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     debhelper devscripts
 
 # Versions to use
-ARG MENDER_VERSION=2.0.0b1
+ARG MENDER_VERSION=2.0.0
 ARG GOLANG_VERSION=1.11.5
 
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
