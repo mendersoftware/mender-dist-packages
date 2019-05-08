@@ -56,7 +56,7 @@ def ssh_connection():
 
 # TODO: globaly define version, pakcage names, etc
 def upload_package(ssh_connection, package_name = "mender"):
-    ssh_connection.put("../output/mender_2.0.0b1-1_armhf.deb")
+    ssh_connection.put("../output/mender-client_2.0.0-1_armhf.deb")
 
 class TestPackageClientInstallConfigureStart():
 
@@ -67,12 +67,12 @@ class TestPackageClientInstallConfigureStart():
 
         upload_package(ssh_connection)
 
-        result = ssh_connection.run('sudo dpkg -i mender_2.0.0b1-1_armhf.deb', hide=True)
-        assert "Unpacking mender (2.0.0b1-1)" in result.stdout
-        assert "Setting up mender (2.0.0b1-1)" in result.stdout
+        result = ssh_connection.run('sudo dpkg -i mender-client_2.0.0-1_armhf.deb', hide=True)
+        assert "Unpacking mender-client (2.0.0-1)" in result.stdout
+        assert "Setting up mender-client (2.0.0-1)" in result.stdout
 
         result = ssh_connection.run('mender -version', hide=True)
-        assert "2.0.0b1" in result.stdout
+        assert "2.0.0" in result.stdout
 
         #TODO: check for inventory scripts, update modules, ...
 
@@ -125,8 +125,8 @@ class TestPackageClientInstallConfigureStart():
 
     @pytest.mark.usefixtures("standard_setup")
     def test_remove_package(self, ssh_connection):
-        result = ssh_connection.run('sudo dpkg -r mender', hide=True)
-        assert "Removing mender (2.0.0b1-1)" in result.stdout
+        result = ssh_connection.run('sudo dpkg -r mender-client', hide=True)
+        assert "Removing mender-client (2.0.0-1)" in result.stdout
 
         # Check directories
         ssh_connection.run('test ! -f /usr/bin/mender', hide=True)
@@ -136,8 +136,8 @@ class TestPackageClientInstallConfigureStart():
 
     @pytest.mark.usefixtures("standard_setup")
     def test_purge_package(self, ssh_connection):
-        result = ssh_connection.run('sudo dpkg -P mender', hide=True)
-        assert "Purging configuration files for mender (2.0.0b1-1)" in result.stdout
+        result = ssh_connection.run('sudo dpkg -P mender-client', hide=True)
+        assert "Purging configuration files for mender-client (2.0.0-1)" in result.stdout
 
         # Check directories
         ssh_connection.run('test ! -f /usr/bin/mender', hide=True)
