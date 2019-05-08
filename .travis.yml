@@ -19,9 +19,9 @@ script:
     # Check licenses
     - mendertesting/check_license.sh
     # Build docker image
-    - docker build --tag=mender-dist-packages .
+    - docker build --tag=mender-dist-packages-builder .
     # Run docker container
-    - mkdir -p output && docker run -v $(pwd)/output:/output --rm mender-dist-packages
+    - mkdir -p output && docker run -v $(pwd)/output:/output --rm mender-dist-packages-builder
     # Tests dependencies
     - (cd tests && ./docker-build)
     # Test execution

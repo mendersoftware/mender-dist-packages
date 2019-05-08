@@ -33,7 +33,7 @@ def wait_for_raspbian_boot(docker_container_id):
 
 @pytest.fixture(scope="class")
 def standard_setup():
-    output = subprocess.check_output("docker run --rm --network host -d mender-dist-packages-testing", shell=True)
+    output = subprocess.check_output("docker run --rm --network host -d mender-dist-packages-tester", shell=True)
     docker_container_id = output.decode("utf-8").split("\n")[0]
 
     ready = wait_for_raspbian_boot(docker_container_id)
