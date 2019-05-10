@@ -18,5 +18,5 @@ ENTRYPOINT ["/usr/bin/qemu-system-arm", "-kernel", "/testing/kernel-qemu-4.14.79
             "-cpu", "arm1176", "-serial", "stdio", "-append", \
             "rw console=ttyAMA0 root=/dev/sda2 rootfstype=ext4 loglevel=8 rootwait fsck.repair=yes memtest=1", \
             "-drive", "file=/testing/2019-04-08-raspbian-mender-testing.img,format=raw", \
-            "-no-reboot", "-device", "virtio-net-pci,netdev=unet", \
+            "-device", "virtio-net-pci,netdev=unet", \
             "-netdev", "user,id=unet,hostfwd=tcp::5555-:22"]

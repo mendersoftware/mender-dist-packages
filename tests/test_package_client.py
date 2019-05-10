@@ -20,6 +20,8 @@ import os.path
 from helpers import Helpers
 from setup import setup_tester_raspbian_host
 from setup import setup_tester_ssh_connection
+from setup import new_tester_ssh_connection
+from setup import wait_for_raspbian_boot
 
 class TestPackageMenderClientBasicUsage():
 
@@ -143,7 +145,32 @@ class TestPackageMenderClientBasicUsage():
         # Infuture releases, systemd shall be cleaned up
         setup_tester_ssh_connection.run('test -h /etc/systemd/system/multi-user.target.wants/mender.service', hide=True)
 
+class TestPackageMenderClientSystemd():
+
     @pytest.mark.usefixtures("setup_tester_raspbian_host")
-    @pytest.mark.skip
-    def test_reboot_device(self, setup_tester_ssh_connection):
-        assert False, "TODO: Test not implemented"
+    def test_mender_service_starts_after_reboot(self):
+        conn = new_tester_ssh_connection()
+        Helpers.upload_deb_package(conn)
+
+        conn.run('sudo dpkg -i ' + Helpers.package_filename("mender-client"), hide=True)
+        conn.run('sudo cp /etc/mender/mender.conf.demo /etc/mender/mender.conf', hide=True)
+        conn.run('TENANT_TOKEN="dummy"; sudo sed -i "s/Paste your Hosted Mender token here/$TENANT_TOKEN/" /etc/mender/mender.conf', hide=True)
+        conn.run('sudo mkdir -p /var/lib/mender', hide=True)
+        conn.run('echo "device_type=raspberrypi3" | sudo tee /var/lib/mender/device_type', hide=True)
+
+        conn.run('sudo systemctl enable mender', hide=True)
+
+        # Reboot in the background, so that SSH can exit properly
+        conn.run('sleep 1 && sudo reboot &', hide=True)
+
+        # Wait for the reboot to actually start before calling wait_for_raspbian_boot
+        time.sleep(10)
+        wait_for_raspbian_boot()
+
+        conn = new_tester_ssh_connection()
+        result = conn.run('sudo journalctl -u mender --no-pager', hide=True)
+
+        # Check Mender service start after device reboot
+        assert "Started Mender OTA update service." in result.stdout
+        assert "Loaded configuration file" in result.stdout
+        assert "No dual rootfs configuration present" in result.stdout

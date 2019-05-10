@@ -16,15 +16,21 @@
 import pytest
 import subprocess
 import time
+import os.path
+
 from fabric import Connection
 from paramiko import SSHException
+
+docker_container_id = None
+
 
 @pytest.fixture(scope="class")
 def setup_tester_raspbian_host():
     output = subprocess.check_output("docker run --rm --network host -d mender-dist-packages-tester", shell=True)
+    global docker_container_id
     docker_container_id = output.decode("utf-8").split("\n")[0]
 
-    ready = _wait_for_raspbian_boot(docker_container_id)
+    ready = wait_for_raspbian_boot()
 
     assert ready, "Raspbian QEMU image did not boot. Aborting"
     yield
@@ -32,27 +38,34 @@ def setup_tester_raspbian_host():
 
 @pytest.fixture(scope="class")
 def setup_tester_ssh_connection():
+    yield new_tester_ssh_connection()
+
+def new_tester_ssh_connection():
+    key_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "docker-files/ssh-keys/key")
     with Connection(host="localhost",
                 user="pi",
                 port=5555,
                 connect_timeout=30,
                 connect_kwargs={
-                    "key_filename": "docker-files/ssh-keys/key",
+                    "key_filename": key_filename,
                 } ) as conn:
 
         ready = _probe_ssh_connection(conn)
 
         assert ready, "SSH connection can not be established. Aborting"
-        yield conn
+        return conn
 
-def _wait_for_raspbian_boot(docker_container_id):
+def wait_for_raspbian_boot():
+    global docker_container_id
+    assert docker_container_id is not None
     ready = False
     timeout = time.time() + 60*3
     while not ready and time.time() < timeout:
         time.sleep(5)
         output = subprocess.check_output("docker logs {} 2>&1".format(docker_container_id), shell=True)
 
-        if "Raspbian GNU/Linux 9 raspberrypi ttyAMA0" in output.decode("utf-8"):
+        # Check on the last 100 chars only, so that we can detect reboots
+        if "Raspbian GNU/Linux 9 raspberrypi ttyAMA0" in output.decode("utf-8")[-100:]:
             ready = True
 
     return ready
@@ -67,7 +80,7 @@ def _probe_ssh_connection(conn):
                 ready = True
 
         except SSHException as e:
-            if not str(e).endswith("Connection reset by peer"):
+            if not (str(e).endswith("Connection reset by peer") or str(e).endswith("Error reading SSH protocol banner")):
                 raise e
             time.sleep(5)
 

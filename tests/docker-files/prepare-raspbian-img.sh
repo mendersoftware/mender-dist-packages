@@ -5,8 +5,6 @@
 
 set -e
 
-sudo true
-
 currdir=$(pwd)
 scriptdir=$(cd `dirname $0` && pwd)
 workdir=$(mktemp -d)
@@ -16,6 +14,9 @@ if [ -f 2019-04-08-raspbian-mender-testing.img ]; then
     echo "Found testing image in current directory. Exiting"
     exit 0;
 fi
+
+# Get superuser privilages to be able to mount the SD image
+sudo true
 
 cd ${workdir}
 
