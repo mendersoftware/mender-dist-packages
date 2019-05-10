@@ -15,12 +15,23 @@
 
 import pytest
 import time
+import os.path
 
 from helpers import Helpers
 from setup import setup_tester_raspbian_host
 from setup import setup_tester_ssh_connection
 
 class TestPackageMenderClientBasicUsage():
+
+    expected_update_modules = ["deb", "directory", "rpm", "script", "single-file"]
+    expected_inventory_files = ["mender-inventory-bootloader-integration",
+                                "mender-inventory-hostinfo",
+                                "mender-inventory-network",
+                                "mender-inventory-os",
+                                "mender-inventory-rootfs-type"]
+    expected_indentity_files = ["mender-device-identity"]
+
+    expected_copyright_md5sum = "269720c1a5608250abd54a7818f369f6"
 
     @pytest.mark.usefixtures("setup_tester_raspbian_host")
     def test_install_package(self, setup_tester_ssh_connection):
@@ -36,7 +47,30 @@ class TestPackageMenderClientBasicUsage():
         result = setup_tester_ssh_connection.run('mender -version', hide=True)
         assert Helpers.mender_version in result.stdout
 
-        #TODO: check for inventory scripts, update modules, ...
+        # Check installed files
+        setup_tester_ssh_connection.run('test -x /usr/bin/mender', hide=True)
+        setup_tester_ssh_connection.run('test -d /usr/share/mender/modules/v3', hide=True)
+        for module in self.expected_update_modules:
+            module_path = os.path.join("/usr/share/mender/modules/v3", module)
+            setup_tester_ssh_connection.run('test -x {mod}'.format(mod=module_path), hide=True)
+        setup_tester_ssh_connection.run('test -d /usr/share/mender/modules/v3', hide=True)
+        for inventory in self.expected_inventory_files:
+            inventory_path = os.path.join("/usr/share/mender/inventory", inventory)
+            setup_tester_ssh_connection.run('test -x {invent}'.format(invent=inventory_path), hide=True)
+        for identity in self.expected_indentity_files:
+            identity_path = os.path.join("/usr/share/mender/identity", identity)
+            setup_tester_ssh_connection.run('test -x {ident}'.format(ident=identity_path), hide=True)
+        setup_tester_ssh_connection.run('test -d /etc/mender', hide=True)
+        setup_tester_ssh_connection.run('test -f /etc/mender/mender.conf', hide=True)
+        setup_tester_ssh_connection.run('test -f /etc/mender/mender.conf.demo', hide=True)
+        setup_tester_ssh_connection.run('test -f /etc/mender/mender.conf.production', hide=True)
+        setup_tester_ssh_connection.run('cmp /etc/mender/mender.conf.production /etc/mender/mender.conf', hide=True)
+        setup_tester_ssh_connection.run('test -f /lib/systemd/system/mender.service', hide=True)
+
+        # Northern.tech copyright file
+        setup_tester_ssh_connection.run('test -f /usr/share/doc/mender-client/copyright', hide=True)
+        result = setup_tester_ssh_connection.run('md5sum /usr/share/doc/mender-client/copyright', hide=True)
+        assert result.stdout.split(' ')[0] == self.expected_copyright_md5sum
 
     @pytest.mark.usefixtures("setup_tester_raspbian_host")
     def test_configure_client(self, setup_tester_ssh_connection):
@@ -49,41 +83,37 @@ class TestPackageMenderClientBasicUsage():
         setup_tester_ssh_connection.run('sudo mkdir -p /var/lib/mender', hide=True)
         setup_tester_ssh_connection.run('echo "device_type=raspberrypi3" | sudo tee /var/lib/mender/device_type', hide=True)
 
-        #TODO: some checks??
-
     @pytest.mark.usefixtures("setup_tester_raspbian_host")
     def test_start_client(self, setup_tester_ssh_connection):
-        result = setup_tester_ssh_connection.run('sudo systemctl enable mender && sudo systemctl start mender', hide=True)
 
-        # Give enough time to boot and go once over the full cycle
-        #  (generating device keys: ~20s + retry poll interval: 30s)
-        time.sleep(120)
+        # Force key generation in advance, as this takes quite a while
+        # It returns error because the Tenant Token is invalid, but we don't care
+        setup_tester_ssh_connection.run('sudo mender -bootstrap || true', hide=True)
+
+        # Start the service and give time to boot and go once over the full cycle
+        #  (retry poll interval: 30s)
+        setup_tester_ssh_connection.run('sudo systemctl enable mender && sudo systemctl start mender', hide=True)
+        time.sleep(50)
         result = setup_tester_ssh_connection.run('sudo journalctl -u mender --no-pager', hide=True)
-
-        # TODO: Can we force the key generation earlier with mender -bootstrap?
 
         # Check correct boot
         assert "Started Mender OTA update service." in result.stdout
         assert "Loaded configuration file" in result.stdout
         assert "No dual rootfs configuration present" in result.stdout
 
-        # Check authorization failure
+        # Check transition Sync to Idle (one full cycle)
         assert "authorize failed: transient error: authorization request failed" in result.stdout
         assert "State transition: authorize [Sync] -> authorize-wait [Idle]" in result.stdout
 
-        #TODO: Parsing and proper checking of the state machine
-
     @pytest.mark.usefixtures("setup_tester_raspbian_host")
     def test_stop_client(self, setup_tester_ssh_connection):
-        result = setup_tester_ssh_connection.run('sudo systemctl stop mender', hide=True)
+        setup_tester_ssh_connection.run('sudo systemctl stop mender', hide=True)
         time.sleep(1)
         result = setup_tester_ssh_connection.run('sudo journalctl -u mender --no-pager', hide=True)
 
         # Check authorization failure
         assert "Stopping Mender OTA update service..." in result.stdout
         assert "Stopped Mender OTA update service." in result.stdout
-
-        #TODO: Check nothing else betwwen stopping and stopped
 
     @pytest.mark.usefixtures("setup_tester_raspbian_host")
     def test_remove_package(self, setup_tester_ssh_connection):
