@@ -19,6 +19,7 @@ import time
 import os.path
 
 from fabric import Connection
+from fabric import Config
 from paramiko import SSHException
 
 docker_container_id = None
@@ -42,9 +43,12 @@ def setup_tester_ssh_connection():
 
 def new_tester_ssh_connection():
     key_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "docker-files/ssh-keys/key")
+    config_hide = Config()
+    config_hide.run.hide = True
     with Connection(host="localhost",
                 user="pi",
                 port=5555,
+                config=config_hide,
                 connect_timeout=30,
                 connect_kwargs={
                     "key_filename": key_filename,
