@@ -2,11 +2,13 @@
 
 set -e
 
+raspbian_version="2019-04-08"
+
 scriptdir=$(cd `dirname $0` && pwd)
 
-(cd ${scriptdir}/docker-files && ./prepare-raspbian-img.sh)
+(cd ${scriptdir}/docker-files && ./prepare-raspbian-img.sh ${raspbian_version})
 
-docker build -t mender-dist-packages-tester ${scriptdir}/docker-files/
+docker build --build-arg raspbian_version=${raspbian_version} -t mender-dist-packages-tester ${scriptdir}/docker-files/
 
 echo "Done!"
 echo " you can start the DUT with \"docker run --network host mender-dist-packages-tester\""
