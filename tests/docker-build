@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+raspbian_version="2019-04-08"
+
+scriptdir=$(cd `dirname $0` && pwd)
+
+(cd ${scriptdir}/docker-files && ./prepare-raspbian-img.sh ${raspbian_version})
+
+docker build --build-arg raspbian_version=${raspbian_version} -t mender-dist-packages-tester ${scriptdir}/docker-files/
+
+echo "Done!"
+echo " you can start the DUT with \"docker run --network host mender-dist-packages-tester\""
+echo " and access via SSH with \"ssh -p 5555 -i ${scriptdir}/docker-files/ssh-keys/key pi@localhost\""

@@ -29,7 +29,7 @@ while (( "$#" )); do
   esac
 done
 
-if [ -z "$version"]; then
+if [ -z "$version" ]; then
 	show_help_and_exit
 fi
 

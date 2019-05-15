@@ -23,7 +23,7 @@ You need to [install Docker Engine](https://docs.docker.com/install) to use this
 To build the container based on Debian Stretch:
 
 ```bash
-docker build --tag=mender-dist-packages .
+docker build --tag=mender-dist-packages-builder .
 ```
 
 Create a directory output:
@@ -35,7 +35,7 @@ mkdir -p output
 Create the deb package:
 
 ```bash
-docker run -v $(pwd)/output:/output --rm mender-dist-packages
+docker run -v $(pwd)/output:/output --rm mender-dist-packages-builder
 ```
 The deb package should be ready at output/
 
