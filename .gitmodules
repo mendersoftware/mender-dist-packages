@@ -1,0 +1,3 @@
+[submodule "tests/mender_test_containers"]
+	path = tests/mender_test_containers
+	url = https://github.com/mendersoftware/mender-test-containers
