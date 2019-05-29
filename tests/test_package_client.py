@@ -18,10 +18,7 @@ import time
 import os.path
 
 from helpers import Helpers
-from setup import setup_tester_raspbian_host
-from setup import setup_tester_ssh_connection
-from setup import new_tester_ssh_connection
-from setup import wait_for_raspbian_boot
+from mender_test_containers.helpers import *
 
 class TestPackageMenderClientBasicUsage():
 
@@ -35,7 +32,7 @@ class TestPackageMenderClientBasicUsage():
 
     expected_copyright_md5sum = "269720c1a5608250abd54a7818f369f6"
 
-    @pytest.mark.usefixtures("setup_tester_raspbian_host")
+    @pytest.mark.usefixtures("setup_test_container")
     def test_install_package(self, setup_tester_ssh_connection):
         result = setup_tester_ssh_connection.run('uname -a')
         assert "raspberrypi" in result.stdout
@@ -74,7 +71,7 @@ class TestPackageMenderClientBasicUsage():
         result = setup_tester_ssh_connection.run('md5sum /usr/share/doc/mender-client/copyright')
         assert result.stdout.split(' ')[0] == self.expected_copyright_md5sum
 
-    @pytest.mark.usefixtures("setup_tester_raspbian_host")
+    @pytest.mark.usefixtures("setup_test_container")
     def test_configure_client(self, setup_tester_ssh_connection):
         """Configures the client following the documented steps:
         https://docs.mender.io/2.0/client-configuration/installing
@@ -85,7 +82,7 @@ class TestPackageMenderClientBasicUsage():
         setup_tester_ssh_connection.run('sudo mkdir -p /var/lib/mender')
         setup_tester_ssh_connection.run('echo "device_type=raspberrypi3" | sudo tee /var/lib/mender/device_type')
 
-    @pytest.mark.usefixtures("setup_tester_raspbian_host")
+    @pytest.mark.usefixtures("setup_test_container")
     def test_start_client(self, setup_tester_ssh_connection):
 
         # Force key generation in advance, as this takes quite a while
@@ -107,7 +104,7 @@ class TestPackageMenderClientBasicUsage():
         assert "authorize failed: transient error: authorization request failed" in result.stdout
         assert "State transition: authorize [Sync] -> authorize-wait [Idle]" in result.stdout
 
-    @pytest.mark.usefixtures("setup_tester_raspbian_host")
+    @pytest.mark.usefixtures("setup_test_container")
     def test_stop_client(self, setup_tester_ssh_connection):
         setup_tester_ssh_connection.run('sudo systemctl stop mender')
         time.sleep(1)
@@ -117,7 +114,7 @@ class TestPackageMenderClientBasicUsage():
         assert "Stopping Mender OTA update service..." in result.stdout
         assert "Stopped Mender OTA update service." in result.stdout
 
-    @pytest.mark.usefixtures("setup_tester_raspbian_host")
+    @pytest.mark.usefixtures("setup_test_container")
     def test_remove_package(self, setup_tester_ssh_connection):
         result = setup_tester_ssh_connection.run('sudo dpkg -r mender-client')
         assert "Removing mender-client (" + Helpers.packages_version + ")" in result.stdout
@@ -128,7 +125,7 @@ class TestPackageMenderClientBasicUsage():
         setup_tester_ssh_connection.run('test -d /etc/mender')
         setup_tester_ssh_connection.run('test -d /var/lib/mender/')
 
-    @pytest.mark.usefixtures("setup_tester_raspbian_host")
+    @pytest.mark.usefixtures("setup_test_container")
     def test_purge_package(self, setup_tester_ssh_connection):
         result = setup_tester_ssh_connection.run('sudo dpkg -P mender-client')
         assert "Purging configuration files for mender-client (" + Helpers.packages_version + ")" in result.stdout
@@ -147,9 +144,8 @@ class TestPackageMenderClientBasicUsage():
 
 class TestPackageMenderClientSystemd():
 
-    @pytest.mark.usefixtures("setup_tester_raspbian_host")
-    def test_mender_service_starts_after_reboot(self):
-        conn = new_tester_ssh_connection()
+    def test_mender_service_starts_after_reboot(self, setup_test_container, setup_tester_ssh_connection):
+        conn = setup_tester_ssh_connection
         Helpers.upload_deb_package(conn)
 
         conn.run('sudo dpkg -i ' + Helpers.package_filename("mender-client"))
@@ -163,11 +159,10 @@ class TestPackageMenderClientSystemd():
         # Reboot in the background, so that SSH can exit properly
         conn.run('sleep 1 && sudo reboot &')
 
-        # Wait for the reboot to actually start before calling wait_for_raspbian_boot
+        # Wait for the reboot to actually start before calling wait_for_container_boot
         time.sleep(10)
-        wait_for_raspbian_boot()
+        wait_for_container_boot(setup_test_container.container_id)
 
-        conn = new_tester_ssh_connection()
         result = conn.run('sudo journalctl -u mender --no-pager')
 
         # Check Mender service start after device reboot

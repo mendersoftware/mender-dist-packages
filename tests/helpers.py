@@ -22,7 +22,6 @@ packages_path_default = os.path.normpath(os.path.join(tests_path, "..", "output"
 mender_version_default = "2.0.0"
 packages_version_default = mender_version_default + "-1"
 
-
 class Helpers:
 
     mender_version = mender_version_default

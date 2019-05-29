@@ -23,6 +23,6 @@ script:
     # Run docker container
     - mkdir -p output && docker run -v $(pwd)/output:/output --rm mender-dist-packages-builder
     # Tests dependencies
-    - (cd tests && ./docker-build)
+    - (cd tests/mender_test_containers/docker/ && ./docker-build-raspbian)
     # Test execution
     - (cd tests && python3 -m pytest -v)
