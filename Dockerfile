@@ -5,10 +5,6 @@ RUN apt-get update && apt-get install -y \
     git wget \
     debhelper devscripts
 
-# Versions to use
-ARG MENDER_VERSION=2.0.0
-ARG GOLANG_VERSION=1.11.5
-
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
 # https://tracker.mender.io/browse/MEN-2399
 # Assumes $(pwd) is /
@@ -20,6 +16,7 @@ ENV CC "$CROSS_COMPILE-gcc"
 ENV PATH "$PATH:/armv6-eabihf--glibc--stable-2018.11-1/bin"
 
 # Golang environment, for cross-compiling the Mender client
+ARG GOLANG_VERSION=1.11.5
 RUN wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
 ENV GOPATH "/root/go"
@@ -35,6 +32,7 @@ RUN wget -q https://tukaani.org/xz/xz-5.2.4.tar.gz \
 ENV LIBLZMA_INSTALL_PATH "/root/xz-5.2.4/install"
 
 # Prepare the mender client source
+ARG MENDER_VERSION=2.0.1
 RUN go get -d github.com/mendersoftware/mender
 WORKDIR $GOPATH/src/github.com/mendersoftware/mender
 RUN git checkout $MENDER_VERSION
