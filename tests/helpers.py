@@ -19,7 +19,7 @@ tests_path = os.path.dirname(os.path.realpath(__file__))
 
 # Defaults
 packages_path_default = os.path.normpath(os.path.join(tests_path, "..", "output"))
-mender_version_default = "2.0.1"
+mender_version_default = "2.1.0"
 packages_version_default = mender_version_default + "-1"
 
 class Helpers:

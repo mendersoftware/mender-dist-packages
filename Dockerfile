@@ -32,7 +32,7 @@ RUN wget -q https://tukaani.org/xz/xz-5.2.4.tar.gz \
 ENV LIBLZMA_INSTALL_PATH "/root/xz-5.2.4/install"
 
 # Prepare the mender client source
-ARG MENDER_VERSION=2.0.1
+ARG MENDER_VERSION=2.1.0
 RUN go get -d github.com/mendersoftware/mender
 WORKDIR $GOPATH/src/github.com/mendersoftware/mender
 RUN git checkout $MENDER_VERSION
