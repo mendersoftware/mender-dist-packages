@@ -72,8 +72,7 @@ cat << EOF > debian/rules
 	dh \$@
 
 override_dh_auto_build:
-	make CGO_CFLAGS="-I${LIBLZMA_INSTALL_PATH}/include" CGO_LDFLAGS="-L${LIBLZMA_INSTALL_PATH}/lib" \
-        CC=$CC GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=1 build
+	make CGO_CFLAGS="$CGO_CFLAGS" CGO_LDFLAGS="$CGO_LDFLAGS" CC=$CC GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=1 build
 
 override_dh_auto_test:
 	true
