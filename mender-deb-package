@@ -38,71 +38,13 @@ if [ ! -d "/output" ]; then
   show_help_and_exit
 fi
 
-mkdir debian && mkdir debian/source
-
 #TODO: find a way to take this from the Changelog itself
 dch --create -v ${version}-1 --package mender-client "Release ${version}. See online docs for Changelog"
 
-echo "10" > debian/compat
-
-echo "3.0 (quilt)" > debian/source/format
-
-cat << EOF > debian/control
-Source: mender-client
-Maintainer: Mender Team <menderall@northern.tech>
-Section: misc
-Priority: optional
-Standards-Version: 3.9.2
-Build-Depends: debhelper (>= 9)
-
-Package: mender-client
-Conflicts: mender
-Architecture: armhf
-Depends: libc6 (>= 2.12), liblzma5 (>= 5.1)
-Description: Mender client
- Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
-EOF
-
-cp LICENSE debian/copyright
-
-cat << EOF > debian/rules
-#!/usr/bin/make -f
-
-%:
-	dh \$@
-
-override_dh_auto_build:
-	make CGO_CFLAGS="$CGO_CFLAGS" CGO_LDFLAGS="$CGO_LDFLAGS" CC=$CC GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=1 build
-
-override_dh_auto_test:
-	true
-
-override_dh_systemd_enable:
-	true
-
-override_dh_systemd_start:
-	true
-
-override_dh_strip:
-	\${CROSS_COMPILE}-strip --remove-section=.comment --remove-section=.note debian/mender-client/usr/bin/mender
-
-override_dh_shlibdeps:
-	true
-
-EOF
-
-#sed -i 's/prefix ?=/prefix="\$\${DESTDIR}"/' Makefile
-
-cat << EOF > debian/mender-client.dirs
-etc/mender
-usr/share/mender
-usr/share/doc/mender
-usr/bin
-lib/systemd/system
-EOF
-
+# Build deb package
 dpkg-buildpackage -aarmhf -us -uc -b
 
+# Copy package files to /output
 for file in $(find ../ -maxdepth 1 -type f); do
   cp ${file} /output
 done
