@@ -25,7 +25,7 @@ ENV GOPATH "/root/go"
 ENV PATH "$PATH:/usr/local/go/bin"
 
 # Prepare the mender client source
-ARG MENDER_VERSION=2.1.0
+ARG MENDER_VERSION=2.1.1
 RUN go get -d github.com/mendersoftware/mender
 WORKDIR $GOPATH/src/github.com/mendersoftware/mender
 RUN git checkout $MENDER_VERSION
