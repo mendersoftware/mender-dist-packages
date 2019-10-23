@@ -41,8 +41,24 @@ fi
 #TODO: find a way to take this from the Changelog itself
 dch --create -v ${version}-1 --package mender-client "Release ${version}. See online docs for Changelog"
 
-# Build deb package
+# Native build (amd64)
+dpkg-buildpackage -us -uc -b
+
+# ARM 32bit build (custom toolchain to support ARMv6)
+CROSS_COMPILE="arm-buildroot-linux-gnueabihf" \
+CC="$CROSS_COMPILE-gcc" \
+PATH="$PATH:/armv6-eabihf--glibc--stable-2018.11-1/bin" \
+CGO_CFLAGS="-idirafter /usr/include/" \
+CGO_LDFLAGS="-L/usr/lib/arm-linux-gnueabihf/" \
+GOARCH=arm \
+GOARM=6 \
 dpkg-buildpackage -aarmhf -us -uc -b
+
+# ARM 64bit build (Debian toolchain)
+CROSS_COMPILE="aarch64-linux-gnu" \
+CC="$CROSS_COMPILE-gcc" \
+GOARCH=arm64 \
+dpkg-buildpackage -aarm64 -us -uc -b
 
 # Copy package files to /output
 for file in $(find ../ -maxdepth 1 -type f); do
