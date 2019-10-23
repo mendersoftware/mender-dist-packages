@@ -1,6 +1,7 @@
 image: docker:git
 
 variables:
+  MENDER_VERSION: '2.1.1'
   # NOTE: full path: mender/<version>/dist-packages/debian/<arch>/mender-client_<version>-1_<arch>.deb
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_SUBPATH: "dist-packages/debian"
@@ -15,7 +16,7 @@ build:
   services:
     - docker:dind
   script:
-    - docker build --tag=mender-dist-packages-builder .
+    - docker build -t mender-dist-packages-builder --build-arg MENDER_VERSION=$MENDER_VERSION .
     - mkdir output
     - docker run -v $(pwd)/output:/output --rm mender-dist-packages-builder
   artifacts:
@@ -67,7 +68,7 @@ test:acceptance:
     - apk add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev
     - cd tests
     - pip3 install --upgrade -r requirements.txt
-    - python3 -m pytest -v
+    - python3 -m pytest -v --mender-client-version $MENDER_VERSION --mender-client-deb-version $MENDER_VERSION-1
 
 # publish:s3:
 #   stage: publish
