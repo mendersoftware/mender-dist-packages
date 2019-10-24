@@ -26,3 +26,5 @@ if [ ! -f /etc/mender/mender.conf ]; then
     # Initialize artifact_info; should be removed after MEN-2585
     echo "artifact_name=unknown" > /etc/mender/artifact_info
 fi
+
+#DEBHELPER#

@@ -8,15 +8,10 @@ override_dh_auto_build:
 	GOOS=linux CGO_ENABLED=1 build
 
 override_dh_auto_install:
-	DESTDIR=debian/mender-client make install-bin install-identity-scripts install-inventory-scripts install-modules install-systemd
+	# All install targets except install-systemd
+	DESTDIR=debian/mender-client make install-bin install-identity-scripts install-inventory-scripts install-modules
 
 override_dh_auto_test:
-	true
-
-override_dh_systemd_enable:
-	true
-
-override_dh_systemd_start:
 	true
 
 override_dh_strip:

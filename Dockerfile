@@ -35,4 +35,5 @@ RUN git checkout $MENDER_VERSION
 ENV mender_version $MENDER_VERSION
 COPY mender-deb-package /usr/local/bin/
 COPY debian/* debian/
+RUN cp support/mender.service debian/mender-client.service
 ENTRYPOINT bash /usr/local/bin/mender-deb-package $mender_version
