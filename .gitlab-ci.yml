@@ -2,14 +2,13 @@ image: docker:git
 
 variables:
   MENDER_VERSION: "master"
-  # NOTE: full path: mender/<version>/dist-packages/debian/<arch>/mender-client_<version>-1_<arch>.deb
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_SUBPATH: "dist-packages/debian"
 
 stages:
   - build
   - test
-  # - publish
+  - publish
 
 build:
   stage: build
@@ -71,18 +70,28 @@ test:acceptance:
     - deb_version=$(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
     - python3 -m pytest -v --mender-client-version $MENDER_VERSION --mender-client-deb-version $deb_version
 
-# publish:s3:
-#   stage: publish
-#   image: debian:buster
-#   dependencies:
-#     - build
-#   before_script:
-#     - apt update && apt install -yyq awscli
-#   script:
-#     - echo "Publishing ${CI_COMMIT_REF_NAME} packages to S3"
-#     - aws s3 cp $output/mender-client-master-1_amd64.deb
-#         s3://$S3_BUCKET_NAME/${CI_COMMIT_REF_NAME}/${S3_BUCKET_PATH}/amd64/mender-client-master-1_amd64.deb
-#     - aws s3api put-object-acl --acl public-read --bucket $S3_BUCKET_NAME
-#         --key ${CI_COMMIT_REF_NAME}/${S3_BUCKET_PATH}/amd64/mender-client-master-1_amd64.deb
-#   only:
-#     - /^(master|[0-9]+\.[0-9]+\.x)$/
+publish:s3:
+  stage: publish
+  image: debian:buster
+  dependencies:
+    - build
+  before_script:
+    - apt update && apt install -yyq awscli
+  script:
+    - echo "Publishing ${MENDER_VERSION} packages to S3"
+    - deb_version=$(cat output/mender-client-deb-version)
+    # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
+    - for arch in amd64 arm64 armhf; do
+        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+          s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
+        aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
+          --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
+        if [ "${MENDER_VERSION}" == "master" ]; then
+          aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+            s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+          aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
+            --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+        fi;
+      done
+  only:
+    - master
