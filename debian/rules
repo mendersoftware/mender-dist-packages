@@ -7,6 +7,9 @@ override_dh_auto_build:
 	make CGO_CFLAGS="${CGO_CFLAGS}" CGO_LDFLAGS="${CGO_LDFLAGS}" CC=${CC} \
 	GOOS=linux CGO_ENABLED=1 build
 
+override_dh_auto_install:
+	DESTDIR=debian/mender-client make install-bin install-identity-scripts install-inventory-scripts install-modules install-systemd
+
 override_dh_auto_test:
 	true
 

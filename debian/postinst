@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e
+
+# If the file exists, we understand that meder setup was already run or
+# the device was manually configured at some point. Do nothing.
+if [ ! -f /etc/mender/mender.conf ]; then
+
+    # For non interactive installs, reproduce the default production
+    # configuration with a dummy device type and tenant token.
+    if [ "$DEBIAN_FRONTEND" == "noninteractive" ]; then
+        mender setup \
+            --device-type unknown \
+            --demo=false \
+            --hosted-mender \
+            --tenant-token "Paste your Hosted Mender token here" \
+            --update-poll 1800 \
+            --inventory-poll 28800 \
+            --retry-poll 300
+
+    # Run the interactive setup wizard
+    else
+        mender setup
+    fi
+
+    # Initialize artifact_info; should be removed after MEN-2585
+    echo "artifact_name=unknown" > /etc/mender/artifact_info
+fi
