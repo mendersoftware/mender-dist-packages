@@ -16,6 +16,7 @@
 import pytest
 import time
 import os.path
+import re
 
 from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
@@ -44,7 +45,14 @@ class TestPackageMenderClientBasicUsage():
         assert "Setting up mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
 
         result = setup_tester_ssh_connection.run('mender -version')
-        assert mender_version in result.stdout
+        if mender_version == "master":
+            # For master, mender -version will print the short git hash. We can obtain this
+            # from the deb package version, which is something like: "0.0~git20191022.dade697-1"
+            m = re.match(r"0.0~git[0-9]+\.([a-z0-9]+)-1", mender_dist_packages_versions["mender-client"])
+            assert m is not None
+            assert m.group(1) in result.stdout
+        else:
+            assert mender_version in result.stdout
 
         # Check installed files
         setup_tester_ssh_connection.run('test -x /usr/bin/mender')
