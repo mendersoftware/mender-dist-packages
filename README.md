@@ -1,3 +1,5 @@
+[![Build Status](https://gitlab.com/Northern.tech/Mender/mender-dist-packages/badges/master/pipeline.svg)](https://gitlab.com/Northern.tech/Mender/mender-dist-packages/pipelines)
+
 mender-dist-packages
 ====================
 

@@ -16,8 +16,9 @@
 import pytest
 import time
 import os.path
+import re
 
-from helpers import Helpers
+from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
 
 class TestPackageMenderClientBasicUsage():
@@ -33,18 +34,25 @@ class TestPackageMenderClientBasicUsage():
     expected_copyright_md5sum = "269720c1a5608250abd54a7818f369f6"
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_install_package(self, setup_tester_ssh_connection):
+    def test_install_package(self, setup_tester_ssh_connection, mender_dist_packages_versions, mender_version):
         result = setup_tester_ssh_connection.run('uname -a')
         assert "raspberrypi" in result.stdout
 
-        Helpers.upload_deb_package(setup_tester_ssh_connection)
+        upload_deb_package(setup_tester_ssh_connection, mender_dist_packages_versions["mender-client"])
 
-        result = setup_tester_ssh_connection.run('sudo dpkg -i ' + Helpers.package_filename("mender-client"))
-        assert "Unpacking mender-client (" + Helpers.packages_version + ")" in result.stdout
-        assert "Setting up mender-client (" + Helpers.packages_version + ")" in result.stdout
+        result = setup_tester_ssh_connection.run('sudo dpkg -i ' + package_filename(mender_dist_packages_versions["mender-client"]))
+        assert "Unpacking mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
+        assert "Setting up mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
 
         result = setup_tester_ssh_connection.run('mender -version')
-        assert Helpers.mender_version in result.stdout
+        if mender_version == "master":
+            # For master, mender -version will print the short git hash. We can obtain this
+            # from the deb package version, which is something like: "0.0~git20191022.dade697-1"
+            m = re.match(r"0.0~git[0-9]+\.([a-z0-9]+)-1", mender_dist_packages_versions["mender-client"])
+            assert m is not None
+            assert m.group(1) in result.stdout
+        else:
+            assert mender_version in result.stdout
 
         # Check installed files
         setup_tester_ssh_connection.run('test -x /usr/bin/mender')
@@ -115,9 +123,9 @@ class TestPackageMenderClientBasicUsage():
         assert "Stopped Mender OTA update service." in result.stdout
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_remove_package(self, setup_tester_ssh_connection):
+    def test_remove_package(self, setup_tester_ssh_connection, mender_dist_packages_versions):
         result = setup_tester_ssh_connection.run('sudo dpkg -r mender-client')
-        assert "Removing mender-client (" + Helpers.packages_version + ")" in result.stdout
+        assert "Removing mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
 
         # Check directories
         setup_tester_ssh_connection.run('test ! -f /usr/bin/mender')
@@ -126,9 +134,9 @@ class TestPackageMenderClientBasicUsage():
         setup_tester_ssh_connection.run('test -d /var/lib/mender/')
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_purge_package(self, setup_tester_ssh_connection):
+    def test_purge_package(self, setup_tester_ssh_connection, mender_dist_packages_versions):
         result = setup_tester_ssh_connection.run('sudo dpkg -P mender-client')
-        assert "Purging configuration files for mender-client (" + Helpers.packages_version + ")" in result.stdout
+        assert "Purging configuration files for mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
 
         # Check directories
         setup_tester_ssh_connection.run('test ! -f /usr/bin/mender')
@@ -144,11 +152,11 @@ class TestPackageMenderClientBasicUsage():
 
 class TestPackageMenderClientSystemd():
 
-    def test_mender_service_starts_after_reboot(self, setup_test_container, setup_tester_ssh_connection):
+    def test_mender_service_starts_after_reboot(self, setup_test_container, setup_tester_ssh_connection, mender_dist_packages_versions):
         conn = setup_tester_ssh_connection
-        Helpers.upload_deb_package(conn)
+        upload_deb_package(conn, mender_dist_packages_versions["mender-client"])
 
-        conn.run('sudo dpkg -i ' + Helpers.package_filename("mender-client"))
+        conn.run('sudo dpkg -i ' + package_filename(mender_dist_packages_versions["mender-client"]))
         conn.run('sudo cp /etc/mender/mender.conf.demo /etc/mender/mender.conf')
         conn.run('TENANT_TOKEN="dummy"; sudo sed -i "s/Paste your Hosted Mender token here/$TENANT_TOKEN/" /etc/mender/mender.conf')
         conn.run('sudo mkdir -p /var/lib/mender')

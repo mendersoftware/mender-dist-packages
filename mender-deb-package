@@ -5,7 +5,7 @@ set -ex
 show_help_and_exit() {
   cat << EOF
 
-Usage: $0 mender-version
+Usage: $0
 
 NOTE: The script expects an /output directory where to store the generated packages. If
 running it from a container, create a volume for such directory
@@ -14,37 +14,40 @@ EOF
   exit 1
 }
 
-version=""
-
-while (( "$#" )); do
-  case "$1" in
-    -*)
-      echo "Error: unsupported option $1"
-      show_help_and_exit_error
-      ;;
-    *)
-      version="$1"
-      shift
-      ;;
-  esac
-done
-
-if [ -z "$version" ]; then
-	show_help_and_exit
-fi
-
 if [ ! -d "/output" ]; then
   echo "Error: /output directory doesn't exist"
   show_help_and_exit
 fi
 
-#TODO: find a way to take this from the Changelog itself
-dch --create -v ${version}-1 --package mender-client "Release ${version}. See online docs for Changelog"
+# Create a version from VCS. For master, generate something like 0.0~git20191022.dade697
+version=$(git describe --tags --exact-match 2>/dev/null || git log -1 --pretty=0.0~git%cd.%h --date format:%Y%m%d)-1
 
-# Build deb package
+#TODO: find a way to take this from the Changelog itself
+dch --create -v ${version} --package mender-client "Release ${version}. See online docs for Changelog"
+
+# Native build (amd64)
+dpkg-buildpackage -us -uc -b
+
+# ARM 32bit build (custom toolchain to support ARMv6)
+CROSS_COMPILE="arm-buildroot-linux-gnueabihf" \
+CC="$CROSS_COMPILE-gcc" \
+PATH="$PATH:/armv6-eabihf--glibc--stable-2018.11-1/bin" \
+CGO_CFLAGS="-idirafter /usr/include/" \
+CGO_LDFLAGS="-L/usr/lib/arm-linux-gnueabihf/" \
+GOARCH=arm \
+GOARM=6 \
 dpkg-buildpackage -aarmhf -us -uc -b
+
+# ARM 64bit build (Debian toolchain)
+CROSS_COMPILE="aarch64-linux-gnu" \
+CC="$CROSS_COMPILE-gcc" \
+GOARCH=arm64 \
+dpkg-buildpackage -aarm64 -us -uc -b
 
 # Copy package files to /output
 for file in $(find ../ -maxdepth 1 -type f); do
   cp ${file} /output
 done
+
+# Echo the package version to /output
+echo ${version} > /output/mender-client-deb-version

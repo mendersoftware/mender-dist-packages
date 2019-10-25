@@ -1,0 +1,97 @@
+image: docker:git
+
+variables:
+  MENDER_VERSION: "master"
+  S3_BUCKET_NAME: "mender"
+  S3_BUCKET_SUBPATH: "dist-packages/debian"
+
+stages:
+  - build
+  - test
+  - publish
+
+build:
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker build -t mender-dist-packages-builder --build-arg MENDER_VERSION=$MENDER_VERSION .
+    - mkdir output
+    - docker run -v $(pwd)/output:/output --rm mender-dist-packages-builder
+  artifacts:
+    paths:
+      - output/*
+
+test:format:
+  stage: test
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+    - apk add --no-cache bash perl-utils
+    # Rename the branch we're on, so that it's not in the way for the
+    # subsequent fetch. It's ok if this fails, it just means we're not on any
+    # branch.
+    - git branch -m temp-branch || true
+    # Git trick: Fetch directly into our local branches instead of remote
+    # branches.
+    - git fetch origin 'refs/heads/*:refs/heads/*'
+    # Get last remaining tags, if any.
+    - git fetch --tags origin
+    - git clone http://github.com/mendersoftware/mendertesting
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+  script:
+    # Check commit compliance.
+    - mendertesting/check_commits.sh
+    # Check licenses
+    - mendertesting/check_license.sh
+
+test:acceptance:
+  stage: test
+  image: docker:18-dind
+  tags:
+    - mender-qa-slave
+  dependencies:
+    - build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+    - /usr/local/bin/dockerd-entrypoint.sh &
+    - sleep 10
+    - export DOCKER_HOST="unix:///var/run/docker.sock"
+    - docker version
+    - apk add git
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+  script:
+    - apk add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev
+    - cd tests
+    - pip3 install --upgrade -r requirements.txt
+    - deb_version=$(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
+    - python3 -m pytest -v --mender-client-version $MENDER_VERSION --mender-client-deb-version $deb_version
+
+publish:s3:
+  stage: publish
+  image: debian:buster
+  dependencies:
+    - build
+  before_script:
+    - apt update && apt install -yyq awscli
+  script:
+    - echo "Publishing ${MENDER_VERSION} packages to S3"
+    - deb_version=$(cat output/mender-client-deb-version)
+    # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
+    - for arch in amd64 arm64 armhf; do
+        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+          s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
+        aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
+          --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
+        if [ "${MENDER_VERSION}" == "master" ]; then
+          aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+            s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+          aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
+            --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+        fi;
+      done
+  only:
+    - master

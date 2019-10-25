@@ -17,30 +17,14 @@ import os.path
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
 
-# Defaults
+# Path were to find the packages under test
 packages_path_default = os.path.normpath(os.path.join(tests_path, "..", "output"))
-mender_version_default = "2.1.1"
-packages_version_default = mender_version_default + "-1"
 
-class Helpers:
+def package_filename(package_version, package_name="mender-client", package_arch="armhf"):
+    return "{name}_{version}_{arch}.deb".format(name=package_name, version=package_version, arch=package_arch)
 
-    mender_version = mender_version_default
-    packages_version = packages_version_default
-    packages_path = packages_path_default
+def package_filename_path(package_version, package_name="mender-client", package_arch="armhf"):
+    return os.path.join(packages_path_default, package_filename(package_version, package_name, package_arch))
 
-    # List of all deb packages
-    VALID_PACKAGE_NAMES = ["mender-client"]
-
-    @staticmethod
-    def package_filename(package_name):
-        return "{name}_{version}_armhf.deb".format(name=package_name, version=__class__.packages_version)
-
-    @staticmethod
-    def upload_deb_package(ssh_connection, package_name="mender-client"):
-        assert package_name in __class__.VALID_PACKAGE_NAMES
-        ssh_connection.put(__class__._package_filename_path(package_name))
-
-    @staticmethod
-    def _package_filename_path(package_name):
-        filename = "{name}_{version}_armhf.deb".format(name=package_name, version=__class__.packages_version)
-        return os.path.join(__class__.packages_path, filename)
+def upload_deb_package(ssh_connection, package_version, package_name="mender-client", package_arch="armhf"):
+    ssh_connection.put(package_filename_path(package_version, package_name, package_arch))
