@@ -21,7 +21,10 @@ import re
 from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
 
-class TestPackageMenderClientBasicUsage():
+class TestPackageMenderClientDefaults():
+    """Tests instalation, setup, start, removal and purge of mender-client deb package with
+    in non-interactive method (i.e. default configuration).
+    """
 
     expected_update_modules = ["deb", "directory", "rpm", "script", "single-file"]
     expected_inventory_files = ["mender-inventory-bootloader-integration",
@@ -34,13 +37,13 @@ class TestPackageMenderClientBasicUsage():
     expected_copyright_md5sum = "269720c1a5608250abd54a7818f369f6"
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_install_package(self, setup_tester_ssh_connection, mender_dist_packages_versions, mender_version):
+    def test_install_configure_start(self, setup_tester_ssh_connection, mender_dist_packages_versions, mender_version):
         result = setup_tester_ssh_connection.run('uname -a')
         assert "raspberrypi" in result.stdout
 
         upload_deb_package(setup_tester_ssh_connection, mender_dist_packages_versions["mender-client"])
 
-        result = setup_tester_ssh_connection.run('sudo dpkg -i ' + package_filename(mender_dist_packages_versions["mender-client"]))
+        result = setup_tester_ssh_connection.run('sudo DEBIAN_FRONTEND=noninteractive dpkg -i ' + package_filename(mender_dist_packages_versions["mender-client"]))
         assert "Unpacking mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
         assert "Setting up mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
 
@@ -69,39 +72,21 @@ class TestPackageMenderClientBasicUsage():
             setup_tester_ssh_connection.run('test -x {ident}'.format(ident=identity_path))
         setup_tester_ssh_connection.run('test -d /etc/mender')
         setup_tester_ssh_connection.run('test -f /etc/mender/mender.conf')
-        setup_tester_ssh_connection.run('test -f /etc/mender/mender.conf.demo')
-        setup_tester_ssh_connection.run('test -f /etc/mender/mender.conf.production')
-        setup_tester_ssh_connection.run('cmp /etc/mender/mender.conf.production /etc/mender/mender.conf')
-        setup_tester_ssh_connection.run('test -f /lib/systemd/system/mender.service')
+        setup_tester_ssh_connection.run('test -f /lib/systemd/system/mender-client.service')
+        setup_tester_ssh_connection.run('test -f /etc/systemd/system/multi-user.target.wants/mender-client.service')
 
         # Northern.tech copyright file
         setup_tester_ssh_connection.run('test -f /usr/share/doc/mender-client/copyright')
         result = setup_tester_ssh_connection.run('md5sum /usr/share/doc/mender-client/copyright')
         assert result.stdout.split(' ')[0] == self.expected_copyright_md5sum
 
-    @pytest.mark.usefixtures("setup_test_container")
-    def test_configure_client(self, setup_tester_ssh_connection):
-        """Configures the client following the documented steps:
-        https://docs.mender.io/2.0/client-configuration/installing
-        """
-
-        setup_tester_ssh_connection.run('sudo cp /etc/mender/mender.conf.demo /etc/mender/mender.conf')
-        setup_tester_ssh_connection.run('TENANT_TOKEN="dummy"; sudo sed -i "s/Paste your Hosted Mender token here/$TENANT_TOKEN/" /etc/mender/mender.conf')
-        setup_tester_ssh_connection.run('sudo mkdir -p /var/lib/mender')
-        setup_tester_ssh_connection.run('echo "device_type=raspberrypi3" | sudo tee /var/lib/mender/device_type')
-
-    @pytest.mark.usefixtures("setup_test_container")
-    def test_start_client(self, setup_tester_ssh_connection):
-
         # Force key generation in advance, as this takes quite a while
         # It returns error because the Tenant Token is invalid, but we don't care
         setup_tester_ssh_connection.run('sudo mender -bootstrap || true')
 
-        # Start the service and give time to boot and go once over the full cycle
-        #  (retry poll interval: 30s)
-        setup_tester_ssh_connection.run('sudo systemctl enable mender && sudo systemctl start mender')
+        # Give time to boot and go once over the full cycle (retry poll interval: 30s)
         time.sleep(50)
-        result = setup_tester_ssh_connection.run('sudo journalctl -u mender --no-pager')
+        result = setup_tester_ssh_connection.run('sudo journalctl -u mender-client --no-pager')
 
         # Check correct boot
         assert "Started Mender OTA update service." in result.stdout
@@ -113,56 +98,42 @@ class TestPackageMenderClientBasicUsage():
         assert "State transition: authorize [Sync] -> authorize-wait [Idle]" in result.stdout
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_stop_client(self, setup_tester_ssh_connection):
-        setup_tester_ssh_connection.run('sudo systemctl stop mender')
-        time.sleep(1)
-        result = setup_tester_ssh_connection.run('sudo journalctl -u mender --no-pager')
+    def test_remove_stop(self, setup_tester_ssh_connection, mender_dist_packages_versions):
+        result = setup_tester_ssh_connection.run('sudo dpkg -r mender-client')
+        assert "Removing mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
 
-        # Check authorization failure
+        # Check files and directories
+        setup_tester_ssh_connection.run('test ! -f /usr/bin/mender')
+        setup_tester_ssh_connection.run('test ! -e /usr/share/mender')
+        setup_tester_ssh_connection.run('test ! -f /lib/systemd/system/mender-client.service')
+        setup_tester_ssh_connection.run('test ! -f /etc/systemd/system/multi-user.target.wants/mender-client.service')
+        setup_tester_ssh_connection.run('test -d /etc/mender')
+        setup_tester_ssh_connection.run('test -f /etc/mender/mender.conf')
+        setup_tester_ssh_connection.run('test -d /var/lib/mender/')
+        setup_tester_ssh_connection.run('test -f /var/lib/mender/device_type')
+
+        result = setup_tester_ssh_connection.run('sudo journalctl -u mender-client --no-pager')
         assert "Stopping Mender OTA update service..." in result.stdout
         assert "Stopped Mender OTA update service." in result.stdout
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_remove_package(self, setup_tester_ssh_connection, mender_dist_packages_versions):
-        result = setup_tester_ssh_connection.run('sudo dpkg -r mender-client')
-        assert "Removing mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
-
-        # Check directories
-        setup_tester_ssh_connection.run('test ! -f /usr/bin/mender')
-        setup_tester_ssh_connection.run('test ! -e /usr/share/mender')
-        setup_tester_ssh_connection.run('test -d /etc/mender')
-        setup_tester_ssh_connection.run('test -d /var/lib/mender/')
-
-    @pytest.mark.usefixtures("setup_test_container")
-    def test_purge_package(self, setup_tester_ssh_connection, mender_dist_packages_versions):
+    def test_purge(self, setup_tester_ssh_connection, mender_dist_packages_versions):
         result = setup_tester_ssh_connection.run('sudo dpkg -P mender-client')
         assert "Purging configuration files for mender-client (" + mender_dist_packages_versions["mender-client"] + ")" in result.stdout
 
-        # Check directories
-        setup_tester_ssh_connection.run('test ! -f /usr/bin/mender')
-        setup_tester_ssh_connection.run('test ! -e /usr/share/mender')
-        setup_tester_ssh_connection.run('test ! -e /etc/mender')
+        # Check files and directories
+        setup_tester_ssh_connection.run('test -d /etc/mender')
+        setup_tester_ssh_connection.run('test ! -f /etc/mender/mender.conf')
         setup_tester_ssh_connection.run('test -d /var/lib/mender/')
-
-        # In future releases, device_type shall be removed
-        setup_tester_ssh_connection.run('test -f /var/lib/mender/device_type')
-
-        # Infuture releases, systemd shall be cleaned up
-        setup_tester_ssh_connection.run('test -h /etc/systemd/system/multi-user.target.wants/mender.service')
+        setup_tester_ssh_connection.run('test ! -f /var/lib/mender/device_type')
 
 class TestPackageMenderClientSystemd():
 
-    def test_mender_service_starts_after_reboot(self, setup_test_container, setup_tester_ssh_connection, mender_dist_packages_versions):
+    def test_mender_client_service_starts_after_reboot(self, setup_test_container, setup_tester_ssh_connection, mender_dist_packages_versions):
         conn = setup_tester_ssh_connection
         upload_deb_package(conn, mender_dist_packages_versions["mender-client"])
 
-        conn.run('sudo dpkg -i ' + package_filename(mender_dist_packages_versions["mender-client"]))
-        conn.run('sudo cp /etc/mender/mender.conf.demo /etc/mender/mender.conf')
-        conn.run('TENANT_TOKEN="dummy"; sudo sed -i "s/Paste your Hosted Mender token here/$TENANT_TOKEN/" /etc/mender/mender.conf')
-        conn.run('sudo mkdir -p /var/lib/mender')
-        conn.run('echo "device_type=raspberrypi3" | sudo tee /var/lib/mender/device_type')
-
-        conn.run('sudo systemctl enable mender')
+        conn.run('sudo DEBIAN_FRONTEND=noninteractive dpkg -i ' + package_filename(mender_dist_packages_versions["mender-client"]))
 
         # Reboot in the background, so that SSH can exit properly
         conn.run('sleep 1 && sudo reboot &')
@@ -171,7 +142,7 @@ class TestPackageMenderClientSystemd():
         time.sleep(10)
         wait_for_container_boot(setup_test_container.container_id)
 
-        result = conn.run('sudo journalctl -u mender --no-pager')
+        result = conn.run('sudo journalctl -u mender-client --no-pager')
 
         # Check Mender service start after device reboot
         assert "Started Mender OTA update service." in result.stdout
