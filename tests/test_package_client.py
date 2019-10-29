@@ -58,15 +58,16 @@ class PackageMenderClientChecker():
             identity_path = os.path.join("/usr/share/mender/identity", identity)
             ssh_connection.run('test -x {ident}'.format(ident=identity_path))
         ssh_connection.run('test -d /etc/mender')
+        ssh_connection.run('test -f /etc/mender/artifact_info')
         ssh_connection.run('test -f /etc/mender/mender.conf')
         ssh_connection.run('test -f /lib/systemd/system/mender-client.service')
         ssh_connection.run('test -f /etc/systemd/system/multi-user.target.wants/mender-client.service')
+        ssh_connection.run('test -f /usr/share/doc/mender-client/examples/demo.crt')
 
-        # Device type and artifact_info
+        # Device type
         ssh_connection.run('test -f /var/lib/mender/device_type')
         result = ssh_connection.run('cat /var/lib/mender/device_type')
         assert "device_type={}".format(device_type) in result.stdout
-        ssh_connection.run('test -f /etc/mender/artifact_info')
 
         # Northern.tech copyright file
         ssh_connection.run('test -f /usr/share/doc/mender-client/copyright')
@@ -104,14 +105,18 @@ class PackageMenderClientChecker():
         ssh_connection.run('test ! -e /usr/share/mender')
         ssh_connection.run('test ! -f /lib/systemd/system/mender-client.service')
         ssh_connection.run('test ! -f /etc/systemd/system/multi-user.target.wants/mender-client.service')
-        ssh_connection.run('test -d /etc/mender')
+        ssh_connection.run('test ! -f /usr/share/doc/mender-client/examples/demo.crt')
         ssh_connection.run('test -d /var/lib/mender/')
         if purge:
             ssh_connection.run('test ! -f /etc/mender/mender.conf')
             ssh_connection.run('test ! -f /var/lib/mender/device_type')
+            ssh_connection.run('test ! -f /etc/mender/artifact_info')
+            ssh_connection.run('test ! -d /etc/mender')
         else:
             ssh_connection.run('test -f /etc/mender/mender.conf')
             ssh_connection.run('test -f /var/lib/mender/device_type')
+            ssh_connection.run('test -f /etc/mender/artifact_info')
+            ssh_connection.run('test -d /etc/mender')
 
         result = ssh_connection.run('sudo journalctl -u mender-client --no-pager')
         assert "Stopping Mender OTA update service..." in result.stdout

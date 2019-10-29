@@ -12,7 +12,7 @@ if [ ! -f /etc/mender/mender.conf ]; then
         mender setup \
             --device-type unknown \
             --demo=false \
-            --hosted-mender \
+            --mender-professional \
             --tenant-token "Paste your Hosted Mender token here" \
             --update-poll 1800 \
             --inventory-poll 28800 \
@@ -23,8 +23,6 @@ if [ ! -f /etc/mender/mender.conf ]; then
         mender setup
     fi
 
-    # Initialize artifact_info; should be removed after MEN-2585
-    echo "artifact_name=unknown" > /etc/mender/artifact_info
 fi
 
 #DEBHELPER#
