@@ -9,7 +9,8 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	# All install targets except install-systemd
-	DESTDIR=debian/mender-client make install-bin install-identity-scripts install-inventory-scripts install-modules
+	DESTDIR=debian/mender-client make install-bin install-conf install-identity-scripts \
+	install-inventory-scripts install-modules install-examples
 
 override_dh_auto_test:
 	true
