@@ -5,6 +5,12 @@ variables:
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_SUBPATH: "dist-packages/debian"
 
+include:
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-commits.yml'
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-license.yml'
+
 stages:
   - build
   - test
@@ -21,30 +27,6 @@ build:
   artifacts:
     paths:
       - output/*
-
-test:format:
-  stage: test
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  before_script:
-    - apk add --no-cache bash perl-utils
-    # Rename the branch we're on, so that it's not in the way for the
-    # subsequent fetch. It's ok if this fails, it just means we're not on any
-    # branch.
-    - git branch -m temp-branch || true
-    # Git trick: Fetch directly into our local branches instead of remote
-    # branches.
-    - git fetch origin 'refs/heads/*:refs/heads/*'
-    # Get last remaining tags, if any.
-    - git fetch --tags origin
-    - git clone http://github.com/mendersoftware/mendertesting
-    - git submodule sync --recursive
-    - git submodule update --init --recursive
-  script:
-    # Check commit compliance.
-    - mendertesting/check_commits.sh
-    # Check licenses
-    - mendertesting/check_license.sh
 
 test:acceptance:
   stage: test
