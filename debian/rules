@@ -5,15 +5,14 @@
 
 override_dh_auto_build:
 	make CGO_CFLAGS="${CGO_CFLAGS}" CGO_LDFLAGS="${CGO_LDFLAGS}" CC=${CC} \
-	GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=1 build
+	GOOS=linux CGO_ENABLED=1 build
+
+override_dh_auto_install:
+	# All install targets except install-systemd
+	DESTDIR=debian/mender-client make install-bin install-conf install-identity-scripts \
+	install-inventory-scripts install-modules install-examples
 
 override_dh_auto_test:
-	true
-
-override_dh_systemd_enable:
-	true
-
-override_dh_systemd_start:
 	true
 
 override_dh_strip:
