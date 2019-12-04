@@ -39,6 +39,5 @@ COPY debian-2.1.x debian-2.1.x
 RUN cp support/mender.service debian-master/mender-client.service
 
 # Prepare the deb-package script
-ENV mender_version $MENDER_VERSION
 COPY mender-deb-package /usr/local/bin/
-ENTRYPOINT bash /usr/local/bin/mender-deb-package $mender_version
+ENTRYPOINT bash /usr/local/bin/mender-deb-package
