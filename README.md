@@ -22,25 +22,19 @@ You need to [install Docker Engine](https://docs.docker.com/install) to use this
 
 ### Instructions
 
-To build the container based on Debian Stretch:
+To build the Docker image and create the Debian packages for master:
 
 ```bash
-docker build --tag=mender-dist-packages-builder .
+./docker-mender-dist-packages
 ```
 
-Create a directory output:
+or for any other version:
 
 ```bash
-mkdir -p output
+MENDER_VERSION=x.y.z ./docker-mender-dist-packages
 ```
 
-Create the deb package:
-
-```bash
-docker run -v $(pwd)/output:/output --rm mender-dist-packages-builder
-```
-The deb package should be ready at output/
-
+The deb packages should be ready at output/
 
 ## Contributing
 
