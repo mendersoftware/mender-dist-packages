@@ -22,6 +22,16 @@ fi
 # Create a version from VCS. For master, generate something like 0.0~git20191022.dade697
 version=$(git describe --tags --exact-match 2>/dev/null || git log -1 --pretty=0.0~git%cd.%h --date format:%Y%m%d)-1
 
+# Select the correct Debian recipe according to the minor version of Mender
+debian_recipe="debian-master";
+if echo $version | egrep '^[1-9]+\.[1-9]+\.[1-9]+-1$'; then
+    branch=$(echo $version | sed -E 's/\.[^.]+$/.x/')
+    if [ -d "debian-${branch}" ]; then
+        debian_recipe="debian-${branch}"
+    fi
+fi
+mv $debian_recipe debian
+
 #TODO: find a way to take this from the Changelog itself
 dch --create -v ${version} --package mender-client "Release ${version}. See online docs for Changelog"
 
