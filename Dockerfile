@@ -31,9 +31,13 @@ RUN go get -d github.com/mendersoftware/mender
 WORKDIR $GOPATH/src/github.com/mendersoftware/mender
 RUN git checkout $MENDER_VERSION
 
+# Copy the debian recipe(s)
+COPY debian-master debian-master
+COPY debian-2.1.x debian-2.1.x
+
+# And add systemd service file for the modern recipes
+RUN cp support/mender.service debian-master/mender-client.service
+
 # Prepare the deb-package script
-ENV mender_version $MENDER_VERSION
 COPY mender-deb-package /usr/local/bin/
-COPY debian/* debian/
-RUN cp support/mender.service debian/mender-client.service
-ENTRYPOINT bash /usr/local/bin/mender-deb-package $mender_version
+ENTRYPOINT bash /usr/local/bin/mender-deb-package

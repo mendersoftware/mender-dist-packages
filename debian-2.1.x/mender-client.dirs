@@ -1,0 +1,5 @@
+etc/mender
+usr/share/mender
+usr/share/doc/mender
+usr/bin
+lib/systemd/system
