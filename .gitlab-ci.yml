@@ -20,10 +20,10 @@ build:
   stage: build
   services:
     - docker:dind
+  before_script:
+    - apk --update --no-cache add bash sudo
   script:
-    - docker build -t mender-dist-packages-builder --build-arg MENDER_VERSION=$MENDER_VERSION .
-    - mkdir output
-    - docker run -v $(pwd)/output:/output --rm mender-dist-packages-builder
+    - MENDER_VERSION=$MENDER_VERSION ./docker-mender-dist-packages
   artifacts:
     paths:
       - output/*
@@ -45,11 +45,11 @@ test:acceptance:
     - sleep 10
     - export DOCKER_HOST="unix:///var/run/docker.sock"
     - docker version
-    - apk add git
+    - apk --update --no-cache add git
     - git submodule sync --recursive
     - git submodule update --init --recursive
   script:
-    - apk add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev
+    - apk --update --no-cache add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev
     - cd tests
     - pip3 install --upgrade -r requirements.txt
     - deb_version=$(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
