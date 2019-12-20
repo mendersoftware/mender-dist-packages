@@ -22,22 +22,24 @@ TEST_CONTAINER_LIST = [
     MenderTestRaspbian,
 ]
 
+
 @pytest.fixture(scope="session", params=TEST_CONTAINER_LIST)
 def setup_test_container_props(request):
     return request.param
+
 
 def pytest_addoption(parser):
     parser.addoption("--mender-client-version", required=True)
     parser.addoption("--mender-client-deb-version", required=True)
 
+
 @pytest.fixture(scope="session")
 def mender_version(request):
     return request.config.getoption("--mender-client-version")
+
 
 @pytest.fixture(scope="session")
 def mender_dist_packages_versions(request):
     """Returns dict matching package names and current versions"""
 
-    return {
-        "mender-client": request.config.getoption("--mender-client-deb-version")
-    }
+    return {"mender-client": request.config.getoption("--mender-client-deb-version")}
