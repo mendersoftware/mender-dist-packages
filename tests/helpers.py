@@ -20,11 +20,27 @@ tests_path = os.path.dirname(os.path.realpath(__file__))
 # Path were to find the packages under test
 packages_path_default = os.path.normpath(os.path.join(tests_path, "..", "output"))
 
-def package_filename(package_version, package_name="mender-client", package_arch="armhf"):
-    return "{name}_{version}_{arch}.deb".format(name=package_name, version=package_version, arch=package_arch)
 
-def package_filename_path(package_version, package_name="mender-client", package_arch="armhf"):
-    return os.path.join(packages_path_default, package_filename(package_version, package_name, package_arch))
+def package_filename(
+    package_version, package_name="mender-client", package_arch="armhf"
+):
+    return "{name}_{version}_{arch}.deb".format(
+        name=package_name, version=package_version, arch=package_arch
+    )
 
-def upload_deb_package(ssh_connection, package_version, package_name="mender-client", package_arch="armhf"):
-    ssh_connection.put(package_filename_path(package_version, package_name, package_arch))
+
+def package_filename_path(
+    package_version, package_name="mender-client", package_arch="armhf"
+):
+    return os.path.join(
+        packages_path_default,
+        package_filename(package_version, package_name, package_arch),
+    )
+
+
+def upload_deb_package(
+    ssh_connection, package_version, package_name="mender-client", package_arch="armhf"
+):
+    ssh_connection.put(
+        package_filename_path(package_version, package_name, package_arch)
+    )
