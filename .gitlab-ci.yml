@@ -4,6 +4,8 @@ variables:
   MENDER_VERSION: "master"
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_SUBPATH: "dist-packages/debian"
+  # Set to true to skip tests (i.e. old Mender client build). See QA-123
+  SKIP_TESTS: "false"
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -30,10 +32,10 @@ build:
     paths:
       - output/*
 
-# The tests are not versionized: they will fail for old Mender deb packages
-# Allow failures to be able to publish the deb packages. Proper fix in QA-123
 test:acceptance:
-  allow_failure: true
+  except:
+    variables:
+      - $SKIP_TESTS == "true"
   stage: test
   image: docker:18-dind
   tags:
