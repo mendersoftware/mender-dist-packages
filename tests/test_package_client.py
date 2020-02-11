@@ -180,7 +180,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
             mender_dist_packages_versions["mender-client"],
         )
 
-        self.check_installed_files(setup_tester_ssh_connection)
+        self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
 
         # Default setup expects ServerURL hosted.mender.io
         result = setup_tester_ssh_connection.run("cat /etc/mender/mender.conf")
