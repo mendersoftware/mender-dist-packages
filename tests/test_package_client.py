@@ -180,7 +180,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
             mender_dist_packages_versions["mender-client"],
         )
 
-        self.check_installed_files(setup_tester_ssh_connection)
+        self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
 
         # Default setup expects ServerURL hosted.mender.io
         result = setup_tester_ssh_connection.run("cat /etc/mender/mender.conf")
@@ -231,18 +231,19 @@ class TestPackageMenderClientInteractive(PackageMenderClientChecker):
             setup_tester_ssh_connection, mender_dist_packages_versions["mender-client"]
         )
 
-        # Install the package using the following flow in the wizard:
-        # Device type (for example raspberrypi3-raspbian): rasbperrytest
-        # Confirm devicetype as rasbperrytest? [Y/n] y
-        # Are you connecting this device to Hosted Mender? [Y/n] n
+        # Install the package using the following flow for "mender setup":
+        # ...
+        # Enter a name for the device type (e.g. raspberrypi3): [raspberrypi] raspberrytest
+        # Are you connecting this device to hosted.mender.io? [Y/n] n
         # Do you want to run the client in demo mode? [Y/n] y
         # Set the IP of the Mender Server: [127.0.0.1] 1.2.3.4
+        # Mender setup successfully.
+        # ...
         result = setup_tester_ssh_connection.run(
             "sudo dpkg -i "
             + package_filename(mender_dist_packages_versions["mender-client"])
             + """ <<STDIN
-rasbperrytest
-y
+raspberrytest
 n
 y
 1.2.3.4
@@ -268,7 +269,7 @@ STDIN"""
             mender_dist_packages_versions["mender-client"],
         )
 
-        self.check_installed_files(setup_tester_ssh_connection, "rasbperrytest")
+        self.check_installed_files(setup_tester_ssh_connection, "raspberrytest")
 
         # Demo setup expects ServerURL docker.mender.io with IP address in /etc/hosts
         result = setup_tester_ssh_connection.run("cat /etc/mender/mender.conf")
