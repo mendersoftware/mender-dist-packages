@@ -36,7 +36,7 @@ COPY debian-master debian-master
 COPY debian-2.1.x debian-2.1.x
 
 # And add systemd service file for the modern recipes
-RUN cp support/mender.service debian-master/mender-client.service
+RUN cp support/mender-client.service debian-master/mender-client.service
 
 # Prepare the deb-package script
 COPY mender-deb-package /usr/local/bin/
