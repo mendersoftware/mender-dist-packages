@@ -110,7 +110,7 @@ class PackageMenderClientChecker:
 
         # Check transition Sync to Idle (one full cycle)
         assert (
-            "authorize failed: transient error: authorization request failed"
+            "Authorize failed: transient error: authorization request failed"
             in result.stdout
         ), result.stdout
 
