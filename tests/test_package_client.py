@@ -88,7 +88,8 @@ class PackageMenderClientChecker:
 
         # Detect of a full cycle in 4 min timeout (~2 min to generate device keys + 30 secs full cycle)
         start_time = time.time()
-        while time.time() - start_time < 4 * 60:
+        timeout = 4 * 60
+        while time.time() - start_time < timeout:
             result = ssh_connection.run("sudo journalctl -u mender-client --no-pager")
             if (
                 "State transition: authorize [Sync] -> authorize-wait [Idle]"
@@ -96,21 +97,22 @@ class PackageMenderClientChecker:
             ):
                 break
             time.sleep(10)
+        else:
+            pytest.fail(
+                "Did not detect a full cycle in %d seconds. Output follows:\n%s"
+                % (timeout, result.stdout)
+            )
 
         # Check correct boot
-        assert "Started Mender OTA update service." in result.stdout
-        assert "Loaded configuration file" in result.stdout
-        assert "No dual rootfs configuration present" in result.stdout
+        assert "Started Mender OTA update service." in result.stdout, result.stdout
+        assert "Loaded configuration file" in result.stdout, result.stdout
+        assert "No dual rootfs configuration present" in result.stdout, result.stdout
 
         # Check transition Sync to Idle (one full cycle)
         assert (
-            "authorize failed: transient error: authorization request failed"
+            "Authorize failed: transient error: authorization request failed"
             in result.stdout
-        )
-        assert (
-            "State transition: authorize [Sync] -> authorize-wait [Idle]"
-            in result.stdout
-        )
+        ), result.stdout
 
     def check_removed_files(self, ssh_connection, purge):
         # Check first that mender process has been stopped
