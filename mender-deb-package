@@ -42,7 +42,7 @@ dpkg-buildpackage -us -uc -b
 CROSS_COMPILE="arm-buildroot-linux-gnueabihf" \
 CC="$CROSS_COMPILE-gcc" \
 PATH="$PATH:/armv6-eabihf--glibc--stable-2018.11-1/bin" \
-CGO_CFLAGS="-idirafter /usr/include/" \
+CGO_CFLAGS="-I/usr/include/arm-linux-gnueabihf/ -idirafter /usr/include/" \
 CGO_LDFLAGS="-L/usr/lib/arm-linux-gnueabihf/" \
 GOARCH=arm \
 GOARM=6 \
