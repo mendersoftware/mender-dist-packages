@@ -159,9 +159,11 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
             setup_tester_ssh_connection, mender_dist_packages_versions["mender-client"]
         )
 
+        # Install the deb package. On failure, install the missing dependencies.
         result = setup_tester_ssh_connection.run(
             "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
             + package_filename(mender_dist_packages_versions["mender-client"])
+            + "|| sudo apt-get -f -y install"
         )
         assert (
             "Unpacking mender-client ("

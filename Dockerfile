@@ -6,9 +6,13 @@ RUN dpkg --add-architecture armhf && \
     build-essential \
     git wget \
     debhelper devscripts \
+    pkg-config \
     liblzma-dev \
     liblzma-dev:armhf \
     liblzma-dev:arm64 \
+    libssl-dev \
+    libssl-dev:armhf \
+    libssl-dev:arm64 \
     gcc-aarch64-linux-gnu
 
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
@@ -34,6 +38,8 @@ RUN git checkout $MENDER_VERSION
 # Copy the debian recipe(s)
 COPY debian-master debian-master
 COPY debian-2.1.x debian-2.1.x
+COPY debian-2.2.x debian-2.2.x
+COPY debian-2.3.x debian-2.3.x
 
 # And add systemd service file for the recipes. It is called "mender" for 2.3.x and before
 RUN cp support/mender-client.service debian-master/mender-client.service || \
