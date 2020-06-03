@@ -41,9 +41,16 @@ COPY debian-2.1.x debian-2.1.x
 COPY debian-2.2.x debian-2.2.x
 COPY debian-2.3.x debian-2.3.x
 
-# And add systemd service file for the recipes. It is called "mender" for 2.3.x and before
-RUN cp support/mender-client.service debian-master/mender-client.service || \
-    cp support/mender.service debian-master/mender-client.service
+# Add systemd service file for the recipes
+RUN for debiandir in debian-*; do                                         \
+      # Skip for 2.1.x, special handling in debian/rules
+      if [ ${debiandir} = "debian-2.1.x" ]; then                              \
+        continue;                                                             \
+      fi;                                                                     \
+      # It is called "mender" for 2.2.x and earlier
+      cp support/mender-client.service ${debiandir}/mender-client.service ||  \
+      cp support/mender.service ${debiandir}/mender-client.service;           \
+    done
 
 # Prepare the deb-package script
 COPY mender-deb-package /usr/local/bin/
