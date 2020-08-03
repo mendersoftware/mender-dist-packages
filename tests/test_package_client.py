@@ -34,7 +34,7 @@ class PackageMenderClientChecker:
     ]
     expected_indentity_files = ["mender-device-identity"]
 
-    expected_copyright_md5sum = "269720c1a5608250abd54a7818f369f6"
+    expected_copyright_md5sum = "7fd64609fe1bce47db0e8f6e3cc6a11d"
 
     def check_mender_client_version(
         self, ssh_connection, mender_version, mender_version_deb
@@ -187,7 +187,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
 
         # Default setup expects ServerURL hosted.mender.io
-        result = setup_tester_ssh_connection.run("cat /etc/mender/mender.conf")
+        result = setup_tester_ssh_connection.sudo("cat /etc/mender/mender.conf")
         assert '"ServerURL": "https://hosted.mender.io"' in result.stdout
 
         self.check_systemd_start_full_cycle(setup_tester_ssh_connection)
@@ -276,7 +276,7 @@ STDIN"""
         self.check_installed_files(setup_tester_ssh_connection, "raspberrytest")
 
         # Demo setup expects ServerURL docker.mender.io with IP address in /etc/hosts
-        result = setup_tester_ssh_connection.run("cat /etc/mender/mender.conf")
+        result = setup_tester_ssh_connection.sudo("cat /etc/mender/mender.conf")
         assert '"ServerURL": "https://docker.mender.io"' in result.stdout
         result = setup_tester_ssh_connection.run("cat /etc/hosts")
         assert (
