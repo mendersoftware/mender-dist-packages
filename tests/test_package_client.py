@@ -34,7 +34,7 @@ class PackageMenderClientChecker:
     ]
     expected_indentity_files = ["mender-device-identity"]
 
-    expected_copyright_md5sum = "269720c1a5608250abd54a7818f369f6"
+    expected_copyright_md5sum = "7fd64609fe1bce47db0e8f6e3cc6a11d"
 
     def check_mender_client_version(
         self, ssh_connection, mender_version, mender_version_deb
