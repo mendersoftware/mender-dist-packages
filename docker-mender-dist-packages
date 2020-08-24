@@ -20,7 +20,7 @@ IMAGE_NAME=mender-dist-packages-builder
 
 docker_build_args="--build-arg MENDER_VERSION=${MENDER_VERSION:master}"
 
-docker build --tag ${IMAGE_NAME} ${docker_build_args} .
+docker build --no-cache --tag ${IMAGE_NAME} ${docker_build_args} .
 
 mkdir -p output
 
