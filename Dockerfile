@@ -1,4 +1,5 @@
-FROM debian:stretch
+ARG DEBIAN_VERSION=stretch
+FROM debian:$DEBIAN_VERSION
 
 RUN dpkg --add-architecture armhf && \
     dpkg --add-architecture arm64 && \
