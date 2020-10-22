@@ -14,10 +14,12 @@ EOF
   exit 1
 }
 
-if [ ! -d "/output" ]; then
-  echo "Error: /output directory doesn't exist"
-  show_help_and_exit
-fi
+verify_output_directory_exists() {
+  if [ ! -d "/output" ]; then
+    echo "Error: /output directory doesn't exist"
+    show_help_and_exit
+  fi
+}
 
 extract_client_version() {
   # Create a version from VCS. For master, generate something like 0.0~git20191022.dade697
@@ -80,6 +82,8 @@ copy_packages_to_output() {
 ##############
 # Run script #
 ##############
+
+verify_output_directory_exists
 
 extract_client_version
 
