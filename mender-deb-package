@@ -39,7 +39,10 @@ build_packages() {
   dch --create -v ${version} --package mender-client "Release ${version}. See online docs for Changelog"
 
   # Native build (amd64)
-  dpkg-buildpackage -us -uc -b
+  dpkg-buildpackage \
+    --unsigned-source \
+    --unsigned-changes \
+    --build=binary
 
   # ARM 32bit build (custom toolchain to support ARMv6)
   CROSS_COMPILE="arm-buildroot-linux-gnueabihf" \
@@ -49,13 +52,19 @@ build_packages() {
                CGO_LDFLAGS="-L/usr/lib/arm-linux-gnueabihf/" \
                GOARCH=arm \
                GOARM=6 \
-               dpkg-buildpackage -aarmhf -us -uc -b
+               dpkg-buildpackage -aarmhf \
+               --unsigned-source \
+               --unsigned-changes \
+               --build=binary
 
   # ARM 64bit build (Debian toolchain)
   CROSS_COMPILE="aarch64-linux-gnu" \
                CC="$CROSS_COMPILE-gcc" \
                GOARCH=arm64 \
-               dpkg-buildpackage -aarm64 -us -uc -b
+               dpkg-buildpackage -aarm64 \
+               --unsigned-source \
+               --unsigned-changes \
+               --build=binary
 }
 
 copy_packages_to_output() {
