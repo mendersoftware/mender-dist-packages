@@ -68,9 +68,9 @@ publish:s3:
     - build
   before_script:
     - apt update && apt install -yyq awscli
+    - deb_version=$(cat output/mender-client-deb-version)
   script:
     - echo "Publishing ${MENDER_VERSION} packages to S3"
-    - deb_version=$(cat output/mender-client-deb-version)
     # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
     - for arch in amd64 arm64 armhf; do
         aws s3 cp output/mender-client_${deb_version}_${arch}.deb
@@ -86,3 +86,11 @@ publish:s3:
       done
   only:
     - master
+
+publish:s3:latest:
+  extends: publish:s3
+  only:
+    variables:
+      - $MENDER_VERSION =~ /[0-9]+\.[0-9]+\.[0-9]+/
+  before_script:
+    - deb_version=latest
