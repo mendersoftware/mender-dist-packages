@@ -6,6 +6,8 @@ variables:
   S3_BUCKET_SUBPATH: "dist-packages/debian"
   # Set to true to skip tests (i.e. old Mender client build). See QA-123
   SKIP_TESTS: "false"
+  # Update the 'latest' debian alias to a new client release
+  PUBLISH_LATEST_CLIENT_PACKAGE: "false"
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -91,7 +93,12 @@ publish:s3:latest:
   extends: publish:s3
   only:
     variables:
-      - $MENDER_VERSION =~ /[0-9]+\.[0-9]+\.[0-9]+/
-  before_script:
-    - apt update && apt install -yyq awscli
-    - deb_version=latest
+      - $PUBLISH_LATEST_CLIENT_PACKAGE == "true"
+  script:
+    - echo "Publishing latest packages to S3"
+    - for arch in amd64 arm64 armhf; do
+        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+          s3://${S3_BUCKET_NAME}/latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
+        aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
+          --key latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
+      done
