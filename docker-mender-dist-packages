@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2019 Northern.tech AS
+# Copyright 2020 Northern.tech AS
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,12 +18,15 @@ set -e
 
 IMAGE_NAME=mender-dist-packages-builder
 
-docker_build_args="--build-arg MENDER_VERSION=${MENDER_VERSION:master}"
-
-docker build --no-cache --tag ${IMAGE_NAME} ${docker_build_args} .
+docker build --tag ${IMAGE_NAME} .
 
 mkdir -p output
 
-docker run --volume $(pwd)/output:/output --rm $IMAGE_NAME
+docker run --rm \
+        --volume $(pwd)/output:/output \
+        $IMAGE_NAME \
+        mender-client \
+        github.com/mendersoftware/mender \
+        ${MENDER_VERSION:-master}
 
 sudo chown $(id -u):$(id -g) output/*

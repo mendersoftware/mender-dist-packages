@@ -29,30 +29,9 @@ RUN wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
 ENV GOPATH "/root/go"
 ENV PATH "$PATH:/usr/local/go/bin"
 
-# Prepare the mender client source
-ARG MENDER_VERSION=none
-RUN if [ "$MENDER_VERSION" = none ]; then echo "MENDER_VERSION must be set!" 1>&2; exit 1; fi
-RUN go get -d github.com/mendersoftware/mender
-WORKDIR $GOPATH/src/github.com/mendersoftware/mender
-RUN git checkout $MENDER_VERSION
-
 # Copy the debian recipe(s)
-COPY debian-master debian-master
-COPY debian-2.1.x debian-2.1.x
-COPY debian-2.2.x debian-2.2.x
-COPY debian-2.3.x debian-2.3.x
-
-# Add systemd service file for the recipes
-RUN for debiandir in debian-*; do                                         \
-      # Skip for 2.1.x, special handling in debian/rules
-      if [ ${debiandir} = "debian-2.1.x" ]; then                              \
-        continue;                                                             \
-      fi;                                                                     \
-      # It is called "mender" for 2.2.x and earlier
-      cp support/mender-client.service ${debiandir}/mender-client.service ||  \
-      cp support/mender.service ${debiandir}/mender-client.service;           \
-    done
+COPY recipes /recipes
 
 # Prepare the deb-package script
 COPY mender-deb-package /usr/local/bin/
-ENTRYPOINT bash /usr/local/bin/mender-deb-package
+ENTRYPOINT  ["/usr/local/bin/mender-deb-package"]
