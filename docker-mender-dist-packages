@@ -29,4 +29,11 @@ docker run --rm \
         github.com/mendersoftware/mender \
         ${MENDER_VERSION:-master}
 
+docker run --rm \
+        --volume $(pwd)/output:/output \
+        $IMAGE_NAME \
+        mender-shell \
+        github.com/mendersoftware/mender-shell \
+        ${MENDER_SHELL_VERSION:-master}
+
 sudo chown $(id -u):$(id -g) output/*

@@ -9,15 +9,14 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	# All install targets except install-systemd
-	DESTDIR=debian/mender-client make install-bin install-conf install-identity-scripts \
-	install-inventory-scripts install-modules install-examples
+	DESTDIR=debian/mender-shell make install-bin install-conf
 
 override_dh_auto_test:
 	true
 
 override_dh_strip:
 	${CROSS_COMPILE}-strip --remove-section=.comment --remove-section=.note \
-	debian/mender-client/usr/bin/mender
+	debian/mender-shell/usr/bin/mender-shell
 
 override_dh_shlibdeps:
 	true

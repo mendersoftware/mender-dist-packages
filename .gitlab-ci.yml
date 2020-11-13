@@ -1,8 +1,12 @@
 image: docker:git
 
 variables:
+  # Packages versions
   MENDER_VERSION: "master"
+  MENDER_SHELL_VERSION: "master"
+  # Bucket name
   S3_BUCKET_NAME: "mender"
+  # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
   S3_BUCKET_SUBPATH: "dist-packages/debian"
   # Set to true to skip tests (i.e. old Mender client build). See QA-123
   SKIP_TESTS: "false"
@@ -31,7 +35,9 @@ build:
   before_script:
     - apk --update --no-cache add bash sudo
   script:
-    - MENDER_VERSION=$MENDER_VERSION ./docker-mender-dist-packages
+    - MENDER_VERSION=$MENDER_VERSION
+      MENDER_SHELL_VERSION=$MENDER_SHELL_VERSION
+      ./docker-mender-dist-packages
   artifacts:
     paths:
       - output/*
@@ -60,10 +66,10 @@ test:acceptance:
     - apk --update --no-cache add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev
     - cd tests
     - pip3 install --upgrade -r requirements.txt
-    - deb_version=$(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
-    - python3 -m pytest -v --mender-client-version $MENDER_VERSION --mender-client-deb-version $deb_version
+    - mender_client_deb_version=$(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
+    - python3 -m pytest -v --mender-client-version $MENDER_VERSION --mender-client-deb-version $mender_client_deb_version
 
-publish:s3:
+publish:s3:legacy:mender-client:
   stage: publish
   image: debian:buster
   dependencies:
@@ -89,8 +95,8 @@ publish:s3:
   only:
     - master
 
-publish:s3:latest:
-  extends: publish:s3
+publish:s3:legacy:mender-client:latest:
+  extends: publish:s3:legacy:mender-client
   only:
     variables:
       - $PUBLISH_LATEST_CLIENT_PACKAGE == "true"

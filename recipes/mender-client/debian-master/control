@@ -1,6 +1,6 @@
 Source: mender-client
 Maintainer: Mender Team <mender@northern.tech>
-Section: misc
+Section: admin
 Priority: optional
 Standards-Version: 3.9.2
 Build-Depends: debhelper (>= 9)

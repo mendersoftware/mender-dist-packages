@@ -53,17 +53,16 @@ prepare_recipe() {
   cp -r /recipes/${DEB_PACKAGE}/${debian_recipe} debian
 
   # Copy systemd service file
-  if [ ${DEB_PACKAGE} = "mender-client" ]; then
-    if [ ${debian_recipe} = "debian-2.1.x" ]; then
+  if [ "${DEB_PACKAGE}" = "mender-client" ]; then
+    if [ "${debian_recipe}" = "debian-2.1.x" ]; then
       # Skip for 2.1.x, special handling in debian/rules
       true
     else
       cp support/mender-client.service debian/mender-client.service ||
       cp support/mender.service debian/mender-client.service
     fi
-  else
-    # Other packages here
-    true
+  elif [ "${DEB_PACKAGE}" = "mender-shell" ]; then
+    cp support/mender-shell.service debian/
   fi
 
   #TODO: find a way to take this from the Changelog itself
@@ -106,7 +105,7 @@ copy_packages_to_output() {
     cp ${file} /output
   done
   # Echo the package version to /output
-  echo ${DEB_VERSION} > /output/mender-client-deb-version
+  echo ${DEB_VERSION} > /output/${DEB_PACKAGE}-deb-version
 }
 
 

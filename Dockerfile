@@ -14,6 +14,7 @@ RUN dpkg --add-architecture armhf && \
     libssl-dev \
     libssl-dev:armhf \
     libssl-dev:arm64 \
+    libglib2.0-dev \
     gcc-aarch64-linux-gnu
 
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
