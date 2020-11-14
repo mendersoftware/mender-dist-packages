@@ -65,15 +65,32 @@ prepare_recipe() {
     cp support/mender-shell.service debian/
   fi
 
-  #TODO: find a way to take this from the Changelog itself
-  dch --create -v ${DEB_VERSION} --package ${DEB_PACKAGE} "Release ${DEB_VERSION}. See online docs for Changelog"
+  distribution=""
+  if echo "${DEB_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+-1$'; then
+    distribution="stable"
+  else
+    distribution="experimental"
+  fi
+  dch --create \
+    --newversion ${DEB_VERSION} \
+    --distribution ${distribution} \
+    --package ${DEB_PACKAGE} \
+    "Release ${DEB_VERSION}. See online docs for complete changelog"
 }
 
 build_packages() {
+  # For PRs and other development branches, we don't have GPG key
+  sign_flags=""
+  if [ "$(gpg --list-secret-keys)" == "" ]; then
+    sign_flags="--unsigned-source --unsigned-changes"
+  else
+    key_id=$(gpg --list-secret-keys --with-colons| awk -F: '/^sec:/ { print $5 }')
+    sign_flags="--sign-key=$key_id"
+  fi
+
   # Native build (amd64)
   dpkg-buildpackage \
-    --unsigned-source \
-    --unsigned-changes \
+    ${sign_flags} \
     --build=binary
 
   # ARM 32bit build (custom toolchain to support ARMv6)
@@ -85,8 +102,7 @@ build_packages() {
                GOARCH=arm \
                GOARM=6 \
                dpkg-buildpackage -aarmhf \
-               --unsigned-source \
-               --unsigned-changes \
+               ${sign_flags} \
                --build=binary
 
   # ARM 64bit build (Debian toolchain)
@@ -94,8 +110,7 @@ build_packages() {
                CC="$CROSS_COMPILE-gcc" \
                GOARCH=arm64 \
                dpkg-buildpackage -aarm64 \
-               --unsigned-source \
-               --unsigned-changes \
+               ${sign_flags} \
                --build=binary
 }
 

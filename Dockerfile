@@ -33,6 +33,13 @@ ENV PATH "$PATH:/usr/local/go/bin"
 # Copy the debian recipe(s)
 COPY recipes /recipes
 
+# Import GPG key, if set
+ARG GPG_KEY_BUILD=""
+RUN echo $GPG_KEY_BUILD
+RUN if [ -n "$GPG_KEY_BUILD" ]; then \
+        echo "$GPG_KEY_BUILD" | gpg --import; \
+    fi
+
 # Prepare the deb-package script
 COPY mender-deb-package /usr/local/bin/
 ENTRYPOINT  ["/usr/local/bin/mender-deb-package"]

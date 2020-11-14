@@ -8,10 +8,16 @@ variables:
   S3_BUCKET_NAME: "mender"
   # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
   S3_BUCKET_SUBPATH: "dist-packages/debian"
+  # APT repo path
+  S3_BUCKET_REPO_PATH: "repos/debian"
   # Set to true to skip tests (i.e. old Mender client build). See QA-123
   SKIP_TESTS: "false"
   # Update the 'latest' debian alias to a new client release
   PUBLISH_LATEST_CLIENT_PACKAGE: "false"
+  # GPG keys for build and distribution, to be set by CI/CD variables
+  GPG_PRIV_KEY_BUILD: ""
+  GPG_PUB_KEY_BUILD: ""
+  GPG_PRIV_KEY_DIST: ""
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -35,9 +41,13 @@ build:
   before_script:
     - apk --update --no-cache add bash sudo
   script:
-    - MENDER_VERSION=$MENDER_VERSION
-      MENDER_SHELL_VERSION=$MENDER_SHELL_VERSION
-      ./docker-mender-dist-packages
+    # GPG key is available only in protected branches
+    - if [ "$GPG_PRIV_KEY_BUILD" != "" ]; then
+    -   GPG_KEY_BUILD="$GPG_PRIV_KEY_BUILD"
+        ./docker-mender-dist-packages
+    - else
+    -   ./docker-mender-dist-packages
+    - fi
   artifacts:
     paths:
       - output/*
@@ -68,6 +78,44 @@ test:acceptance:
     - pip3 install --upgrade -r requirements.txt
     - mender_client_deb_version=$(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
     - python3 -m pytest -v --mender-client-version $MENDER_VERSION --mender-client-deb-version $mender_client_deb_version
+
+publish:s3:apt-repo:
+  stage: publish
+  only:
+    - master
+  image: debian:buster
+  dependencies:
+    - build
+  before_script:
+    - apt update && apt install -yyq reprepro awscli
+    # Check and import GPG keys
+    - if [ -z "$GPG_PRIV_KEY_DIST" -o -z "$GPG_PUB_KEY_BUILD" ]; then
+    -   echo "Error. GPG keys not available"
+    -   exit 1
+    - fi
+    - echo "$GPG_PRIV_KEY_DIST" | gpg --import
+    - echo "$GPG_PUB_KEY_BUILD" | gpg --import
+    # Prepare repo from two S3 buckets
+    - mkdir repo
+    - cd repo
+    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/conf conf
+    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db db
+    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists dists
+    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool pool
+  script:
+    # Include the build packages in stable or experimental
+    - for change_file in $(ls ${CI_PROJECT_DIR}/output/*.changes); do
+    -   reprepro include stable $change_file ||
+        reprepro include experimental $change_file
+    - done
+    # Upload to bucket
+    - aws s3 sync db s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db
+    - aws s3 sync pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
+    - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool/ |
+      awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
+    - aws s3 sync dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
+    - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists/ |
+      awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
 
 publish:s3:legacy:mender-client:
   stage: publish

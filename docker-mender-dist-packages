@@ -18,7 +18,12 @@ set -e
 
 IMAGE_NAME=mender-dist-packages-builder
 
-docker build --tag ${IMAGE_NAME} .
+# Pass GPG key as build argument if set
+if [ -n "${GPG_KEY_BUILD}" ]; then
+    docker build --tag ${IMAGE_NAME} --build-arg GPG_KEY_BUILD="${GPG_KEY_BUILD}" .
+else
+    docker build --tag ${IMAGE_NAME} .
+fi
 
 mkdir -p output
 
