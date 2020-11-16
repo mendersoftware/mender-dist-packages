@@ -5,7 +5,7 @@ set -ex
 show_help_and_exit() {
   cat << EOF
 
-Usage: $0 deb-package repo-url version
+Usage: $0 deb-package repo-url version arch
 
 NOTE: The script expects an /output directory where to store the generated packages. If
 running it from a container, create a volume for such directory
@@ -22,12 +22,13 @@ verify_output_directory_exists() {
 }
 
 verify_script_arguments() {
-  if [ $# -ne 3 ]; then
+  if [ $# -ne 4 ]; then
     show_help_and_exit
   fi
   DEB_PACKAGE=$1
   REPO_URL=$2
   VERSION=$3
+  ARCH=$4
 }
 
 checkout_repo() {
@@ -88,30 +89,38 @@ build_packages() {
     sign_flags="--sign-key=$key_id"
   fi
 
-  # Native build (amd64)
-  dpkg-buildpackage \
-    ${sign_flags} \
-    --build=binary
+  case "$ARCH" in
+    amd64)
+      # Native build (amd64)
+      dpkg-buildpackage \
+        ${sign_flags} \
+        --build=binary
+      ;;
 
-  # ARM 32bit build (custom toolchain to support ARMv6)
-  CROSS_COMPILE="arm-buildroot-linux-gnueabihf" \
-               CC="$CROSS_COMPILE-gcc" \
-               PATH="$PATH:/armv6-eabihf--glibc--stable-2018.11-1/bin" \
-               CGO_CFLAGS="-I/usr/include/arm-linux-gnueabihf/ -idirafter /usr/include/" \
-               CGO_LDFLAGS="-L/usr/lib/arm-linux-gnueabihf/" \
-               GOARCH=arm \
-               GOARM=6 \
-               dpkg-buildpackage -aarmhf \
-               ${sign_flags} \
-               --build=binary
+    armhf)
+      # ARM 32bit build (custom toolchain to support ARMv6)
+      CROSS_COMPILE="arm-buildroot-linux-gnueabihf" \
+                  CC="$CROSS_COMPILE-gcc" \
+                  PATH="$PATH:/armv6-eabihf--glibc--stable-2018.11-1/bin" \
+                  CGO_CFLAGS="-I/usr/include/arm-linux-gnueabihf/ -idirafter /usr/include/" \
+                  CGO_LDFLAGS="-L/usr/lib/arm-linux-gnueabihf/" \
+                  GOARCH=arm \
+                  GOARM=6 \
+                  dpkg-buildpackage -aarmhf \
+                  ${sign_flags} \
+                  --build=binary
+      ;;
 
-  # ARM 64bit build (Debian toolchain)
-  CROSS_COMPILE="aarch64-linux-gnu" \
-               CC="$CROSS_COMPILE-gcc" \
-               GOARCH=arm64 \
-               dpkg-buildpackage -aarm64 \
-               ${sign_flags} \
-               --build=binary
+    arm64)
+      # ARM 64bit build (Debian toolchain)
+      CROSS_COMPILE="aarch64-linux-gnu" \
+                  CC="$CROSS_COMPILE-gcc" \
+                  GOARCH=arm64 \
+                  dpkg-buildpackage -aarm64 \
+                  ${sign_flags} \
+                  --build=binary
+      ;;
+  esac
 }
 
 copy_packages_to_output() {
