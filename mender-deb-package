@@ -38,8 +38,18 @@ checkout_repo() {
 }
 
 get_deb_version() {
-  # Create a version from VCS. For master, generate something like 0.0~git20191022.dade697
-  DEB_VERSION=$(git describe --tags --exact-match 2>/dev/null || git log -1 --pretty=0.0~git%cd.%h --date format:%Y%m%d)-1
+  # Create a version from Git. For master, generate X.Y.Z~git20191022.dade697-1,
+  # where X.Y.Z is latest tag (not necessarily matching git describe)
+  if git describe --tags --exact-match 2>/dev/null; then
+    DEB_VERSION="$(git describe --tags --exact-match)-1"
+  else
+    DEB_VERSION="$(git tag | egrep '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -n1)"
+    if [ -z "${DEB_VERSION}" ]; then
+      DEB_VERSION="0.0.0"
+    fi
+    DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
+    DEB_VERSION="${DEB_VERSION}-1"
+  fi
 }
 
 prepare_recipe() {
