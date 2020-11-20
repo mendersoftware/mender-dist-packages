@@ -43,7 +43,9 @@ class PackageMenderClientChecker:
         if mender_version == "master":
             # For master, mender -version will print the short git hash. We can obtain this
             # from the deb package version, which is something like: "0.0~git20191022.dade697-1"
-            m = re.match(r"0.0~git[0-9]+\.([a-z0-9]+)-1", mender_version_deb)
+            m = re.match(
+                r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-1", mender_version_deb
+            )
             assert m is not None
             assert m.group(1) in result.stdout
         else:
