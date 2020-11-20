@@ -1,5 +1,3 @@
-image: docker:git
-
 variables:
   # Packages versions
   MENDER_VERSION: "master"
@@ -36,6 +34,7 @@ stages:
 
 build:
   stage: build
+  image: docker:git
   services:
     - docker:dind
   before_script:
