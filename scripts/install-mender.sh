@@ -110,17 +110,18 @@ get_deps() {
         apt-transport-https \
         ca-certificates \
         curl \
-        gnupg-agent \
-        software-properties-common
+        gnupg-agent
 }
 
 add_repo() {
     curl -fsSL $REPO_URL/gpg | apt-key add -
 
-    add-apt-repository \
-        "deb [arch=$ARCH] $REPO_URL \
-        $CHANNEL \
-        main"
+    repo="deb [arch=$ARCH] $REPO_URL $CHANNEL main"
+
+    if ! grep -F "$repo" /etc/apt/sources.list; then
+	echo "adding $repo to /etc/apt/sources.list"
+        echo "$repo" >> /etc/apt/sources.list
+    fi
 }
 
 inst_component() {
