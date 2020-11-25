@@ -129,7 +129,10 @@ inst_component() {
 
 do_install() {
     apt-get update 
-    apt-get install -y $SELECTED_COMPONENTS
+    apt-get install -y \
+       -o Dpkg::Options::="--force-confdef" \
+       -o Dpkg::Options::="--force-confold" \
+       $SELECTED_COMPONENTS
 
     echo "  Success!"
     echo "  Please run \`mender setup\` to configure the client."
