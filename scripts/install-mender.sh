@@ -110,7 +110,7 @@ get_deps() {
         apt-transport-https \
         ca-certificates \
         curl \
-        gnupg-agent
+        gnupg
 }
 
 add_repo() {
