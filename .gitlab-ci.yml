@@ -8,6 +8,8 @@ variables:
   S3_BUCKET_SUBPATH: "dist-packages/debian"
   # APT repo path
   S3_BUCKET_REPO_PATH: "repos/debian"
+  # Scripts folder subpath
+  S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
   # Set to true to skip tests (i.e. old Mender client build). See QA-123
   SKIP_TESTS: "false"
   # Update the 'latest' debian alias to a new client release
@@ -166,3 +168,20 @@ publish:s3:legacy:mender-client:latest:
         aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
           --key latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
       done
+
+publish:s3:scripts:install-mender-sh:
+  stage: publish
+  dependencies:
+    - test:acceptance
+  image: debian:buster
+  before_script:
+    - apt update && apt install -yyq awscli
+  script:
+    - echo "Publishing install-mender.sh to S3"
+    - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/install-mender.sh
+    - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/install-mender.sh
+  only:
+    refs:
+      - master
+    changes:
+      - scripts/install-mender.sh
