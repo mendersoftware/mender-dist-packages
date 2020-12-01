@@ -124,10 +124,6 @@ add_repo() {
     fi
 }
 
-inst_component() {
-    echo "Installing $1"
-}
-
 do_install() {
     apt-get update 
     apt-get install -y \
