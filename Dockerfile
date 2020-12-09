@@ -89,7 +89,6 @@ COPY recipes /recipes
 
 # Import GPG key, if set
 ARG GPG_KEY_BUILD=""
-RUN echo $GPG_KEY_BUILD
 RUN if [ -n "$GPG_KEY_BUILD" ]; then \
         echo "$GPG_KEY_BUILD" | gpg --import; \
     fi
