@@ -33,7 +33,8 @@ RUN if [ "${ARCH}" = "armhf" ]; then \
 RUN if [ "${ARCH}" = "armhf" ]; then \
         set -e; \
         ln -s /bin/true /usr/bin/pkg-config; \
-        curl -f http://raspbian.raspberrypi.org/raspbian/dists/stretch/main/binary-armhf/Packages -o Packages 2>/dev/null; \
+        curl -f http://raspbian.raspberrypi.org/raspbian/dists/stretch/main/binary-armhf/Packages.gz -o Packages.gz; \
+        gunzip Packages.gz; \
         for pkg in \
             liblzma5 \
             liblzma-dev \
