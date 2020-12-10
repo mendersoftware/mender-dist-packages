@@ -47,7 +47,11 @@ get_deb_version() {
     if [ -z "${DEB_VERSION}" ]; then
       DEB_VERSION="0.0.0"
     fi
+    # Increment 1 on the bugfix number
+    DEB_VERSION="$(echo ${DEB_VERSION} | sed -E 's/([0-9]+\.[0-9]+\.)([0-9]+)/echo "\1$((\2+1))"/e')"
+    # Append git date and commit
     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
+    # Append Debian suffix
     DEB_VERSION="${DEB_VERSION}-1"
   fi
 }
