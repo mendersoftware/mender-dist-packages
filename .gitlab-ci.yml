@@ -178,7 +178,7 @@ publish:s3:scripts:install-mender-sh:
     - apt update && apt install -yyq awscli
   script:
     - echo "Publishing install-mender.sh to S3"
-    - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/install-mender.sh
+    - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/install-mender.sh --content-type text/plain
     - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/install-mender.sh
   only:
     refs:
