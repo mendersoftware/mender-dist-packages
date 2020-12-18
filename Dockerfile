@@ -1,13 +1,15 @@
 ARG DEBIAN_VERSION=stretch
 FROM debian:$DEBIAN_VERSION
 
-ARG ARCH=amd64
-
-RUN dpkg --add-architecture ${ARCH} && \
-    apt-get update && apt-get install -y \
+RUN apt-get update && \
+    apt-get install -y \
     build-essential \
     git wget curl \
     debhelper devscripts
+
+ARG ARCH=amd64
+RUN dpkg --add-architecture ${ARCH} && \
+    apt-get update
 
 RUN if [ "${ARCH}" != "armhf" ]; then \
         apt-get install -y \
