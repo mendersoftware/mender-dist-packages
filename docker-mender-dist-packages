@@ -43,13 +43,13 @@ for arch in amd64 armhf arm64; do
             ${MENDER_VERSION:-master} \
             ${arch}
 
-    # Build mender-shell deb package
+    # Build mender-connect deb package
     docker run --rm \
             --volume $(pwd)/output:/output \
             $IMAGE_NAME:cross-${arch} \
-            mender-shell \
-            github.com/mendersoftware/mender-shell \
-            ${MENDER_SHELL_VERSION:-master} \
+            mender-connect \
+            github.com/mendersoftware/mender-connect \
+            ${MENDER_CONNECT_VERSION:-master} \
             ${arch}
 
 done
