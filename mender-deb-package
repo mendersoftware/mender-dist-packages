@@ -76,8 +76,8 @@ prepare_recipe() {
       cp support/mender-client.service debian/mender-client.service ||
       cp support/mender.service debian/mender-client.service
     fi
-  elif [ "${DEB_PACKAGE}" = "mender-shell" ]; then
-    cp support/mender-shell.service debian/
+  elif [ "${DEB_PACKAGE}" = "mender-connect" ]; then
+    cp support/mender-connect.service debian/
   fi
 
   distribution=""

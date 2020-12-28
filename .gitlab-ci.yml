@@ -1,7 +1,7 @@
 variables:
   # Packages versions
   MENDER_VERSION: "master"
-  MENDER_SHELL_VERSION: "master"
+  MENDER_CONNECT_VERSION: "master"
   # Bucket name
   S3_BUCKET_NAME: "mender"
   # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
@@ -110,8 +110,8 @@ publish:s3:apt-repo:
     -     reprepro --keepunreferencedfiles include stable $change_file
     -   done
     - fi
-    - if echo "${MENDER_SHELL_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-shell_*.changes); do
+    - if echo "${MENDER_CONNECT_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
     -     reprepro --keepunreferencedfiles include stable $change_file
     -   done
     - fi
