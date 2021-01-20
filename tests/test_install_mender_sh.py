@@ -55,9 +55,6 @@ class TestInstallMenderScript:
 
     @pytest.mark.usefixtures("setup_test_container_f")
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
-    @pytest.mark.skip(
-        reason="no mender-connect in 'stable'; in 'experimental' depends on client 2.5.0 which is not there yet"
-    )
     def test_default(
         self,
         script_server,
@@ -80,6 +77,26 @@ class TestInstallMenderScript:
 
         setup_tester_ssh_connection_f.run("dpkg --status mender-client")
         setup_tester_ssh_connection_f.run("dpkg --status mender-connect")
+
+        # piggyback misc cmdline tests to save an extra container run
+        # help
+        res = setup_tester_ssh_connection_f.run(
+            "curl http://{}:{}/install-mender.sh | bash -s -- -h".format(
+                localhost, SCRIPT_SERVER_PORT
+            )
+        )
+        assert "usage:" in res.stdout
+
+        # invalid arg/module
+        res = setup_tester_ssh_connection_f.run(
+            "curl http://{}:{}/install-mender.sh | bash -s -- unknown".format(
+                localhost, SCRIPT_SERVER_PORT
+            ),
+            warn=True,
+        )
+
+        assert res.exited == 1
+        assert "Unsupported argument: `unknown`" in res.stdout
 
     @pytest.mark.usefixtures("setup_test_container_f")
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
@@ -109,33 +126,8 @@ class TestInstallMenderScript:
         )
         assert res.exited == 1
 
-        # piggyback misc cmdline tests to save an extra container run
-        # TODO: best place for these bits is the 'default' test case - move when it's unskipped
-
-        # help
-        res = setup_tester_ssh_connection_f.run(
-            "curl http://{}:{}/install-mender.sh | bash -s -- -h".format(
-                localhost, SCRIPT_SERVER_PORT
-            )
-        )
-        assert "usage:" in res.stdout
-
-        # invalid arg/module
-        res = setup_tester_ssh_connection_f.run(
-            "curl http://{}:{}/install-mender.sh | bash -s -- unknown".format(
-                localhost, SCRIPT_SERVER_PORT
-            ),
-            warn=True,
-        )
-
-        assert res.exited == 1
-        assert "Unsupported argument: `unknown`" in res.stdout
-
     @pytest.mark.usefixtures("setup_test_container_f")
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
-    @pytest.mark.skip(
-        reason="no mender-connect in 'stable'; in 'experimental' depends on client 2.5.0 which is not there yet"
-    )
     def test_connect(
         self,
         script_server,
