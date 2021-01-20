@@ -99,24 +99,17 @@ class TestInstallMenderScript:
         assert "Unsupported argument: `unknown`" in res.stdout
 
     @pytest.mark.usefixtures("setup_test_container_f")
-    @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
     def test_client(
         self,
         script_server,
         setup_tester_ssh_connection_f,
         mender_dist_packages_versions,
         mender_version,
-        channel,
     ):
         localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
 
-        if channel != "":
-            channel = "-c " + channel
-
         setup_tester_ssh_connection_f.run(
-            "curl http://{}:{}/install-mender.sh | sudo bash -s -- {} mender-client".format(
-                localhost, SCRIPT_SERVER_PORT, channel
-            )
+            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-client"
         )
 
         setup_tester_ssh_connection_f.run("dpkg --status mender-client")
@@ -127,24 +120,17 @@ class TestInstallMenderScript:
         assert res.exited == 1
 
     @pytest.mark.usefixtures("setup_test_container_f")
-    @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
     def test_connect(
         self,
         script_server,
         setup_tester_ssh_connection_f,
         mender_dist_packages_versions,
         mender_version,
-        channel,
     ):
         localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
 
-        if channel != "":
-            channel = "-c " + channel
-
         setup_tester_ssh_connection_f.run(
-            "curl http://{}:{}/install-mender.sh | sudo bash -s -- {} mender-connect".format(
-                localhost, SCRIPT_SERVER_PORT, channel
-            )
+            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-connect"
         )
 
         setup_tester_ssh_connection_f.run("dpkg --status mender-client")
