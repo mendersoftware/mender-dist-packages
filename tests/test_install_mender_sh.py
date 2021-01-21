@@ -55,9 +55,6 @@ class TestInstallMenderScript:
 
     @pytest.mark.usefixtures("setup_test_container_f")
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
-    @pytest.mark.skip(
-        reason="no mender-connect in 'stable'; in 'experimental' depends on client 2.5.0 which is not there yet"
-    )
     def test_default(
         self,
         script_server,
@@ -81,37 +78,7 @@ class TestInstallMenderScript:
         setup_tester_ssh_connection_f.run("dpkg --status mender-client")
         setup_tester_ssh_connection_f.run("dpkg --status mender-connect")
 
-    @pytest.mark.usefixtures("setup_test_container_f")
-    @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
-    def test_client(
-        self,
-        script_server,
-        setup_tester_ssh_connection_f,
-        mender_dist_packages_versions,
-        mender_version,
-        channel,
-    ):
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
-
-        if channel != "":
-            channel = "-c " + channel
-
-        setup_tester_ssh_connection_f.run(
-            "curl http://{}:{}/install-mender.sh | sudo bash -s -- {} mender-client".format(
-                localhost, SCRIPT_SERVER_PORT, channel
-            )
-        )
-
-        setup_tester_ssh_connection_f.run("dpkg --status mender-client")
-
-        res = setup_tester_ssh_connection_f.run(
-            "dpkg --status mender-connect", warn=True
-        )
-        assert res.exited == 1
-
         # piggyback misc cmdline tests to save an extra container run
-        # TODO: best place for these bits is the 'default' test case - move when it's unskipped
-
         # help
         res = setup_tester_ssh_connection_f.run(
             "curl http://{}:{}/install-mender.sh | bash -s -- -h".format(
@@ -132,27 +99,38 @@ class TestInstallMenderScript:
         assert "Unsupported argument: `unknown`" in res.stdout
 
     @pytest.mark.usefixtures("setup_test_container_f")
-    @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
-    @pytest.mark.skip(
-        reason="no mender-connect in 'stable'; in 'experimental' depends on client 2.5.0 which is not there yet"
-    )
+    def test_client(
+        self,
+        script_server,
+        setup_tester_ssh_connection_f,
+        mender_dist_packages_versions,
+        mender_version,
+    ):
+        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
+
+        setup_tester_ssh_connection_f.run(
+            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-client"
+        )
+
+        setup_tester_ssh_connection_f.run("dpkg --status mender-client")
+
+        res = setup_tester_ssh_connection_f.run(
+            "dpkg --status mender-connect", warn=True
+        )
+        assert res.exited == 1
+
+    @pytest.mark.usefixtures("setup_test_container_f")
     def test_connect(
         self,
         script_server,
         setup_tester_ssh_connection_f,
         mender_dist_packages_versions,
         mender_version,
-        channel,
     ):
         localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
 
-        if channel != "":
-            channel = "-c " + channel
-
         setup_tester_ssh_connection_f.run(
-            "curl http://{}:{}/install-mender.sh | sudo bash -s -- {} mender-connect".format(
-                localhost, SCRIPT_SERVER_PORT, channel
-            )
+            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-connect"
         )
 
         setup_tester_ssh_connection_f.run("dpkg --status mender-client")
