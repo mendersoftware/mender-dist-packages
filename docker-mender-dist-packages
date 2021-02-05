@@ -39,7 +39,7 @@ for arch in amd64 armhf arm64; do
             --volume $(pwd)/output:/output \
             $IMAGE_NAME:cross-${arch} \
             mender-client \
-            github.com/mendersoftware/mender \
+            https://github.com/mendersoftware/mender \
             ${MENDER_VERSION:-master} \
             ${arch}
 
@@ -48,9 +48,20 @@ for arch in amd64 armhf arm64; do
             --volume $(pwd)/output:/output \
             $IMAGE_NAME:cross-${arch} \
             mender-connect \
-            github.com/mendersoftware/mender-connect \
+            https://github.com/mendersoftware/mender-connect \
             ${MENDER_CONNECT_VERSION:-master} \
             ${arch}
+
+    # Build mender-configure deb package (Architecture: all, so build only once)
+    if [ "${arch}" = "amd64" ]; then
+        docker run --rm \
+                --volume $(pwd)/output:/output \
+                $IMAGE_NAME:cross-${arch} \
+                mender-configure \
+                https://github.com/mendersoftware/mender-configure-module \
+                ${MENDER_CONFIGURE_VERSION:-master} \
+                ${arch}
+    fi
 
 done
 

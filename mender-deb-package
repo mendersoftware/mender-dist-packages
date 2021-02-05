@@ -32,7 +32,7 @@ verify_script_arguments() {
 }
 
 checkout_repo() {
-  go get -d $REPO_URL
+  git clone $REPO_URL /root/go/src/$REPO_URL
   cd /root/go/src/$REPO_URL
   git checkout $VERSION
 }
