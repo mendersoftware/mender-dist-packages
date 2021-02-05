@@ -75,11 +75,16 @@ test:acceptance:
     - git submodule sync --recursive
     - git submodule update --init --recursive
   script:
-    - apk --update --no-cache add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev
+    - apk --update --no-cache add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev bash
     - cd tests
     - pip3 install -r requirements.txt
-    - mender_client_deb_version=$(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
-    - python3 -m pytest -v --mender-client-version $MENDER_VERSION --mender-client-deb-version $mender_client_deb_version
+    - python3 -m pytest -v
+      --mender-client-version $MENDER_VERSION
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
+      --mender-connect-version $MENDER_CONNECT_VERSION
+      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-connect-deb-version)
+      --mender-configure-version $MENDER_CONFIGURE_VERSION
+      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version)
 
 publish:s3:apt-repo:
   stage: publish

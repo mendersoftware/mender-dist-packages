@@ -29,6 +29,10 @@ def setup_test_container_props(request):
 def pytest_addoption(parser):
     parser.addoption("--mender-client-version", required=True)
     parser.addoption("--mender-client-deb-version", required=True)
+    parser.addoption("--mender-connect-version", required=True)
+    parser.addoption("--mender-connect-deb-version", required=True)
+    parser.addoption("--mender-configure-version", required=True)
+    parser.addoption("--mender-configure-deb-version", required=True)
 
 
 @pytest.fixture(scope="session")
@@ -37,7 +41,28 @@ def mender_version(request):
 
 
 @pytest.fixture(scope="session")
+def mender_connect_version(request):
+    return request.config.getoption("--mender-connect-version")
+
+
+@pytest.fixture(scope="session")
+def mender_configure_version(request):
+    return request.config.getoption("--mender-configure-version")
+
+
+@pytest.fixture(scope="session")
 def mender_dist_packages_versions(request):
     """Returns dict matching package names and current versions"""
 
-    return {"mender-client": request.config.getoption("--mender-client-deb-version")}
+    return {
+        "mender-client": request.config.getoption("--mender-client-deb-version"),
+        "mender-connect": request.config.getoption("--mender-connect-deb-version"),
+        "mender-configure": request.config.getoption("--mender-configure-deb-version"),
+    }
+
+
+# Required for mender_test_containers/conftest.py::setup_mender_configured, which
+# is only used on addons packages tests. Use version 2.5.0 (dependency)
+@pytest.fixture(scope="session")
+def mender_deb_version(request):
+    return "2.5.0"
