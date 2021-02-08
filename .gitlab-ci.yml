@@ -59,7 +59,7 @@ test:acceptance:
     variables:
       - $SKIP_TESTS == "true"
   stage: test
-  image: docker:18-dind
+  image: docker:19.03-dind
   tags:
     - mender-qa-slave
   dependencies:
@@ -67,15 +67,27 @@ test:acceptance:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
-    - /usr/local/bin/dockerd-entrypoint.sh &
-    - sleep 10
-    - export DOCKER_HOST="unix:///var/run/docker.sock"
+    # DinD setup in mender-qa-slave
+    - unset DOCKER_HOST
+    - unset DOCKER_TLS_VERIFY
+    - unset DOCKER_CERT_PATH
+    # Start dockerd in the background
+    - /usr/local/bin/dockerd &
+    # Wait for dockerd to start
+    - |-
+      MAX_WAIT=30
+      while [ ! -e "/var/run/docker.sock" ] && [ $MAX_WAIT -gt 0 ]; do
+        MAX_WAIT=$(($MAX_WAIT - 1))
+        sleep 1
+      done
+    # Verify that the docker server is up and running
     - docker version
+    # Git submodules
     - apk --update --no-cache add git
     - git submodule sync --recursive
     - git submodule update --init --recursive
   script:
-    - apk --update --no-cache add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev bash
+    - apk --update --no-cache add python3 py3-pip gcc openssh make openssl-dev libffi-dev libc-dev python3-dev bash
     - cd tests
     - pip3 install -r requirements.txt
     - python3 -m pytest -v
