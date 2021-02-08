@@ -2,6 +2,7 @@ variables:
   # Packages versions
   MENDER_VERSION: "master"
   MENDER_CONNECT_VERSION: "master"
+  MENDER_CONFIGURE_VERSION: "master"
   # Bucket name
   S3_BUCKET_NAME: "mender"
   # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
@@ -74,11 +75,16 @@ test:acceptance:
     - git submodule sync --recursive
     - git submodule update --init --recursive
   script:
-    - apk --update --no-cache add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev
+    - apk --update --no-cache add python3 gcc openssh make openssl-dev libffi-dev libc-dev python3-dev bash
     - cd tests
     - pip3 install -r requirements.txt
-    - mender_client_deb_version=$(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
-    - python3 -m pytest -v --mender-client-version $MENDER_VERSION --mender-client-deb-version $mender_client_deb_version
+    - python3 -m pytest -v
+      --mender-client-version $MENDER_VERSION
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
+      --mender-connect-version $MENDER_CONNECT_VERSION
+      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-connect-deb-version)
+      --mender-configure-version $MENDER_CONFIGURE_VERSION
+      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version)
 
 publish:s3:apt-repo:
   stage: publish
@@ -123,6 +129,11 @@ publish:s3:apt-repo:
     - fi
     - if echo "${MENDER_CONNECT_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
+    -     reprepro --keepunreferencedfiles include stable $change_file
+    -   done
+    - fi
+    - if echo "${MENDER_CONFIGURE_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-configure_*.changes); do
     -     reprepro --keepunreferencedfiles include stable $change_file
     -   done
     - fi
