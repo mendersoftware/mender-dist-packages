@@ -4,8 +4,8 @@ set -e
 
 CHANNEL="stable"
 
-DEFAULT_COMPONENTS="mender-client mender-connect"
-SELECTED_COMPONENTS=$DEFAULT_COMPONENTS
+DEFAULT_COMPONENTS="mender-client mender-configure mender-connect"
+SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
 
 export DEBIAN_FRONTEND=noninteractive
 
