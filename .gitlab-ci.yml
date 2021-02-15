@@ -206,19 +206,33 @@ publish:s3:legacy:mender-client:latest:
           --key latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
       done
 
-publish:s3:scripts:install-mender-sh:
+.publish-template:s3:scripts:install-mender-sh:
   stage: publish
   dependencies:
     - test:acceptance
   image: debian:buster
   before_script:
     - apt update && apt install -yyq awscli
+  only:
+    changes:
+      - scripts/install-mender.sh
+
+publish:staging:s3:scripts:install-mender-sh:
+  extends: .publish-template:s3:scripts:install-mender-sh
   script:
-    - echo "Publishing install-mender.sh to S3"
+    - echo "Publishing install-mender.sh to S3 (staging)"
+    - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/staging/install-mender.sh --content-type text/plain
+    - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/staging/install-mender.sh
+  only:
+    refs:
+      - master
+
+publish:production:s3:scripts:install-mender-sh:
+  extends: .publish-template:s3:scripts:install-mender-sh
+  script:
+    - echo "Publishing install-mender.sh to S3 (production)"
     - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/install-mender.sh --content-type text/plain
     - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/install-mender.sh
   only:
     refs:
-      - master
-    changes:
-      - scripts/install-mender.sh
+      - production
