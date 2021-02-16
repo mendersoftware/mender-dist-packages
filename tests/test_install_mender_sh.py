@@ -42,6 +42,14 @@ def script_server():
     print("cleaned up script server")
 
 
+def check_installed(conn, pkg, installed=True):
+    """Check whether the given package is installed on the device given by
+    conn."""
+
+    res = conn.run(f"dpkg --status {pkg}", warn=True)
+    assert (res.return_code == 0) == installed
+
+
 class TestInstallMenderScript:
     def _get_localhost_ip(self, setup_tester_ssh_connection):
         """We need to access the toplevel host's port to curl the script.
@@ -54,14 +62,11 @@ class TestInstallMenderScript:
         return result.stdout.strip()
 
     @pytest.mark.usefixtures("setup_test_container_f")
-    @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
+    # TODO: Restore this when mender-configure has been released.
+    # @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
+    @pytest.mark.parametrize("channel", ["experimental"])
     def test_default(
-        self,
-        script_server,
-        setup_tester_ssh_connection_f,
-        mender_dist_packages_versions,
-        mender_version,
-        channel,
+        self, script_server, setup_tester_ssh_connection_f, channel,
     ):
         """Default, no arg install installs mender-client and mender-connect (stable)."""
         localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
@@ -75,8 +80,8 @@ class TestInstallMenderScript:
             )
         )
 
-        setup_tester_ssh_connection_f.run("dpkg --status mender-client")
-        setup_tester_ssh_connection_f.run("dpkg --status mender-connect")
+        for pkg in ["mender-client", "mender-configure", "mender-connect"]:
+            check_installed(setup_tester_ssh_connection_f, pkg)
 
         # piggyback misc cmdline tests to save an extra container run
         # help
@@ -100,11 +105,7 @@ class TestInstallMenderScript:
 
     @pytest.mark.usefixtures("setup_test_container_f")
     def test_client(
-        self,
-        script_server,
-        setup_tester_ssh_connection_f,
-        mender_dist_packages_versions,
-        mender_version,
+        self, script_server, setup_tester_ssh_connection_f,
     ):
         localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
 
@@ -112,7 +113,13 @@ class TestInstallMenderScript:
             f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-client"
         )
 
-        setup_tester_ssh_connection_f.run("dpkg --status mender-client")
+        check_installed(setup_tester_ssh_connection_f, "mender-client")
+        check_installed(
+            setup_tester_ssh_connection_f, "mender-connect", installed=False
+        )
+        check_installed(
+            setup_tester_ssh_connection_f, "mender-configure", installed=False
+        )
 
         res = setup_tester_ssh_connection_f.run(
             "dpkg --status mender-connect", warn=True
@@ -121,11 +128,7 @@ class TestInstallMenderScript:
 
     @pytest.mark.usefixtures("setup_test_container_f")
     def test_connect(
-        self,
-        script_server,
-        setup_tester_ssh_connection_f,
-        mender_dist_packages_versions,
-        mender_version,
+        self, script_server, setup_tester_ssh_connection_f,
     ):
         localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
 
@@ -133,5 +136,26 @@ class TestInstallMenderScript:
             f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-connect"
         )
 
-        setup_tester_ssh_connection_f.run("dpkg --status mender-client")
-        setup_tester_ssh_connection_f.run("dpkg --status mender-connect")
+        check_installed(setup_tester_ssh_connection_f, "mender-client")
+        check_installed(setup_tester_ssh_connection_f, "mender-connect")
+        check_installed(
+            setup_tester_ssh_connection_f, "mender-configure", installed=False
+        )
+
+    @pytest.mark.usefixtures("setup_test_container_f")
+    def test_configure(
+        self, script_server, setup_tester_ssh_connection_f,
+    ):
+        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
+
+        setup_tester_ssh_connection_f.run(
+            # TODO: Remove "-c experimental when mender-configure has been
+            # released.
+            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- -c experimental mender-configure"
+        )
+
+        check_installed(setup_tester_ssh_connection_f, "mender-client")
+        check_installed(
+            setup_tester_ssh_connection_f, "mender-connect", installed=False
+        )
+        check_installed(setup_tester_ssh_connection_f, "mender-configure")
