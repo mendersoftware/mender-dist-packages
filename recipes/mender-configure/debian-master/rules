@@ -4,7 +4,7 @@
 	dh $@
 
 override_dh_auto_install:
-	DESTDIR=debian/mender-configure make install
+	DESTDIR=debian/tmp make install install-scripts install-demo
 
 override_dh_auto_test:
 	true
