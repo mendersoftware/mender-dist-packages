@@ -12,6 +12,10 @@ install_targets = $(shell egrep ^install\-.*: Makefile | grep -v install-systemd
 override_dh_auto_install:
 	DESTDIR=debian/mender-client make $(install_targets)
 
+	# Install scripts/version file
+	install -d -m 755 debian/mender-client/etc/mender/scripts/
+	echo -n "3" > debian/mender-client/etc/mender/scripts/version
+
 override_dh_auto_test:
 	true
 

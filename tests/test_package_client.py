@@ -67,6 +67,9 @@ class PackageMenderClientChecker:
         ssh_connection.run("test -d /etc/mender")
         ssh_connection.run("test -f /etc/mender/artifact_info")
         ssh_connection.run("test -f /etc/mender/mender.conf")
+        ssh_connection.run("test -f /etc/mender/scripts/version")
+        result = ssh_connection.run("cat /etc/mender/scripts/version")
+        assert "3" == result.stdout
         ssh_connection.run("test -f /lib/systemd/system/mender-client.service")
         ssh_connection.run(
             "test -f /etc/systemd/system/multi-user.target.wants/mender-client.service"
@@ -133,11 +136,13 @@ class PackageMenderClientChecker:
             ssh_connection.run("test ! -f /etc/mender/mender.conf")
             ssh_connection.run("test ! -f /var/lib/mender/device_type")
             ssh_connection.run("test ! -f /etc/mender/artifact_info")
+            ssh_connection.run("test ! -f /etc/mender/scripts/version")
             ssh_connection.run("test ! -d /etc/mender")
         else:
             ssh_connection.run("test -f /etc/mender/mender.conf")
             ssh_connection.run("test -f /var/lib/mender/device_type")
             ssh_connection.run("test -f /etc/mender/artifact_info")
+            ssh_connection.run("test -f /etc/mender/scripts/version")
             ssh_connection.run("test -d /etc/mender")
 
         result = ssh_connection.run("sudo journalctl -u mender-client --no-pager")
