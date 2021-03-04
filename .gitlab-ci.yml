@@ -116,16 +116,12 @@ publish:s3:apt-repo:
     - echo "$GPG_PRIV_KEY_DIST" | gpg --import
     - echo "$GPG_PUB_KEY_BUILD" | gpg --import
     # Lock the bucket to block concurrent jobs
-    - while true; do
-    -   if aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; then
+    - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
     -     echo "$S3_BUCKET_REPO_PATH locked, waiting..."
     -     sleep 10
-    -     continue
-    -   fi
-    -   touch lock
-    -   aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
-    -   break
     - done
+    - touch lock
+    - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
     # Prepare repo from two S3 buckets
     - mkdir repo
     - cd repo
