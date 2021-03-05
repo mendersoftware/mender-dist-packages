@@ -1,2 +1,1 @@
-/usr/share/mender/modules/v3
-/usr/share/mender/inventory
+/usr/lib/mender-configure/apply-device-config.d

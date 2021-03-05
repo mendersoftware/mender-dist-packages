@@ -4,7 +4,18 @@ set -e
 
 CHANNEL="stable"
 
-DEFAULT_COMPONENTS="mender-client mender-configure mender-connect"
+AVAILABLE_COMPONENTS="mender-client \
+mender-configure \
+mender-configure-demo \
+mender-configure-timezone \
+mender-connect"
+
+DEFAULT_COMPONENTS="mender-client \
+mender-configure \
+mender-connect"
+
+DEMO_COMPONENTS="$AVAILABLE_COMPONENTS"
+
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
 
 export DEBIAN_FRONTEND=noninteractive
@@ -27,12 +38,18 @@ usage() {
     echo "usage: install-mender.sh [-h] [-c channel] [component...]"
     echo "  -h             print this help"
     echo "  -c CHANNEL     channel: stable(default)|experimental"
+    echo "  --demo         use defaults appropriate for demo"
     echo "  <component>    list of components to install"
     echo ""
-    echo "Supported components (all installed by default):"
-    for c in $DEFAULT_COMPONENTS
+    echo "Supported components (x = installed by default):"
+    for c in $AVAILABLE_COMPONENTS
     do
-        echo "  * $c"
+        if echo "$DEFAULT_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+            echo -n " (x) "
+        else
+            echo -n " (-) "
+        fi
+        echo "$c"
     done
 }
 
@@ -58,17 +75,19 @@ parse_args() {
             -c)
                 if [ -n "$2" ]; then
                     CHANNEL=$2
-                    shift 2
+                    shift
                 else
                     echo "ERROR: channel requires a non-empty option argument."
                     echo "Aborting."
                     exit 1
                 fi
                 ;;
+            --demo)
+                SELECTED_COMPONENTS="$DEMO_COMPONENTS"
+                ;;
             *)
                 if is_known_component "$1"; then
                     selected_components="$selected_components $1 "
-                    shift
                 else
                     echo "Unsupported argument: \`$1\`"
                     echo "Run \`mender-install.sh -h\` for help."
@@ -77,6 +96,7 @@ parse_args() {
                 fi
                 ;;
         esac
+        shift
     done
     if [ -n "$selected_components" ]; then
         SELECTED_COMPONENTS="$selected_components"
