@@ -63,7 +63,6 @@ class TestPackageAddons:
         )
 
         # Check mender-configure version
-        result = setup_tester_ssh_connection.run("mender-connect version")
         if mender_connect_version == "master":
             # For master it will print the short git hash. We can obtain this from the deb
             # package version, which is something like: "0.0~git20191022.dade697-1"
@@ -72,8 +71,8 @@ class TestPackageAddons:
                 mender_dist_packages_versions["mender-connect"],
             )
             assert m is not None
-            assert m.group(1) in result.stdout
         else:
+            result = setup_tester_ssh_connection.run("mender-connect version")
             assert mender_connect_version in result.stdout
 
     def test_mender_configure(
