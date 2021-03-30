@@ -14,14 +14,14 @@ Description: Mender Configure
 
 Package: mender-configure-timezone
 Architecture: all
-Depends: mender-configure
+Depends: mender-configure, jq
 Description: Mender Configure Timezone
  Mender Configure Timezone is an add-on to Mender Configure which enables configuration
  of timezone on the device
 
 Package: mender-configure-demo
 Architecture: all
-Depends: mender-configure, mender-configure-timezone
+Depends: mender-configure, mender-configure-timezone, jq
 Description: Mender Configure Demo
  Mender Configure Demo is an add-on to Mender Configure which enables some demo
  configurations on the device
