@@ -39,7 +39,6 @@ class PackageMenderClientChecker:
     def check_mender_client_version(
         self, ssh_connection, mender_version, mender_version_deb
     ):
-        result = ssh_connection.run("mender -version")
         if mender_version == "master":
             # For master, mender -version will print the short git hash. We can obtain this
             # from the deb package version, which is something like: "0.0~git20191022.dade697-1"
@@ -47,8 +46,8 @@ class PackageMenderClientChecker:
                 r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-1", mender_version_deb
             )
             assert m is not None
-            assert m.group(1) in result.stdout
         else:
+            result = ssh_connection.run("mender -version")
             assert mender_version in result.stdout
 
     def check_installed_files(self, ssh_connection, device_type="unknown"):
