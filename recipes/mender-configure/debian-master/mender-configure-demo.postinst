@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -e
+
+# default configuration state file's location
+CONFIG="/var/lib/mender-configure/device-config.json"
+
+# install the default configuration if no existing configuration is found
+if [ ! -f "$CONFIG" ]; then
+
+    # create the configuration directory if it doesn't exist
+    CONFIG_DIR=$(dirname "$CONFIG")
+    [ -e "$CONFIG_DIR" ] || mkdir -p "$CONFIG_DIR"
+
+    # get the system's current time zone
+    TIMEZONE=$(cat /etc/timezone)
+
+    # if running on a Raspberry PI, set both timezone and mender-demo-raspberrypi-led keys
+    if [ -e /sys/class/leds/led0/trigger ]; then
+        cat >$CONFIG <<END
+{
+    "timezone": "${TIMEZONE}",
+    "mender-demo-raspberrypi-led": "mmc0"
+}
+END
+    # otherwise, set the timezone key only
+    else
+        cat >$CONFIG <<END
+{
+    "timezone": "${TIMEZONE}"
+}
+END
+    fi
+fi
+
+#DEBHELPER#
