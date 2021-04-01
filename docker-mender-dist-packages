@@ -41,7 +41,8 @@ for arch in amd64 armhf arm64; do
             mender-client \
             https://github.com/mendersoftware/mender \
             ${MENDER_VERSION:-master} \
-            ${arch}
+            ${arch} \
+            ${CI_PIPELINE_ID:-LOCAL}
 
     # Build mender-connect deb package
     docker run --rm \
@@ -50,7 +51,8 @@ for arch in amd64 armhf arm64; do
             mender-connect \
             https://github.com/mendersoftware/mender-connect \
             ${MENDER_CONNECT_VERSION:-master} \
-            ${arch}
+            ${arch} \
+            ${CI_PIPELINE_ID:-LOCAL}
 
     # Build mender-configure deb package (Architecture: all, so build only once)
     if [ "${arch}" = "amd64" ]; then
@@ -60,7 +62,8 @@ for arch in amd64 armhf arm64; do
                 mender-configure \
                 https://github.com/mendersoftware/mender-configure-module \
                 ${MENDER_CONFIGURE_VERSION:-master} \
-                ${arch}
+                ${arch} \
+                ${CI_PIPELINE_ID:-LOCAL}
     fi
 
 done

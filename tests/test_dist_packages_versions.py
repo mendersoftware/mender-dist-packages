@@ -19,8 +19,10 @@ import pytest
 
 
 def verify_package_version(version, deb_version):
-    # For master, expect something like: "0.0~git20191022.dade697-1"
-    master_version_re = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-1")
+    # For master, expect something like: "0.0~git20191022.dade697-1+b279517265"
+    master_version_re = re.compile(
+        r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-1\+b([0-9]+|LOCAL)"
+    )
 
     if version == "master":
         m = master_version_re.match(deb_version)
