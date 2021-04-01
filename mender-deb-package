@@ -22,13 +22,14 @@ verify_output_directory_exists() {
 }
 
 verify_script_arguments() {
-  if [ $# -ne 4 ]; then
+  if [ $# -ne 5 ]; then
     show_help_and_exit
   fi
   DEB_PACKAGE=$1
   REPO_URL=$2
   VERSION=$3
   ARCH=$4
+  BUILD_ID=$5
 }
 
 checkout_repo() {
@@ -38,8 +39,10 @@ checkout_repo() {
 }
 
 get_deb_version() {
-  # Create a version from Git. For master, generate X.Y.Z~git20191022.dade697-1,
-  # where X.Y.Z is latest tag (not necessarily matching git describe)
+  # Create a version from Git.
+  #  - For Git tags: X.Y.Z-1
+  #  - For master: X.Y.Z~git<commit-date>.<commit-sha>-1+b<BUILD_ID>
+  #     where X.Y.Z is latest tag (not necessarily matching git describe)
   if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
     DEB_VERSION="$(git describe --tags --exact-match)-1"
   else
@@ -53,6 +56,8 @@ get_deb_version() {
     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
     # Append Debian suffix
     DEB_VERSION="${DEB_VERSION}-1"
+    # Append build number
+    DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
   fi
 }
 

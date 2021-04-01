@@ -36,17 +36,8 @@ class PackageMenderClientChecker:
 
     expected_copyright_md5sum = "7fd64609fe1bce47db0e8f6e3cc6a11d"
 
-    def check_mender_client_version(
-        self, ssh_connection, mender_version, mender_version_deb
-    ):
-        if mender_version == "master":
-            # For master, mender -version will print the short git hash. We can obtain this
-            # from the deb package version, which is something like: "0.0~git20191022.dade697-1"
-            m = re.match(
-                r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-1", mender_version_deb
-            )
-            assert m is not None
-        else:
+    def check_mender_client_version(self, ssh_connection, mender_version):
+        if mender_version != "master":
             result = ssh_connection.run("mender -version")
             assert mender_version in result.stdout
 
@@ -184,11 +175,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
             in result.stdout
         )
 
-        self.check_mender_client_version(
-            setup_tester_ssh_connection,
-            mender_version,
-            mender_dist_packages_versions["mender-client"],
-        )
+        self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
         self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
 
@@ -273,11 +260,7 @@ STDIN"""
             in result.stdout
         )
 
-        self.check_mender_client_version(
-            setup_tester_ssh_connection,
-            mender_version,
-            mender_dist_packages_versions["mender-client"],
-        )
+        self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
         self.check_installed_files(setup_tester_ssh_connection, "raspberrytest")
 
