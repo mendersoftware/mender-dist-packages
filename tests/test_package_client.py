@@ -275,32 +275,6 @@ STDIN"""
 
         self.check_systemd_start_full_cycle(setup_tester_ssh_connection)
 
-    @pytest.mark.usefixtures("setup_test_container")
-    def test_remove_stop(
-        self, setup_tester_ssh_connection, mender_dist_packages_versions
-    ):
-        result = setup_tester_ssh_connection.run("sudo dpkg -r mender-client")
-        assert (
-            "Removing mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-
-        self.check_removed_files(setup_tester_ssh_connection, purge=False)
-
-    @pytest.mark.usefixtures("setup_test_container")
-    def test_purge(self, setup_tester_ssh_connection, mender_dist_packages_versions):
-        result = setup_tester_ssh_connection.run("sudo dpkg -P mender-client")
-        assert (
-            "Purging configuration files for mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-
-        self.check_removed_files(setup_tester_ssh_connection, purge=True)
-
 
 class TestPackageMenderClientSystemd:
     def test_mender_client_service_starts_after_reboot(
