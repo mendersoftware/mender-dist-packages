@@ -147,7 +147,7 @@ publish:s3:apt-repo:
     -   done
     - fi
     # Include everything else to experimental. Allow failures to ignore wrong
-    # distribution (final tags) or to ignore checksum missmatches (master rebuilds)
+    # distribution (final tags) or to ignore checksum mismatches (master rebuilds)
     - for change_file in $(ls ${CI_PROJECT_DIR}/output/*.changes); do
     -   reprepro --keepunreferencedfiles include experimental $change_file || true
     - done
