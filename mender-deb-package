@@ -32,8 +32,8 @@ verify_script_arguments() {
 }
 
 checkout_repo() {
-  git clone $REPO_URL /root/go/src/$REPO_URL
-  cd /root/go/src/$REPO_URL
+  git clone $REPO_URL /root/go/src/${REPO_URL#https://}
+  cd /root/go/src/${REPO_URL#https://}
   git checkout $VERSION
 }
 
