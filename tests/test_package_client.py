@@ -185,6 +185,32 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         self.check_systemd_start_full_cycle(setup_tester_ssh_connection)
 
+    def test_service_starts_after_reboot(
+        self,
+        setup_test_container,
+        setup_tester_ssh_connection,
+        mender_dist_packages_versions,
+    ):
+        # Reboot in the background, so that SSH can exit properly
+        setup_tester_ssh_connection.run("sleep 1 && sudo reboot &")
+
+        # Wait for the reboot to actually start before calling wait_for_container_boot
+        time.sleep(10)
+        wait_for_container_boot(setup_test_container.container_id)
+
+        # Check first that mender process is running
+        result = setup_tester_ssh_connection.run("pgrep mender")
+        assert result.exited == 0
+
+        result = setup_tester_ssh_connection.run(
+            "sudo journalctl -u mender-client --no-pager"
+        )
+
+        # Check Mender service start after device reboot
+        assert "Started Mender OTA update service." in result.stdout
+        assert "Loaded configuration file" in result.stdout
+        assert "No dual rootfs configuration present" in result.stdout
+
     @pytest.mark.usefixtures("setup_test_container")
     def test_remove_stop(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
@@ -274,63 +300,3 @@ STDIN"""
         )
 
         self.check_systemd_start_full_cycle(setup_tester_ssh_connection)
-
-    @pytest.mark.usefixtures("setup_test_container")
-    def test_remove_stop(
-        self, setup_tester_ssh_connection, mender_dist_packages_versions
-    ):
-        result = setup_tester_ssh_connection.run("sudo dpkg -r mender-client")
-        assert (
-            "Removing mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-
-        self.check_removed_files(setup_tester_ssh_connection, purge=False)
-
-    @pytest.mark.usefixtures("setup_test_container")
-    def test_purge(self, setup_tester_ssh_connection, mender_dist_packages_versions):
-        result = setup_tester_ssh_connection.run("sudo dpkg -P mender-client")
-        assert (
-            "Purging configuration files for mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-
-        self.check_removed_files(setup_tester_ssh_connection, purge=True)
-
-
-class TestPackageMenderClientSystemd:
-    def test_mender_client_service_starts_after_reboot(
-        self,
-        setup_test_container,
-        setup_tester_ssh_connection,
-        mender_dist_packages_versions,
-    ):
-        conn = setup_tester_ssh_connection
-        upload_deb_package(conn, mender_dist_packages_versions["mender-client"])
-
-        conn.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
-            + package_filename(mender_dist_packages_versions["mender-client"])
-        )
-
-        # Reboot in the background, so that SSH can exit properly
-        conn.run("sleep 1 && sudo reboot &")
-
-        # Wait for the reboot to actually start before calling wait_for_container_boot
-        time.sleep(10)
-        wait_for_container_boot(setup_test_container.container_id)
-
-        # Check first that mender process is running
-        result = conn.run("pgrep mender")
-        assert result.exited == 0
-
-        result = conn.run("sudo journalctl -u mender-client --no-pager")
-
-        # Check Mender service start after device reboot
-        assert "Started Mender OTA update service." in result.stdout
-        assert "Loaded configuration file" in result.stdout
-        assert "No dual rootfs configuration present" in result.stdout
