@@ -62,9 +62,7 @@ class TestInstallMenderScript:
         return result.stdout.strip()
 
     @pytest.mark.usefixtures("setup_test_container_f")
-    # TODO: Restore this when mender-configure has been released.
-    # @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
-    @pytest.mark.parametrize("channel", ["experimental"])
+    @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
     def test_default(
         self, script_server, setup_tester_ssh_connection_f, channel,
     ):
@@ -149,9 +147,7 @@ class TestInstallMenderScript:
         localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
 
         setup_tester_ssh_connection_f.run(
-            # TODO: Remove "-c experimental when mender-configure has been
-            # released.
-            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- -c experimental mender-configure"
+            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-configure"
         )
 
         check_installed(setup_tester_ssh_connection_f, "mender-client")
