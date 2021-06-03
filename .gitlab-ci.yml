@@ -33,7 +33,7 @@ include:
 stages:
   - build
   - test
-  - publish
+  # - publish
 
 build:
   stage: build
@@ -83,12 +83,11 @@ test:acceptance:
     # Verify that the docker server is up and running
     - docker version
     # Git submodules
-    - apk --update --no-cache add git
+    - apk --update --no-cache add git python3 py3-pip gcc openssh make openssl-dev
+      libffi-dev libc-dev python3-dev bash musl-dev rust cargo
     - git submodule sync --recursive
     - git submodule update --init --recursive
   script:
-    - apk --update --no-cache add python3 py3-pip gcc openssh make openssl-dev
-      libffi-dev libc-dev python3-dev bash musl-dev rust cargo
     - cd tests
     - pip3 install -r requirements.txt
     - python3 -m pytest -v
@@ -99,136 +98,136 @@ test:acceptance:
       --mender-configure-version $MENDER_CONFIGURE_VERSION
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version)
 
-publish:s3:apt-repo:
-  stage: publish
-  only:
-    - master
-  image: debian:buster
-  dependencies:
-    - build
-  before_script:
-    - apt update && apt install -yyq reprepro awscli
-    # Check and import GPG keys
-    - if [ -z "$GPG_PRIV_KEY_DIST" -o -z "$GPG_PUB_KEY_BUILD" ]; then
-    -   echo "Error. GPG keys not available"
-    -   exit 1
-    - fi
-    - echo "$GPG_PRIV_KEY_DIST" | gpg --import
-    - echo "$GPG_PUB_KEY_BUILD" | gpg --import
-    # Lock the bucket to block concurrent jobs
-    - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
-    -     echo "$S3_BUCKET_REPO_PATH locked, waiting..."
-    -     sleep 10
-    - done
-    - touch lock
-    - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
-    # Prepare repo from two S3 buckets
-    - mkdir repo
-    - cd repo
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/conf conf
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db db
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists dists
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool pool
-  script:
-    # If build from final tag, include in stable
-    - if echo "${MENDER_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-client_*.changes); do
-    -     reprepro --keepunreferencedfiles include stable $change_file
-    -   done
-    - fi
-    - if echo "${MENDER_CONNECT_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
-    -     reprepro --keepunreferencedfiles include stable $change_file
-    -   done
-    - fi
-    - if echo "${MENDER_CONFIGURE_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-configure_*.changes); do
-    -     reprepro --keepunreferencedfiles include stable $change_file
-    -   done
-    - fi
-    # Include everything else to experimental. Allow failures to ignore wrong
-    # distribution (final tags) or to ignore checksum mismatches (master rebuilds)
-    - for change_file in $(ls ${CI_PROJECT_DIR}/output/*.changes); do
-    -   reprepro --keepunreferencedfiles include experimental $change_file || true
-    - done
-    # Upload to bucket
-    - aws s3 sync db s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db
-    - aws s3 sync pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
-    - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool/ |
-      awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
-    - aws s3 sync dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
-    - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists/ |
-      awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
-  after_script:
-    - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+# publish:s3:apt-repo:
+#   stage: publish
+#   only:
+#     - master
+#   image: debian:buster
+#   dependencies:
+#     - build
+#   before_script:
+#     - apt update && apt install -yyq reprepro awscli
+#     # Check and import GPG keys
+#     - if [ -z "$GPG_PRIV_KEY_DIST" -o -z "$GPG_PUB_KEY_BUILD" ]; then
+#     -   echo "Error. GPG keys not available"
+#     -   exit 1
+#     - fi
+#     - echo "$GPG_PRIV_KEY_DIST" | gpg --import
+#     - echo "$GPG_PUB_KEY_BUILD" | gpg --import
+#     # Lock the bucket to block concurrent jobs
+#     - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
+#     -     echo "$S3_BUCKET_REPO_PATH locked, waiting..."
+#     -     sleep 10
+#     - done
+#     - touch lock
+#     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+#     # Prepare repo from two S3 buckets
+#     - mkdir repo
+#     - cd repo
+#     - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/conf conf
+#     - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db db
+#     - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists dists
+#     - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool pool
+#   script:
+#     # If build from final tag, include in stable
+#     - if echo "${MENDER_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+#     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-client_*.changes); do
+#     -     reprepro --keepunreferencedfiles include stable $change_file
+#     -   done
+#     - fi
+#     - if echo "${MENDER_CONNECT_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+#     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
+#     -     reprepro --keepunreferencedfiles include stable $change_file
+#     -   done
+#     - fi
+#     - if echo "${MENDER_CONFIGURE_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+#     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-configure_*.changes); do
+#     -     reprepro --keepunreferencedfiles include stable $change_file
+#     -   done
+#     - fi
+#     # Include everything else to experimental. Allow failures to ignore wrong
+#     # distribution (final tags) or to ignore checksum mismatches (master rebuilds)
+#     - for change_file in $(ls ${CI_PROJECT_DIR}/output/*.changes); do
+#     -   reprepro --keepunreferencedfiles include experimental $change_file || true
+#     - done
+#     # Upload to bucket
+#     - aws s3 sync db s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db
+#     - aws s3 sync pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
+#     - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool/ |
+#       awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
+#     - aws s3 sync dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
+#     - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists/ |
+#       awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
+#   after_script:
+#     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
-publish:s3:legacy:mender-client:
-  stage: publish
-  image: debian:buster
-  dependencies:
-    - build
-  before_script:
-    - apt update && apt install -yyq awscli
-    - deb_version=$(cat output/mender-client-deb-version)
-  script:
-    - echo "Publishing ${MENDER_VERSION} packages to S3"
-    # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
-    - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
-          s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
-        aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-          --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
-        if [ "${MENDER_VERSION}" == "master" ]; then
-          aws s3 cp output/mender-client_${deb_version}_${arch}.deb
-            s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
-          aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-            --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
-        fi;
-      done
-  only:
-    - master
+# publish:s3:legacy:mender-client:
+#   stage: publish
+#   image: debian:buster
+#   dependencies:
+#     - build
+#   before_script:
+#     - apt update && apt install -yyq awscli
+#     - deb_version=$(cat output/mender-client-deb-version)
+#   script:
+#     - echo "Publishing ${MENDER_VERSION} packages to S3"
+#     # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
+#     - for arch in amd64 arm64 armhf; do
+#         aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+#           s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
+#         aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
+#           --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
+#         if [ "${MENDER_VERSION}" == "master" ]; then
+#           aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+#             s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+#           aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
+#             --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+#         fi;
+#       done
+#   only:
+#     - master
 
-publish:s3:legacy:mender-client:latest:
-  extends: publish:s3:legacy:mender-client
-  only:
-    variables:
-      - $PUBLISH_LATEST_CLIENT_PACKAGE == "true"
-  script:
-    - echo "Publishing latest packages to S3"
-    - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
-          s3://${S3_BUCKET_NAME}/latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
-        aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-          --key latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
-      done
+# publish:s3:legacy:mender-client:latest:
+#   extends: publish:s3:legacy:mender-client
+#   only:
+#     variables:
+#       - $PUBLISH_LATEST_CLIENT_PACKAGE == "true"
+#   script:
+#     - echo "Publishing latest packages to S3"
+#     - for arch in amd64 arm64 armhf; do
+#         aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+#           s3://${S3_BUCKET_NAME}/latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
+#         aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
+#           --key latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
+#       done
 
-.publish-template:s3:scripts:install-mender-sh:
-  stage: publish
-  dependencies:
-    - test:acceptance
-  image: debian:buster
-  before_script:
-    - apt update && apt install -yyq awscli
-  only:
-    changes:
-      - scripts/install-mender.sh
+# .publish-template:s3:scripts:install-mender-sh:
+#   stage: publish
+#   dependencies:
+#     - test:acceptance
+#   image: debian:buster
+#   before_script:
+#     - apt update && apt install -yyq awscli
+#   only:
+#     changes:
+#       - scripts/install-mender.sh
 
-publish:staging:s3:scripts:install-mender-sh:
-  extends: .publish-template:s3:scripts:install-mender-sh
-  script:
-    - echo "Publishing install-mender.sh to S3 (staging)"
-    - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/staging/install-mender.sh --content-type text/plain
-    - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/staging/install-mender.sh
-  only:
-    refs:
-      - master
+# publish:staging:s3:scripts:install-mender-sh:
+#   extends: .publish-template:s3:scripts:install-mender-sh
+#   script:
+#     - echo "Publishing install-mender.sh to S3 (staging)"
+#     - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/staging/install-mender.sh --content-type text/plain
+#     - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/staging/install-mender.sh
+#   only:
+#     refs:
+#       - master
 
-publish:production:s3:scripts:install-mender-sh:
-  extends: .publish-template:s3:scripts:install-mender-sh
-  script:
-    - echo "Publishing install-mender.sh to S3 (production)"
-    - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/install-mender.sh --content-type text/plain
-    - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/install-mender.sh
-  only:
-    refs:
-      - production
+# publish:production:s3:scripts:install-mender-sh:
+#   extends: .publish-template:s3:scripts:install-mender-sh
+#   script:
+#     - echo "Publishing install-mender.sh to S3 (production)"
+#     - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/install-mender.sh --content-type text/plain
+#     - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/install-mender.sh
+#   only:
+#     refs:
+#       - production
