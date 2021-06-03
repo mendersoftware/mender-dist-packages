@@ -23,15 +23,15 @@ export DEBIAN_FRONTEND=noninteractive
 banner (){
     echo "
                           _
- _ __ ___   ___ _ __   __| | ___ _ __ 
+ _ __ ___   ___ _ __   __| | ___ _ __
 | '_ \` _ \ / _ \ '_ \ / _\` |/ _ \ '__|
-| | | | | |  __/ | | | (_| |  __/ |   
-|_| |_| |_|\___|_| |_|\__,_|\___|_|   
+| | | | | |  __/ | | | (_| |  __/ |
+|_| |_| |_|\___|_| |_|\__,_|\___|_|
 
 Running the Mender installation script.
 --
 "
-                                      
+
 }
 
 usage() {
@@ -57,7 +57,7 @@ is_known_component() {
     for known in $DEFAULT_COMPONENTS
     do
         if [ "$1" = "$known" ]; then
-            return 0 
+            return 0
         fi
     done
     return 1
@@ -139,13 +139,13 @@ add_repo() {
     repo="deb [arch=$ARCH] $REPO_URL $CHANNEL main"
 
     if ! grep -F "$repo" /etc/apt/sources.list; then
-	echo "adding $repo to /etc/apt/sources.list"
+  echo "adding $repo to /etc/apt/sources.list"
         echo "$repo" >> /etc/apt/sources.list
     fi
 }
 
 do_install() {
-    apt-get update 
+    apt-get update
     apt-get install -y \
        -o Dpkg::Options::="--force-confdef" \
        -o Dpkg::Options::="--force-confold" \
