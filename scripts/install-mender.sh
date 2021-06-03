@@ -138,9 +138,20 @@ add_repo() {
 
     repo="deb [arch=$ARCH] $REPO_URL $CHANNEL main"
 
-    if ! grep -F "$repo" /etc/apt/sources.list; then
-  echo "adding $repo to /etc/apt/sources.list"
-        echo "$repo" >> /etc/apt/sources.list
+    echo "Checking if mender sources already exist in '/etc/apt/sources.list'..."
+    if grep -F "$repo" /etc/apt/sources.list; then
+        echo "Removing the old mender debian source list from /etc/apt/sources.list..."
+        if ! sed -i.bak -e "\,$REPO_URL,d" /etc/apt/sources.list; then
+            echo "Failed to remove the existing mender debian source from '/etc/apt/sources.list'."
+            echo "This probably means that there already exists a source in your sources.list."
+            echo "Please remove it manually before proceeding."
+            exit 1
+        fi
+    fi
+
+    if ! grep -F "$repo" /etc/apt/sources.list.d/mender.list; then
+        echo "adding $repo to /etc/apt/sources.list.d/mender.list"
+        echo "$repo" >> /etc/apt/sources.list.d/mender.list
     fi
 }
 
