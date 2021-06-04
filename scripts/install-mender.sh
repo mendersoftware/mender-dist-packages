@@ -23,15 +23,15 @@ export DEBIAN_FRONTEND=noninteractive
 banner (){
     echo "
                           _
- _ __ ___   ___ _ __   __| | ___ _ __ 
+ _ __ ___   ___ _ __   __| | ___ _ __
 | '_ \` _ \ / _ \ '_ \ / _\` |/ _ \ '__|
-| | | | | |  __/ | | | (_| |  __/ |   
-|_| |_| |_|\___|_| |_|\__,_|\___|_|   
+| | | | | |  __/ | | | (_| |  __/ |
+|_| |_| |_|\___|_| |_|\__,_|\___|_|
 
 Running the Mender installation script.
 --
 "
-                                      
+
 }
 
 usage() {
@@ -57,7 +57,7 @@ is_known_component() {
     for known in $DEFAULT_COMPONENTS
     do
         if [ "$1" = "$known" ]; then
-            return 0 
+            return 0
         fi
     done
     return 1
@@ -138,14 +138,25 @@ add_repo() {
 
     repo="deb [arch=$ARCH] $REPO_URL $CHANNEL main"
 
-    if ! grep -F "$repo" /etc/apt/sources.list; then
-	echo "adding $repo to /etc/apt/sources.list"
-        echo "$repo" >> /etc/apt/sources.list
+    echo "Checking if mender sources already exist in '/etc/apt/sources.list'..."
+    if grep -F "$repo" /etc/apt/sources.list; then
+        echo "Removing the old mender debian source list from /etc/apt/sources.list..."
+        if ! sed -i.bak -e "\,$REPO_URL,d" /etc/apt/sources.list; then
+            echo "Failed to remove the existing mender debian source from '/etc/apt/sources.list'."
+            echo "This probably means that there already exists a source in your sources.list."
+            echo "Please remove it manually before proceeding."
+            exit 1
+        fi
+    fi
+
+    if ! grep -F "$repo" /etc/apt/sources.list.d/mender.list; then
+        echo "adding $repo to /etc/apt/sources.list.d/mender.list"
+        echo "$repo" >> /etc/apt/sources.list.d/mender.list
     fi
 }
 
 do_install() {
-    apt-get update 
+    apt-get update
     apt-get install -y \
        -o Dpkg::Options::="--force-confdef" \
        -o Dpkg::Options::="--force-confold" \
