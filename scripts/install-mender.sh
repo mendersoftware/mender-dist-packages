@@ -149,10 +149,7 @@ add_repo() {
         fi
     fi
 
-    if ! grep -F "$repo" /etc/apt/sources.list.d/mender.list; then
-        echo "adding $repo to /etc/apt/sources.list.d/mender.list"
-        echo "$repo" >> /etc/apt/sources.list.d/mender.list
-    fi
+    echo "$repo" > /etc/apt/sources.list.d/mender.list
 }
 
 do_install() {
