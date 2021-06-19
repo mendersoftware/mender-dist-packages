@@ -22,14 +22,15 @@ verify_output_directory_exists() {
 }
 
 verify_script_arguments() {
-  if [ $# -ne 5 ]; then
+  if [ $# -ne 6 ]; then
     show_help_and_exit
   fi
   DEB_PACKAGE=$1
-  REPO_URL=$2
-  VERSION=$3
-  ARCH=$4
-  BUILD_ID=$5
+  DEB_BUILD_TYPE=$2
+  REPO_URL=$3
+  VERSION=$4
+  ARCH=$5
+  BUILD_ID=$6
 }
 
 checkout_repo() {
@@ -113,7 +114,7 @@ build_packages() {
       # Native build (amd64)
       dpkg-buildpackage \
         ${sign_flags} \
-        --build=binary
+        --build=$DEB_BUILD_TYPE
       ;;
 
     armhf)
@@ -135,7 +136,7 @@ build_packages() {
                   GOARM=6 \
                   dpkg-buildpackage -aarmhf \
                   ${sign_flags} \
-                  --build=binary
+                  --build=$DEB_BUILD_TYPE
       ;;
 
     arm64)
@@ -146,7 +147,7 @@ build_packages() {
                   GOARCH=arm64 \
                   dpkg-buildpackage -aarm64 \
                   ${sign_flags} \
-                  --build=binary
+                  --build=$DEB_BUILD_TYPE
       ;;
   esac
 }
