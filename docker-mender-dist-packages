@@ -34,38 +34,53 @@ for arch in amd64 armhf arm64; do
                 .
     fi
 
-    # Build mender-client deb package
+    # Build the architecture specific binary packages (any)
+    # mender-client
     docker run --rm \
             --volume $(pwd)/output:/output \
             $IMAGE_NAME:cross-${arch} \
             mender-client \
+            any \
             https://github.com/mendersoftware/mender \
             ${MENDER_VERSION:-master} \
             ${arch} \
             ${CI_PIPELINE_ID:-LOCAL}
 
-    # Build mender-connect deb package
+    # mender-connect
     docker run --rm \
             --volume $(pwd)/output:/output \
             $IMAGE_NAME:cross-${arch} \
             mender-connect \
+            any \
             https://github.com/mendersoftware/mender-connect \
             ${MENDER_CONNECT_VERSION:-master} \
             ${arch} \
             ${CI_PIPELINE_ID:-LOCAL}
 
-    # Build mender-configure deb package (Architecture: all, so build only once)
-    if [ "${arch}" = "amd64" ]; then
-        docker run --rm \
-                --volume $(pwd)/output:/output \
-                $IMAGE_NAME:cross-${arch} \
-                mender-configure \
-                https://github.com/mendersoftware/mender-configure-module \
-                ${MENDER_CONFIGURE_VERSION:-master} \
-                ${arch} \
-                ${CI_PIPELINE_ID:-LOCAL}
-    fi
-
 done
+
+# Build the architecture independent binary packages (all)
+# mender-configure
+docker run --rm \
+        --volume $(pwd)/output:/output \
+        $IMAGE_NAME:cross-amd64 \
+        mender-configure \
+        all \
+        https://github.com/mendersoftware/mender-configure-module \
+        ${MENDER_CONFIGURE_VERSION:-master} \
+        amd64 \
+        ${CI_PIPELINE_ID:-LOCAL}
+
+# mender-client (-dev package)
+docker run --rm \
+        --volume $(pwd)/output:/output \
+        $IMAGE_NAME:cross-amd64 \
+        mender-client \
+        all \
+        https://github.com/mendersoftware/mender \
+        ${MENDER_VERSION:-master} \
+        amd64 \
+        ${CI_PIPELINE_ID:-LOCAL}
+
 
 sudo chown $(id -u):$(id -g) output/*
