@@ -137,6 +137,13 @@ publish:s3:apt-repo:
         echo "${version}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'
         return $?
       }
+    # Bash function to check if the string is a build tag
+    - |
+      function is_build_tag () {
+        version=$1
+        echo "${version}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+-build[0-9]+$'
+        return $?
+      }
     # Bash function to compare two semantic versions, returns: 0 (=), 1(>) or 2(<)
     #  * "master" always evaluates to greater than any other version
     #  * "build" versions like 1.3.4-build for are evaluated as 1.2.3
@@ -208,8 +215,13 @@ publish:s3:apt-repo:
     -   else
     -     codename=experimental
     -   fi
+    -   if is_final_tag ${MENDER_VERSION} || is_build_tag ${MENDER_VERSION}; then
+    -     keepfilesflag=--keepunreferencedfiles
+    -   else
+    -     keepfilesflag=
+    -   fi
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-client_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
+    -     reprepro ${keepfilesflag} include ${codename} ${change_file}
     -   done
     - else
     -   cp mender-client*.deb pool/main/m/mender-client/
@@ -222,8 +234,13 @@ publish:s3:apt-repo:
     -   else
     -     codename=experimental
     -   fi
+    -   if is_final_tag ${MENDER_CONNECT_VERSION} || is_build_tag ${MENDER_CONNECT_VERSION}; then
+    -     keepfilesflag=--keepunreferencedfiles
+    -   else
+    -     keepfilesflag=
+    -   fi
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
+    -     reprepro ${keepfilesflag} include ${codename} ${change_file}
     -   done
     - else
     -   cp mender-connect*.deb pool/main/m/mender-connect/
@@ -236,8 +253,13 @@ publish:s3:apt-repo:
     -   else
     -     codename=experimental
     -   fi
+    -   if is_final_tag ${MENDER_CONFIGURE_VERSION} || is_build_tag ${MENDER_CONFIGURE_VERSION}; then
+    -     keepfilesflag=--keepunreferencedfiles
+    -   else
+    -     keepfilesflag=
+    -   fi
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-configure_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
+    -     reprepro ${keepfilesflag} include ${codename} ${change_file}
     -   done
     - else
     -   cp mender-configure*.deb pool/main/m/mender-configure/
@@ -254,7 +276,8 @@ publish:s3:apt-repo:
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
-publish:s3:legacy:mender-client:
+# These copies are for the mender-docs direct download links (only mender-client)
+publish:s3:mender-client:
   stage: publish
   image: debian:buster
   dependencies:
@@ -264,7 +287,7 @@ publish:s3:legacy:mender-client:
     - deb_version=$(cat output/mender-client-deb-version)
   script:
     - echo "Publishing ${MENDER_VERSION} packages to S3"
-    # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
+    # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for the dev docs
     - for arch in amd64 arm64 armhf; do
         aws s3 cp output/mender-client_${deb_version}_${arch}.deb
           s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
@@ -280,6 +303,7 @@ publish:s3:legacy:mender-client:
   only:
     - master
 
+# This legacy job can be removed after mender-convert 2.2.x goes EOL
 publish:s3:legacy:mender-client:latest:
   extends: publish:s3:legacy:mender-client
   only:
