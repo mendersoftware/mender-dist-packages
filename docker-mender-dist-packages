@@ -34,13 +34,13 @@ for arch in amd64 armhf arm64; do
                 .
     fi
 
-    # Build the architecture specific binary packages (any)
+    # Build the binary packages, including architecture specific ones (binary)
     # mender-client
     docker run --rm \
             --volume $(pwd)/output:/output \
             $IMAGE_NAME:cross-${arch} \
             mender-client \
-            any \
+            binary \
             https://github.com/mendersoftware/mender \
             ${MENDER_VERSION:-master} \
             ${arch} \
@@ -51,7 +51,7 @@ for arch in amd64 armhf arm64; do
             --volume $(pwd)/output:/output \
             $IMAGE_NAME:cross-${arch} \
             mender-connect \
-            any \
+            binary \
             https://github.com/mendersoftware/mender-connect \
             ${MENDER_CONNECT_VERSION:-master} \
             ${arch} \
@@ -68,17 +68,6 @@ docker run --rm \
         all \
         https://github.com/mendersoftware/mender-configure-module \
         ${MENDER_CONFIGURE_VERSION:-master} \
-        amd64 \
-        ${CI_PIPELINE_ID:-LOCAL}
-
-# mender-client (-dev package)
-docker run --rm \
-        --volume $(pwd)/output:/output \
-        $IMAGE_NAME:cross-amd64 \
-        mender-client \
-        all \
-        https://github.com/mendersoftware/mender \
-        ${MENDER_VERSION:-master} \
         amd64 \
         ${CI_PIPELINE_ID:-LOCAL}
 
