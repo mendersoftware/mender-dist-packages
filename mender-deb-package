@@ -159,6 +159,9 @@ copy_packages_to_output() {
   done
   # Echo the package version to /output
   echo ${DEB_VERSION} > /output/${DEB_PACKAGE}-deb-version
+
+  # Give packages same owner as the folder.
+  chown --reference /output /output/*
 }
 
 

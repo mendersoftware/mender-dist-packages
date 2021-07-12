@@ -70,6 +70,3 @@ docker run --rm \
         ${MENDER_CONFIGURE_VERSION:-master} \
         amd64 \
         ${CI_PIPELINE_ID:-LOCAL}
-
-
-sudo chown $(id -u):$(id -g) output/*
