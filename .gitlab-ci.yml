@@ -212,7 +212,7 @@ publish:s3:apt-repo:
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp mender-client*.deb pool/main/m/mender-client/
+    -   cp ${CI_PROJECT_DIR}/output/mender-client*.deb pool/main/m/mender-client/
     - fi
 
     # mender-connect
@@ -226,7 +226,7 @@ publish:s3:apt-repo:
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp mender-connect*.deb pool/main/m/mender-connect/
+    -   cp ${CI_PROJECT_DIR}/output/mender-connect*.deb pool/main/m/mender-connect/
     - fi
 
     # mender-configure
@@ -240,7 +240,7 @@ publish:s3:apt-repo:
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp mender-configure*.deb pool/main/m/mender-configure/
+    -   cp ${CI_PROJECT_DIR}/output/mender-configure*.deb pool/main/m/mender-configure/
     - fi
 
     # Upload to bucket
