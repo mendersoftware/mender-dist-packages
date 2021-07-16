@@ -22,11 +22,11 @@ RUN if [ "${ARCH}" != "armhf" ]; then \
 
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
 # https://tracker.mender.io/browse/MEN-2399
-ENV ARMV6_TOOLCHAIN_ROOT="/armv6-eabihf--glibc--stable-2018.11-1"
+ENV ARMV6_TOOLCHAIN_ROOT="/armv6-eabihf--glibc--stable-2020.08-1"
 RUN if [ "${ARCH}" = "armhf" ]; then \
-        wget -nc -q https://toolchains.bootlin.com/downloads/releases/toolchains/armv6-eabihf/tarballs/armv6-eabihf--glibc--stable-2018.11-1.tar.bz2 \
-        && tar -xjf armv6-eabihf--glibc--stable-2018.11-1.tar.bz2 \
-        && rm armv6-eabihf--glibc--stable-2018.11-1.tar.bz2; \
+        wget -nc -q https://toolchains.bootlin.com/downloads/releases/toolchains/armv6-eabihf/tarballs/armv6-eabihf--glibc--stable-2020.08-1.tar.bz2 \
+        && tar -xjf armv6-eabihf--glibc--stable-2020.08-1.tar.bz2 \
+        && rm armv6-eabihf--glibc--stable-2020.08-1.tar.bz2; \
     fi
 
 # Get depdendencies from upstream, manually donwloading deb packages, and fake pkg-config.
