@@ -61,7 +61,7 @@ RUN if [ "${ARCH}" = "armhf" ]; then \
             uuid-runtime \
             uuid-dev \
         ; do \
-            deb_package_url=$(grep Filename Packages | grep ${pkg}_ | grep armhf | tail -n1 | sed 's/Filename: //'); \
+            deb_package_url=$(grep Filename Packages | grep /${pkg}_ | grep armhf | tail -n1 | sed 's/Filename: //'); \
             echo "Downloading ${pkg}..."; \
             filename=$(basename $deb_package_url); \
             curl -L http://raspbian.raspberrypi.org/raspbian/${deb_package_url} -o $filename 2>/dev/null; \
