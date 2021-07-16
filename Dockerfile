@@ -1,5 +1,6 @@
-ARG DEBIAN_VERSION=stretch
+ARG DEBIAN_VERSION=buster
 FROM debian:$DEBIAN_VERSION
+ARG DEBIAN_VERSION
 
 RUN apt-get update && \
     apt-get install -y \
@@ -35,7 +36,7 @@ RUN if [ "${ARCH}" = "armhf" ]; then \
 RUN if [ "${ARCH}" = "armhf" ]; then \
         set -e; \
         ln -s /bin/true /usr/bin/pkg-config; \
-        curl -f http://raspbian.raspberrypi.org/raspbian/dists/stretch/main/binary-armhf/Packages.gz -o Packages.gz; \
+        curl -f http://raspbian.raspberrypi.org/raspbian/dists/${DEBIAN_VERSION}/main/binary-armhf/Packages.gz -o Packages.gz; \
         gunzip Packages.gz; \
         for pkg in \
             liblzma5 \
