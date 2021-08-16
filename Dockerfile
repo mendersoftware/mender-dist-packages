@@ -1,5 +1,6 @@
-ARG DEBIAN_VERSION=stretch
+ARG DEBIAN_VERSION=buster
 FROM debian:$DEBIAN_VERSION
+ARG DEBIAN_VERSION
 
 RUN apt-get update && \
     apt-get install -y \
@@ -21,11 +22,11 @@ RUN if [ "${ARCH}" != "armhf" ]; then \
 
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
 # https://tracker.mender.io/browse/MEN-2399
-ENV ARMV6_TOOLCHAIN_ROOT="/armv6-eabihf--glibc--stable-2018.11-1"
+ENV ARMV6_TOOLCHAIN_ROOT="/armv6-eabihf--glibc--stable-2020.08-1"
 RUN if [ "${ARCH}" = "armhf" ]; then \
-        wget -nc -q https://toolchains.bootlin.com/downloads/releases/toolchains/armv6-eabihf/tarballs/armv6-eabihf--glibc--stable-2018.11-1.tar.bz2 \
-        && tar -xjf armv6-eabihf--glibc--stable-2018.11-1.tar.bz2 \
-        && rm armv6-eabihf--glibc--stable-2018.11-1.tar.bz2; \
+        wget -nc -q https://toolchains.bootlin.com/downloads/releases/toolchains/armv6-eabihf/tarballs/armv6-eabihf--glibc--stable-2020.08-1.tar.bz2 \
+        && tar -xjf armv6-eabihf--glibc--stable-2020.08-1.tar.bz2 \
+        && rm armv6-eabihf--glibc--stable-2020.08-1.tar.bz2; \
     fi
 
 # Get depdendencies from upstream, manually donwloading deb packages, and fake pkg-config.
@@ -35,7 +36,7 @@ RUN if [ "${ARCH}" = "armhf" ]; then \
 RUN if [ "${ARCH}" = "armhf" ]; then \
         set -e; \
         ln -s /bin/true /usr/bin/pkg-config; \
-        curl -f http://raspbian.raspberrypi.org/raspbian/dists/stretch/main/binary-armhf/Packages.gz -o Packages.gz; \
+        curl -f http://raspbian.raspberrypi.org/raspbian/dists/${DEBIAN_VERSION}/main/binary-armhf/Packages.gz -o Packages.gz; \
         gunzip Packages.gz; \
         for pkg in \
             liblzma5 \
@@ -60,7 +61,7 @@ RUN if [ "${ARCH}" = "armhf" ]; then \
             uuid-runtime \
             uuid-dev \
         ; do \
-            deb_package_url=$(grep Filename Packages | grep ${pkg}_ | grep armhf | tail -n1 | sed 's/Filename: //'); \
+            deb_package_url=$(grep Filename Packages | grep /${pkg}_ | grep armhf | tail -n1 | sed 's/Filename: //'); \
             echo "Downloading ${pkg}..."; \
             filename=$(basename $deb_package_url); \
             curl -L http://raspbian.raspberrypi.org/raspbian/${deb_package_url} -o $filename 2>/dev/null; \
