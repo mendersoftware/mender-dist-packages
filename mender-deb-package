@@ -5,7 +5,7 @@ set -ex
 show_help_and_exit() {
   cat << EOF
 
-Usage: $0 deb-package repo-url version arch
+Usage: $0 deb-package deb-build-type repo-url version arch build-id
 
 NOTE: The script expects an /output directory where to store the generated packages. If
 running it from a container, create a volume for such directory
