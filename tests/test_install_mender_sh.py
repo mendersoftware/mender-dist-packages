@@ -42,6 +42,16 @@ def script_server():
     print("cleaned up script server")
 
 
+@pytest.fixture(scope="function")
+def setup_tester_ssh_connection_f_apt_ready(setup_tester_ssh_connection_f):
+    # Explicitly accept suite change from "stable" to "oldstable"
+    setup_tester_ssh_connection_f.run(
+        "sudo apt-get update --allow-releaseinfo-change-suite"
+    )
+
+    return setup_tester_ssh_connection_f
+
+
 def check_installed(conn, pkg, installed=True):
     """Check whether the given package is installed on the device given by
     conn."""
@@ -50,6 +60,7 @@ def check_installed(conn, pkg, installed=True):
     assert (res.return_code == 0) == installed
 
 
+@pytest.mark.usefixtures("script_server")
 class TestInstallMenderScript:
     def _get_localhost_ip(self, setup_tester_ssh_connection):
         """We need to access the toplevel host's port to curl the script.
@@ -61,29 +72,28 @@ class TestInstallMenderScript:
         )
         return result.stdout.strip()
 
-    @pytest.mark.usefixtures("setup_test_container_f")
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
     def test_default(
-        self, script_server, setup_tester_ssh_connection_f, channel,
+        self, setup_tester_ssh_connection_f_apt_ready, channel,
     ):
         """Default, no arg install installs mender-client and mender-connect (stable)."""
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
+        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f_apt_ready)
 
         if channel != "":
             channel = "-c " + channel
 
-        setup_tester_ssh_connection_f.run(
+        setup_tester_ssh_connection_f_apt_ready.run(
             "curl http://{}:{}/install-mender.sh | sudo bash -s -- {}".format(
                 localhost, SCRIPT_SERVER_PORT, channel
             )
         )
 
         for pkg in ["mender-client", "mender-configure", "mender-connect"]:
-            check_installed(setup_tester_ssh_connection_f, pkg)
+            check_installed(setup_tester_ssh_connection_f_apt_ready, pkg)
 
         # piggyback misc cmdline tests to save an extra container run
         # help
-        res = setup_tester_ssh_connection_f.run(
+        res = setup_tester_ssh_connection_f_apt_ready.run(
             "curl http://{}:{}/install-mender.sh | bash -s -- -h".format(
                 localhost, SCRIPT_SERVER_PORT
             )
@@ -91,7 +101,7 @@ class TestInstallMenderScript:
         assert "usage:" in res.stdout
 
         # invalid arg/module
-        res = setup_tester_ssh_connection_f.run(
+        res = setup_tester_ssh_connection_f_apt_ready.run(
             "curl http://{}:{}/install-mender.sh | bash -s -- unknown".format(
                 localhost, SCRIPT_SERVER_PORT
             ),
@@ -101,57 +111,54 @@ class TestInstallMenderScript:
         assert res.exited == 1
         assert "Unsupported argument: `unknown`" in res.stdout
 
-    @pytest.mark.usefixtures("setup_test_container_f")
     def test_client(
-        self, script_server, setup_tester_ssh_connection_f,
+        self, setup_tester_ssh_connection_f_apt_ready,
     ):
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
+        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f_apt_ready)
 
-        setup_tester_ssh_connection_f.run(
+        setup_tester_ssh_connection_f_apt_ready.run(
             f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-client"
         )
 
-        check_installed(setup_tester_ssh_connection_f, "mender-client")
+        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-client")
         check_installed(
-            setup_tester_ssh_connection_f, "mender-connect", installed=False
+            setup_tester_ssh_connection_f_apt_ready, "mender-connect", installed=False
         )
         check_installed(
-            setup_tester_ssh_connection_f, "mender-configure", installed=False
+            setup_tester_ssh_connection_f_apt_ready, "mender-configure", installed=False
         )
 
-        res = setup_tester_ssh_connection_f.run(
+        res = setup_tester_ssh_connection_f_apt_ready.run(
             "dpkg --status mender-connect", warn=True
         )
         assert res.exited == 1
 
-    @pytest.mark.usefixtures("setup_test_container_f")
     def test_connect(
-        self, script_server, setup_tester_ssh_connection_f,
+        self, setup_tester_ssh_connection_f_apt_ready,
     ):
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
+        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f_apt_ready)
 
-        setup_tester_ssh_connection_f.run(
+        setup_tester_ssh_connection_f_apt_ready.run(
             f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-connect"
         )
 
-        check_installed(setup_tester_ssh_connection_f, "mender-client")
-        check_installed(setup_tester_ssh_connection_f, "mender-connect")
+        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-client")
+        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-connect")
         check_installed(
-            setup_tester_ssh_connection_f, "mender-configure", installed=False
+            setup_tester_ssh_connection_f_apt_ready, "mender-configure", installed=False
         )
 
-    @pytest.mark.usefixtures("setup_test_container_f")
     def test_configure(
-        self, script_server, setup_tester_ssh_connection_f,
+        self, setup_tester_ssh_connection_f_apt_ready,
     ):
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f)
+        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f_apt_ready)
 
-        setup_tester_ssh_connection_f.run(
+        setup_tester_ssh_connection_f_apt_ready.run(
             f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-configure"
         )
 
-        check_installed(setup_tester_ssh_connection_f, "mender-client")
+        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-client")
         check_installed(
-            setup_tester_ssh_connection_f, "mender-connect", installed=False
+            setup_tester_ssh_connection_f_apt_ready, "mender-connect", installed=False
         )
-        check_installed(setup_tester_ssh_connection_f, "mender-configure")
+        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-configure")
