@@ -17,8 +17,12 @@ import http.server
 import socketserver
 import threading
 import os
-import pytest
+import subprocess
 
+import pytest
+from fabric import Result as FabricResult
+
+SCRIPT_SERVER_ADDR = "localhost"
 SCRIPT_SERVER_PORT = 8000
 
 
@@ -43,13 +47,35 @@ def script_server():
 
 
 @pytest.fixture(scope="function")
-def setup_tester_ssh_connection_f_apt_ready(setup_tester_ssh_connection_f):
-    # Explicitly accept suite change from "stable" to "oldstable"
-    setup_tester_ssh_connection_f.run(
-        "sudo apt-get update --allow-releaseinfo-change-suite"
-    )
+def generic_debian_container(request):
+    image = "debian:buster"
+    cmd = "docker run --network host --rm -tid %s" % image
+    output = subprocess.check_output(cmd, shell=True)
 
-    return setup_tester_ssh_connection_f
+    global docker_container_id
+    docker_container_id = output.decode("utf-8").split("\n")[0]
+
+    def finalizer():
+        cmd = "docker rm -f %s" % docker_container_id
+        subprocess.check_output(cmd, shell=True)
+
+    request.addfinalizer(finalizer)
+
+    class GenericContainer:
+        def __init__(self, container_id):
+            self.container_id = container_id
+
+        def run(self, command, warn=False):
+            cmd = "docker exec %s /bin/bash -c '%s'" % (self.container_id, command)
+            return subprocess.run(cmd, shell=True, capture_output=True, check=not warn)
+
+    c = GenericContainer(docker_container_id)
+
+    # Get install-mender.sh requirements
+    c.run("apt update")
+    c.run("apt install -y curl")
+
+    return c
 
 
 def check_installed(conn, pkg, installed=True):
@@ -57,7 +83,10 @@ def check_installed(conn, pkg, installed=True):
     conn."""
 
     res = conn.run(f"dpkg --status {pkg}", warn=True)
-    assert (res.return_code == 0) == installed
+    if isinstance(res, FabricResult):
+        assert (res.return_code == 0) == installed
+    else:
+        assert (res.returncode == 0) == installed
 
 
 @pytest.mark.usefixtures("script_server")
@@ -74,91 +103,90 @@ class TestInstallMenderScript:
 
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
     def test_default(
-        self, setup_tester_ssh_connection_f_apt_ready, channel,
+        self, generic_debian_container, channel,
     ):
         """Default, no arg install installs mender-client and mender-connect (stable)."""
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f_apt_ready)
 
         if channel != "":
             channel = "-c " + channel
 
-        setup_tester_ssh_connection_f_apt_ready.run(
-            "curl http://{}:{}/install-mender.sh | sudo bash -s -- {}".format(
-                localhost, SCRIPT_SERVER_PORT, channel
-            )
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- {channel}"
         )
 
         for pkg in ["mender-client", "mender-configure", "mender-connect"]:
-            check_installed(setup_tester_ssh_connection_f_apt_ready, pkg)
+            check_installed(generic_debian_container, pkg)
 
         # piggyback misc cmdline tests to save an extra container run
         # help
-        res = setup_tester_ssh_connection_f_apt_ready.run(
-            "curl http://{}:{}/install-mender.sh | bash -s -- -h".format(
-                localhost, SCRIPT_SERVER_PORT
-            )
+        res = generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- -h"
         )
-        assert "usage:" in res.stdout
+        assert "usage:" in res.stdout.decode()
 
         # invalid arg/module
-        res = setup_tester_ssh_connection_f_apt_ready.run(
-            "curl http://{}:{}/install-mender.sh | bash -s -- unknown".format(
-                localhost, SCRIPT_SERVER_PORT
-            ),
+        res = generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- unknown",
             warn=True,
         )
 
-        assert res.exited == 1
-        assert "Unsupported argument: `unknown`" in res.stdout
+        assert res.returncode == 1
+        assert "Unsupported argument: `unknown`" in res.stdout.decode()
 
     def test_client(
-        self, setup_tester_ssh_connection_f_apt_ready,
+        self, generic_debian_container,
     ):
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f_apt_ready)
-
-        setup_tester_ssh_connection_f_apt_ready.run(
-            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-client"
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-client"
         )
 
-        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-client")
-        check_installed(
-            setup_tester_ssh_connection_f_apt_ready, "mender-connect", installed=False
-        )
-        check_installed(
-            setup_tester_ssh_connection_f_apt_ready, "mender-configure", installed=False
-        )
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-connect", installed=False)
+        check_installed(generic_debian_container, "mender-configure", installed=False)
 
-        res = setup_tester_ssh_connection_f_apt_ready.run(
-            "dpkg --status mender-connect", warn=True
-        )
-        assert res.exited == 1
+        res = generic_debian_container.run("dpkg --status mender-connect", warn=True)
+        assert res.returncode == 1
 
     def test_connect(
-        self, setup_tester_ssh_connection_f_apt_ready,
+        self, generic_debian_container,
     ):
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f_apt_ready)
-
-        setup_tester_ssh_connection_f_apt_ready.run(
-            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-connect"
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-connect"
         )
 
-        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-client")
-        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-connect")
-        check_installed(
-            setup_tester_ssh_connection_f_apt_ready, "mender-configure", installed=False
-        )
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure", installed=False)
 
     def test_configure(
-        self, setup_tester_ssh_connection_f_apt_ready,
+        self, generic_debian_container,
     ):
-        localhost = self._get_localhost_ip(setup_tester_ssh_connection_f_apt_ready)
-
-        setup_tester_ssh_connection_f_apt_ready.run(
-            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s -- mender-configure"
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-configure"
         )
 
-        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-client")
-        check_installed(
-            setup_tester_ssh_connection_f_apt_ready, "mender-connect", installed=False
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-connect", installed=False)
+        check_installed(generic_debian_container, "mender-configure")
+
+
+@pytest.mark.usefixtures("script_server")
+class TestInstallMenderScriptRaspberryOS:
+    def test_default(
+        self, setup_tester_ssh_connection_f,
+    ):
+        # We need to access the toplevel host's port from QUEMU to curl the script.
+        localhost = setup_tester_ssh_connection_f.run(
+            "ip route | grep default | awk '{print $3}'"
+        ).stdout.strip()
+
+        # Explicitly accept suite change from "stable" to "oldstable"
+        setup_tester_ssh_connection_f.run(
+            "sudo apt-get update --allow-releaseinfo-change-suite"
         )
-        check_installed(setup_tester_ssh_connection_f_apt_ready, "mender-configure")
+
+        setup_tester_ssh_connection_f.run(
+            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s"
+        )
+        for pkg in ["mender-client", "mender-configure", "mender-connect"]:
+            check_installed(setup_tester_ssh_connection_f, pkg)
