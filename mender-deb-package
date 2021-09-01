@@ -5,7 +5,7 @@ set -ex
 show_help_and_exit() {
   cat << EOF
 
-Usage: $0 deb-package repo-url version arch
+Usage: $0 deb-package deb-build-type repo-url version arch build-id
 
 NOTE: The script expects an /output directory where to store the generated packages. If
 running it from a container, create a volume for such directory
@@ -33,9 +33,20 @@ verify_script_arguments() {
   BUILD_ID=$6
 }
 
+# Clean the URL of the login information
+checkout_repo_clean_local_path() {
+  local -r repo_url="$1"
+  local repo_path="${repo_url#https://}"
+  if [[ -n "${MENDER_PRIVATE_REPO_ACCESS_USER}" ]]; then
+    repo_path="${REPO_URL//${MENDER_PRIVATE_REPO_ACCESS_USER}:*@/}"
+  fi
+  echo "${repo_path}"
+}
+
 checkout_repo() {
-  git clone $REPO_URL /root/go/src/${REPO_URL#https://}
-  cd /root/go/src/${REPO_URL#https://}
+  local -r repo_path=$(checkout_repo_clean_local_path "${REPO_URL}")
+  git clone ${REPO_URL} ${repo_path}
+  cd ${repo_path}
   git checkout $VERSION
 }
 
@@ -84,6 +95,8 @@ prepare_recipe() {
     fi
   elif [ "${DEB_PACKAGE}" = "mender-connect" ]; then
     cp support/mender-connect.service debian/
+  elif [ "${DEB_PACKAGE}" = "mender-monitor" ]; then
+    cp support/mender-monitor.service debian/
   fi
 
   distribution=""

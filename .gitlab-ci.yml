@@ -3,10 +3,13 @@ variables:
   MENDER_VERSION: "master"
   MENDER_CONNECT_VERSION: "master"
   MENDER_CONFIGURE_VERSION: "master"
+  MENDER_MONITOR_VERSION: "master"
   # Bucket name
   S3_BUCKET_NAME: "mender"
+  S3_BUCKET_NAME_PRIVATE: "mender-binaries"
   # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
   S3_BUCKET_SUBPATH: "dist-packages/debian"
+  S3_BUCKET_SUBPATH_PRIVATE: "mender-monitor/debian"
   # APT repo path
   S3_BUCKET_REPO_PATH: "repos/debian"
   # Scripts folder subpath
@@ -98,6 +101,20 @@ test:acceptance:
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version)
+    - |-
+        if [ -f ${CI_PROJECT_DIR}/output/mender-monitor-deb-version ]; then
+          python3 -m pytest -v \
+            --mender-client-version $MENDER_VERSION \
+            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version) \
+            --mender-connect-version $MENDER_CONNECT_VERSION \
+            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-connect-deb-version) \
+            --mender-configure-version $MENDER_CONFIGURE_VERSION \
+            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version) \
+            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-monitor-deb-version) \
+            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-monitor-deb-version) \
+            --commercial-tests
+        fi
+
 
 publish:s3:apt-repo:
   stage: publish
@@ -324,3 +341,15 @@ publish:production:s3:scripts:install-mender-sh:
   only:
     refs:
       - production
+
+publish:s3:mender-monitor:
+  image: debian:buster
+  only:
+    - master
+  dependencies:
+    - build
+  before_script:
+    - apt update && apt install -yyq awscli
+  script:
+    - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/"
+    - aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/

@@ -33,6 +33,11 @@ def pytest_addoption(parser):
     parser.addoption("--mender-connect-deb-version", required=True)
     parser.addoption("--mender-configure-version", required=True)
     parser.addoption("--mender-configure-deb-version", required=True)
+    parser.addoption("--mender-monitor-version", required=False, default="none")
+    parser.addoption("--mender-monitor-deb-version", required=False, default="none")
+    parser.addoption(
+        "--commercial-tests", action="store_true", required=False, default=False
+    )
 
 
 @pytest.fixture(scope="session")
@@ -51,6 +56,25 @@ def mender_configure_version(request):
 
 
 @pytest.fixture(scope="session")
+def mender_monitor_version(request):
+    return request.config.getoption("--mender-monitor-version")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--commercial-tests"):
+        for item in items:
+            if "commercial" not in item.keywords:
+                item.add_marker(pytest.mark.skip(reason="not a commercial test"))
+    else:
+        skip_commercial = pytest.mark.skip(
+            reason="run with the commercial-tests option"
+        )
+        for item in items:
+            if "commercial" in item.keywords:
+                item.add_marker(skip_commercial)
+
+
+@pytest.fixture(scope="session")
 def mender_dist_packages_versions(request):
     """Returns dict matching package names and current versions"""
 
@@ -58,6 +82,7 @@ def mender_dist_packages_versions(request):
         "mender-client": request.config.getoption("--mender-client-deb-version"),
         "mender-connect": request.config.getoption("--mender-connect-deb-version"),
         "mender-configure": request.config.getoption("--mender-configure-deb-version"),
+        "mender-monitor": request.config.getoption("--mender-monitor-deb-version"),
     }
 
 

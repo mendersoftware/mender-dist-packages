@@ -115,3 +115,50 @@ class TestPackageAddons:
         setup_tester_ssh_connection.run(
             "test -x /usr/share/mender/inventory/mender-inventory-mender-configure"
         )
+
+    @pytest.mark.commercial
+    def test_mender_monitor(
+        self, setup_tester_ssh_connection, mender_dist_packages_versions
+    ):
+        # Upload
+        upload_deb_package(
+            setup_tester_ssh_connection,
+            mender_dist_packages_versions["mender-monitor"],
+            "mender-monitor",
+            "all",
+        )
+
+        # Install the lmdb-utils
+        result = setup_tester_ssh_connection.run(
+            "sudo DEBIAN_FRONTEND=noninteractive apt-get install -f -y " + "lmdb-utils"
+        )
+
+        assert result.exited == 0
+
+        # Install
+        result = setup_tester_ssh_connection.run(
+            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
+            + package_filename(
+                mender_dist_packages_versions["mender-monitor"],
+                "mender-monitor",
+                "all",
+            )
+        )
+        assert (
+            "Unpacking mender-monitor ("
+            + mender_dist_packages_versions["mender-monitor"]
+            + ")"
+            in result.stdout
+        )
+        assert (
+            "Setting up mender-monitor ("
+            + mender_dist_packages_versions["mender-monitor"]
+            + ")"
+            in result.stdout
+        )
+
+        # Check mender-monitor files
+        setup_tester_ssh_connection.run(
+            "test -x /usr/share/mender-monitor/mender-monitord"
+        )
+        setup_tester_ssh_connection.run("test -x /etc/mender-monitor/monitor.d/log.sh")

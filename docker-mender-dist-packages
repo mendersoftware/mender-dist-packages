@@ -78,3 +78,18 @@ docker run --rm \
         ${MENDER_CONFIGURE_VERSION:-master} \
         amd64 \
         ${CI_PIPELINE_ID:-LOCAL}
+
+# mender-monitor
+if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
+    docker run --rm \
+            --volume $(pwd)/output:/output \
+            -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
+            -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
+            $IMAGE_NAME:cross-amd64 \
+            mender-monitor \
+            all \
+            https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/monitor-client \
+            ${MENDER_MONITOR_VERSION:-master} \
+            amd64 \
+            ${CI_PIPELINE_ID:-LOCAL}
+fi
