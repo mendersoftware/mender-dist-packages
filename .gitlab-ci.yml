@@ -347,6 +347,7 @@ publish:production:s3:scripts:install-mender-sh:
       - production
 
 publish:s3:mender-monitor:
+  stage: publish
   image: debian:buster
   only:
     - master
