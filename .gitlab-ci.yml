@@ -319,8 +319,6 @@ publish:s3:legacy:mender-client:latest:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  dependencies:
-    - test:acceptance
   image: debian:buster
   before_script:
     - apt update && apt install -yyq awscli
