@@ -87,9 +87,6 @@ RUN wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
 ENV GOPATH "/root/go"
 ENV PATH "$PATH:/usr/local/go/bin"
-# Support building mender-client 2.3.x, since it does not have go modules support
-# For newer clients with a go.mod file, this is a no-op however.
-ENV GO111MODULE auto
 
 # Copy the debian recipe(s)
 COPY recipes /recipes
