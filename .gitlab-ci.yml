@@ -116,6 +116,18 @@ test:acceptance:
         fi
 
 
+.publish_helper_functions: &publish_helper_functions |
+  # Bash function to check if the string is a final tag
+  function is_final_tag () {
+    version="$1"
+    [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && return 0 || return $?
+  }
+  # Bash function to check if the string is a build tag
+  function is_build_tag () {
+    version="$1"
+    [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$-build[0-9]+$ ]] && return 0 || return $?
+  }
+
 publish:s3:apt-repo:
   stage: publish
   only:
@@ -147,16 +159,10 @@ publish:s3:apt-repo:
     - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists dists
     - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool pool
   script:
-    # Bash function to check if the string is a final tag
-    - |
-      function is_final_tag () {
-        version=$1
-        echo "${version}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+$'
-        return $?
-      }
+    - *publish_helper_functions
     # Bash function to compare two semantic versions, returns: 0 (=), 1(>) or 2(<)
     #  * "master" always evaluates to greater than any other version
-    #  * "build" versions like 1.3.4-build for are evaluated as 1.2.3
+    #  * "build" versions like 1.2.3-build4 for are evaluated as 1.2.3
     # Original source: https://stackoverflow.com/a/4025065
     - |
       function vercomp () {
@@ -313,8 +319,6 @@ publish:s3:legacy:mender-client:latest:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  dependencies:
-    - test:acceptance
   image: debian:buster
   before_script:
     - apt update && apt install -yyq awscli
@@ -343,6 +347,7 @@ publish:production:s3:scripts:install-mender-sh:
       - production
 
 publish:s3:mender-monitor:
+  stage: publish
   image: debian:buster
   only:
     - master
@@ -350,6 +355,17 @@ publish:s3:mender-monitor:
     - build
   before_script:
     - apt update && apt install -yyq awscli
+    - *publish_helper_functions
   script:
     - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/"
     - aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/
+    # Make copies in known destinations to be consumed by get.mender.io script:
+    # * For "experimental" channel, we make a copy of the newest master package in the master directory
+    # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
+    # This needs to be reworked before Mender 3.2, see MEN-5029 for more details.
+    - if is_build_tag ${MENDER_MONITOR_VERSION} || [ "${MENDER_MONITOR_VERSION}" == "master" ]; then
+    -   aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/master/mender-monitor_master-1_all.deb
+    - fi
+    - if is_final_tag ${MENDER_MONITOR_VERSION}; then
+    -   aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/latest/mender-monitor_latest-1_all.deb
+    - fi
