@@ -91,21 +91,11 @@ def check_installed(conn, pkg, installed=True):
 
 @pytest.mark.usefixtures("script_server")
 class TestInstallMenderScript:
-    def _get_localhost_ip(self, setup_tester_ssh_connection):
-        """We need to access the toplevel host's port to curl the script.
-        'localhost' of course doesn't work, but qemu runs on docker in 'net=host' mode,
-        so the host's address is simply the default route.
-        """
-        result = setup_tester_ssh_connection.run(
-            "ip route | grep default | awk '{print $3}'"
-        )
-        return result.stdout.strip()
-
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
     def test_default(
         self, generic_debian_container, channel,
     ):
-        """Default, no arg install installs mender-client and mender-connect (stable)."""
+        """Default, no arg install installs mender-client and add-ons (stable)."""
 
         if channel != "":
             channel = "-c " + channel
