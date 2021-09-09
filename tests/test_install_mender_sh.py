@@ -119,9 +119,38 @@ class TestInstallMenderScript:
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- unknown",
             warn=True,
         )
-
         assert res.returncode == 1
         assert "Unsupported argument: `unknown`" in res.stdout.decode()
+
+    def test_default_setup_mender(
+        self, generic_debian_container,
+    ):
+        """Pass mender setup args, should be propagated"""
+
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- -- --demo --device-type cool-device --hosted-mender --tenant-token my-secret-token"
+        )
+
+        result = generic_debian_container.run("cat /etc/mender/mender.conf")
+        assert '"ServerURL": "https://hosted.mender.io"' in result.stdout.decode()
+
+        result = generic_debian_container.run("cat /var/lib/mender/device_type")
+        assert result.stdout.decode() == "device_type=cool-device"
+
+        result = generic_debian_container.run("cat /etc/mender/mender-connect.conf")
+        assert '"User": "nobody"' in result.stdout.decode()
+
+    def test_default_setup_addons(
+        self, generic_debian_container,
+    ):
+        """Setup for add-ons (passing --demo)"""
+
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- --demo"
+        )
+
+        result = generic_debian_container.run("cat /etc/mender/mender-connect.conf")
+        assert '"User": "root"' in result.stdout.decode()
 
     def test_client(
         self, generic_debian_container,
