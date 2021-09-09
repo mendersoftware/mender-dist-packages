@@ -172,7 +172,7 @@ class TestInstallMenderScript:
 
 @pytest.mark.usefixtures("script_server")
 class TestInstallMenderScriptRaspberryOS:
-    def test_default(
+    def test_raspbian_default(
         self, setup_tester_ssh_connection_f,
     ):
         # We need to access the toplevel host's port from QUEMU to curl the script.
