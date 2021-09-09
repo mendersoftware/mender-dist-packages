@@ -31,9 +31,9 @@ mender-monitor \
 
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
 
-# URL prefix from where to download commercial compoments
+# URL prefix from where to download commercial compoments, formatted by auth (hosted|on-prem)
 # TODO: Update after MC-5726
-MENDER_COMMERCIAL_DOWNLOAD_URL="https://download.mender.io/content/hosted/"
+MENDER_COMMERCIAL_DOWNLOAD_URL_F="https://download.mender.io/content/%s/"
 
 # URL path for the actual components, formatted by version
 declare -A COMMERCIAL_COMP_TO_URL_PATH_F=(
@@ -57,12 +57,17 @@ Running the Mender installation script.
 }
 
 usage() {
-    echo "usage: install-mender.sh [-h] [-c channel] [component...]"
+    # Keep first block under 80 characters
+    echo "usage: install-mender.sh [-h] [-c channel] [--demo] [--commercial] [--auth auth]"
+    echo "                         [--jwt-token token] [--username user] [component...]"
     echo "  -h, --help          print this help"
     echo "  -c CHANNEL          channel: stable(default)|experimental"
     echo "  --demo              use defaults appropriate for demo"
-    echo "  --commercial        install commercial components, requires --jwt-token"
-    echo "  --jwt-token TOKEN   Hosted Mender JWT token"
+    echo "  --commercial        install commercial components, requires --auth and either --jwt-token or --username"
+    echo "  --auth AUTH         auth method: hosted|on-prem, used when installing commercial components. hosted requires"
+    echo "                      either --jwt-token or --username, on-prem requires --username"
+    echo "  --jwt-token TOKEN   Hosted Mender JWT token, to download commercial components"
+    echo "  --username USER     Mender Enterprise or Hosted Mender username, to download commercial components. Password will be prompted"
     echo "  <component>         list of components to install"
     echo ""
     echo "Supported components (x = installed by default):"
@@ -109,12 +114,39 @@ parse_args() {
                 SELECTED_COMPONENTS="$SELECTED_COMPONENTS $DEMO_COMPONENTS"
                 ;;
             --commercial)
-                if [[ ! "$args_copy" == *"--jwt-token"* ]]; then
-                    echo "ERROR: commercial requires --jwt-token argument."
+                if [[ ! "$args_copy" == *"--auth"* ]]; then
+                    echo "ERROR: commercial requires --auth argument."
                     echo "Aborting."
                     exit 1
                 fi
                 SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_COMPONENTS"
+                ;;
+            --auth)
+                if [ -n "$2" ]; then
+                    COMMERCIAL_AUTH="$2"
+                    shift
+                else
+                    echo "ERROR: auth requires a non-empty option argument."
+                    echo "Aborting."
+                    exit 1
+                fi
+                if [[ "$COMMERCIAL_AUTH" == "hosted" ]]; then
+                    if [[ ! "$args_copy" == *"--jwt-token"* && ! "$args_copy" == *"--username"* ]]; then
+                        echo "ERROR: auth hosted requires either --jwt-token or --username arguments."
+                        echo "Aborting."
+                        exit 1
+                    fi
+                elif [[ "$COMMERCIAL_AUTH" == "on-prem" ]]; then
+                    if [[ ! "$args_copy" == *"--username"* ]]; then
+                        echo "ERROR: auth on-prem requires --username argument."
+                        echo "Aborting."
+                        exit 1
+                    fi
+                else
+                    echo "ERROR: Unrecognized auth argument \"$COMMERCIAL_AUTH\". Valid values are: hosted|on-prem"
+                    echo "Aborting."
+                    exit 1
+                fi
                 ;;
             --jwt-token)
                 if [ -n "$2" ]; then
@@ -126,12 +158,21 @@ parse_args() {
                     exit 1
                 fi
                 ;;
+            --username)
+                if [ -n "$2" ]; then
+                    USERNAME="$2"
+                    shift
+                else
+                    echo "ERROR: username requires a non-empty option argument."
+                    echo "Aborting."
+                    exit 1
+                fi
+                ;;
             *)
                 if is_known_component "$1"; then
                     if echo "$COMMERCIAL_COMPONENTS" | egrep -q "(^| )$1( |\$)"; then
-                        if [[ ! "$args_copy" == *"--jwt-token"* ]]; then
-                            echo "ERROR: $1 requires --jwt-token argument."
-                            echo "Aborting."
+                        if [[ ! "$args_copy" == *"--auth"* ]]; then
+                            echo "ERROR: commercial package $1 requires --auth argument."
                             exit 1
                         fi
                     fi
@@ -238,7 +279,8 @@ do_install_commercial() {
         return
     fi
 
-    echo "  Installing commercial components from $MENDER_COMMERCIAL_DOWNLOAD_URL"
+    url_base=$(printf $MENDER_COMMERCIAL_DOWNLOAD_URL_F $COMMERCIAL_AUTH)
+    echo "  Installing commercial components from $url_base"
 
     # Translate Debian "channel" into Mender version
     if [ "$CHANNEL" = "experimental" ]; then
@@ -249,8 +291,13 @@ do_install_commercial() {
 
     # Download deb packages
     for c in $selected_components_commercial; do
-        url="$MENDER_COMMERCIAL_DOWNLOAD_URL$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $version $version)"
-        curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url" ||
+        url="$url_base$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $version $version)"
+        if [[ -n "$JWT_TOKEN" ]]; then
+            auth_args="-H \"Authorization: Bearer $JWT_TOKEN\""
+        else
+            auth_args="-u $USERNAME"
+        fi
+        eval curl -fLsS "$auth_args" -O "$url" ||
                 (echo ERROR: Cannot get $c from $url; exit 1)
     done
 

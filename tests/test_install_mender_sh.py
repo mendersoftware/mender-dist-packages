@@ -129,9 +129,46 @@ class TestInstallMenderScript:
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- unknown",
             warn=True,
         )
-
         assert res.returncode == 1
         assert "Unsupported argument: `unknown`" in res.stdout.decode()
+
+        # invalid combinations of commercial options
+        res = generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- --commercial",
+            warn=True,
+        )
+        assert res.returncode == 1
+        assert "commercial requires --auth argument" in res.stdout.decode()
+        res = generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- --auth something-else",
+            warn=True,
+        )
+        assert res.returncode == 1
+        assert "Unrecognized auth argument \"something-else\". Valid values are: hosted|on-prem" in res.stdout.decode()
+        res = generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- --auth hosted",
+            warn=True,
+        )
+        assert res.returncode == 1
+        assert "auth hosted requires either --jwt-token or --username arguments" in res.stdout.decode()
+        res = generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- --auth on-prem",
+            warn=True,
+        )
+        assert res.returncode == 1
+        assert "auth on-prem requires --username argument" in res.stdout.decode()
+        res = generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- --auth on-prem --jwt-token aaa-fake-token",
+            warn=True,
+        )
+        assert res.returncode == 1
+        assert "auth on-prem requires --username argument" in res.stdout.decode()
+        res = generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-monitor",
+            warn=True,
+        )
+        assert res.returncode == 1
+        assert "commercial package mender-monitor requires --auth argument" in res.stdout.decode()
 
     def test_client(
         self, generic_debian_container,
