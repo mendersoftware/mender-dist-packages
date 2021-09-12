@@ -57,13 +57,18 @@ Running the Mender installation script.
 }
 
 usage() {
-    echo "usage: install-mender.sh [-h] [-c channel] [component...]"
+    echo "usage: install-mender.sh [options] [component...] [-- [options-for-mender-setup] ]"
+    echo ""
+    echo "options: [-h, help] [-c channel] [--demo] [--commercial]"
     echo "  -h, --help          print this help"
     echo "  -c CHANNEL          channel: stable(default)|experimental"
     echo "  --demo              use defaults appropriate for demo"
     echo "  --commercial        install commercial components, requires --jwt-token"
     echo "  --jwt-token TOKEN   Hosted Mender JWT token"
-    echo "  <component>         list of components to install"
+    echo ""
+    echo "If no components are specified, defaults will be installed"
+    echo ""
+    echo "Anything after a '--' gets passed directly to 'mender setup' command."
     echo ""
     echo "Supported components (x = installed by default):"
     for c in $AVAILABLE_COMPONENTS; do
@@ -88,8 +93,7 @@ is_known_component() {
 parse_args() {
     local selected_components=""
     local args_copy="$@"
-    while [ $# -gt 0 ]
-    do
+    while [ $# -gt 0 ]; do
         case $1 in
             -h|--help)
                 usage
@@ -106,6 +110,7 @@ parse_args() {
                 fi
                 ;;
             --demo)
+                DEMO="1"
                 SELECTED_COMPONENTS="$SELECTED_COMPONENTS $DEMO_COMPONENTS"
                 ;;
             --commercial)
@@ -125,6 +130,11 @@ parse_args() {
                     echo "Aborting."
                     exit 1
                 fi
+                ;;
+            --)
+                shift
+                MENDER_SETUP_ARGS="$@"
+                break
                 ;;
             *)
                 if is_known_component "$1"; then
@@ -266,6 +276,40 @@ do_install_commercial() {
     echo "  Success!"
 }
 
+do_setup_mender() {
+    # Return if mender-client was not installed
+    if [[ ! "$SELECTED_COMPONENTS" == *"mender-client"* ]]; then
+        return
+    fi
+
+    # Return if no setup options were passed
+    if [ -z "$MENDER_SETUP_ARGS" ]; then
+        return
+    fi
+
+    echo "  Setting up mender with options: $MENDER_SETUP_ARGS"
+    mender setup $MENDER_SETUP_ARGS
+    pidof systemd && systemctl restart mender-client
+    echo "  Success!"
+}
+
+do_setup_addons() {
+    # Setup for mender-connect
+    if [[ "$SELECTED_COMPONENTS" == *"mender-connect"* ]]; then
+        if [ "$DEMO" -eq 1 ]; then
+            echo "  Setting up mender-connect with user 'root' and shell 'bash'"
+            cat > /etc/mender/mender-connect.conf << EOF
+{
+  "User": "root",
+  "ShellCommand": "/bin/bash"
+}
+EOF
+            pidof systemd && systemctl restart mender-connect
+            echo "  Success!"
+        fi
+    fi
+}
+
 banner
 init "$@"
 print_components
@@ -273,5 +317,7 @@ get_deps
 add_repo
 do_install_open
 do_install_commercial
+do_setup_mender
+do_setup_addons
 
 exit 0
