@@ -277,7 +277,7 @@ publish:s3:apt-repo:
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
-publish:s3:legacy:mender-client:
+publish:s3:docs-link:mender-client:
   stage: publish
   image: debian:buster
   dependencies:
@@ -302,20 +302,6 @@ publish:s3:legacy:mender-client:
       done
   only:
     - master
-
-publish:s3:legacy:mender-client:latest:
-  extends: publish:s3:legacy:mender-client
-  only:
-    variables:
-      - $PUBLISH_LATEST_CLIENT_PACKAGE == "true"
-  script:
-    - echo "Publishing latest packages to S3"
-    - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
-          s3://${S3_BUCKET_NAME}/latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
-        aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-          --key latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
-      done
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
