@@ -14,14 +14,16 @@ variables:
   S3_BUCKET_REPO_PATH: "repos/debian"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
-  # Set to true to skip tests (i.e. old Mender client build). See QA-123
-  SKIP_TESTS: "false"
   # Update the 'latest' debian alias to a new client release
   PUBLISH_LATEST_CLIENT_PACKAGE: "false"
   # GPG keys for build and distribution, to be set by CI/CD variables
   GPG_PRIV_KEY_BUILD: ""
   GPG_PUB_KEY_BUILD: ""
   GPG_PRIV_KEY_DIST: ""
+  # Whether to run acceptance tests.
+  TEST_MENDER_DIST_PACKAGES: "true"
+  # Whether to publish packages automatically - they can always be published manually
+  PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC: "false"
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -57,10 +59,22 @@ build:
     paths:
       - output/*
 
-test:acceptance:
-  except:
+test:check-commits:
+  only:
     variables:
-      - $SKIP_TESTS == "true"
+      - '$TEST_MENDER_DIST_PACKAGES == "true"'
+
+test:check-license:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
+
+test:check-python3-formatting:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
+
+test:acceptance:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   stage: test
   image: docker:19.03-dind
   tags:
@@ -128,10 +142,8 @@ test:acceptance:
     [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$-build[0-9]+$ ]] && return 0 || return $?
   }
 
-publish:s3:apt-repo:
+.template:publish:s3:apt-repo:
   stage: publish
-  only:
-    - master
   image: debian:buster
   dependencies:
     - build
@@ -277,7 +289,16 @@ publish:s3:apt-repo:
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
-publish:s3:docs-link:mender-client:
+publish:s3:apt-repo:manual:
+  when: manual
+  extends: .template:publish:s3:apt-repo
+
+publish:s3:apt-repo:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:apt-repo
+
+.template:publish:s3:docs-link:mender-client:
   stage: publish
   image: debian:buster
   dependencies:
@@ -300,8 +321,15 @@ publish:s3:docs-link:mender-client:
             --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
         fi;
       done
-  only:
-    - master
+
+publish:s3:docs-link:mender-client:manual:
+  when: manual
+  extends: .template:publish:s3:docs-link:mender-client
+
+publish:s3:docs-link:mender-client:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:docs-link:mender-client
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
@@ -332,11 +360,9 @@ publish:production:s3:scripts:install-mender-sh:
     refs:
       - production
 
-publish:s3:mender-monitor:
+.template:publish:s3:mender-monitor:
   stage: publish
   image: debian:buster
-  only:
-    - master
   dependencies:
     - build
   before_script:
@@ -355,3 +381,12 @@ publish:s3:mender-monitor:
     - if is_final_tag ${MENDER_MONITOR_VERSION}; then
     -   aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/latest/mender-monitor_latest-1_all.deb
     - fi
+
+publish:s3:mender-monitor:manual:
+  when: manual
+  extends: .template:publish:s3:mender-monitor
+
+publish:s3:mender-monitor:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:mender-monitor
