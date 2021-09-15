@@ -228,6 +228,21 @@ test:acceptance:
         return 1
       }
 
+    # Bash function to securely copy packages to the pool, warning and not copying
+    # if the files already exist
+    - |
+      function copy_if_non_existent() {
+        packages_glob="$1"
+        pool_dest=$2
+
+        first_filename=$(basename $(ls $packages_glob | head -1))
+        if [ -f ${pool_dest}/${first_filename} ]; then
+          echo "WARNING: $(basename "$packages_glob") exist in $pool_dest. Not overriding."
+        else
+          cp $packages_glob $pool_dest
+        fi
+      }
+
     # For each package:
     #  * if version is newer and is a final tag
     #      --> include to stable via reprepro
@@ -247,7 +262,7 @@ test:acceptance:
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp ${CI_PROJECT_DIR}/output/mender-client*.deb pool/main/m/mender-client/
+    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-client*.deb" pool/main/m/mender-client/
     - fi
 
     # mender-connect
@@ -261,7 +276,7 @@ test:acceptance:
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp ${CI_PROJECT_DIR}/output/mender-connect*.deb pool/main/m/mender-connect/
+    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-connect*.deb" pool/main/m/mender-connect/
     - fi
 
     # mender-configure
@@ -275,7 +290,7 @@ test:acceptance:
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp ${CI_PROJECT_DIR}/output/mender-configure*.deb pool/main/m/mender-configure/
+    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-configure*.deb" pool/main/m/mender-configure/
     - fi
 
     # Upload to bucket
