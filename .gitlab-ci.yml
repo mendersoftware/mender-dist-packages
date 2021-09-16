@@ -208,13 +208,14 @@ test:acceptance:
         return 0
       }
     # Bash function to check if the given version for the given package is newer
-    # than the current version of that package in the APT repo (stable)
+    # than the current version of that package in the APT repo
     - |
       function is_newer_version() {
         package_name=$1
         package_version=$2
+        codename=$3
 
-        current_version=$(reprepro --architecture amd64 --list-format '${version}' list stable ${package_name})
+        current_version=$(reprepro --architecture amd64 --list-format '${version}' list ${codename} ${package_name})
         if [ -z "${current_version}" ]; then
           # Package doesn't exist, so we assume is "newer"
           return 0
@@ -252,12 +253,12 @@ test:acceptance:
     #      --> manually copy to pool unprocessed (and unsigned) by reprepro
 
     # mender-client
-    - if is_newer_version mender-client ${MENDER_VERSION}; then
-    -   if is_final_tag ${MENDER_VERSION}; then
-    -     codename=stable
-    -   else
-    -     codename=experimental
-    -   fi
+    - if is_final_tag ${MENDER_VERSION}; then
+    -   codename=stable
+    - else
+    -   codename=experimental
+    - fi
+    - if is_newer_version mender-client ${MENDER_VERSION} ${codename}; then
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-client_*.changes); do
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
@@ -266,12 +267,12 @@ test:acceptance:
     - fi
 
     # mender-connect
-    - if is_newer_version mender-connect ${MENDER_CONNECT_VERSION}; then
-    -   if is_final_tag ${MENDER_CONNECT_VERSION}; then
-    -     codename=stable
-    -   else
-    -     codename=experimental
-    -   fi
+    - if is_final_tag ${MENDER_CONNECT_VERSION}; then
+    -   codename=stable
+    - else
+    -   codename=experimental
+    - fi
+    - if is_newer_version mender-connect ${MENDER_CONNECT_VERSION} ${codename}; then
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
@@ -280,12 +281,12 @@ test:acceptance:
     - fi
 
     # mender-configure
-    - if is_newer_version mender-configure ${MENDER_CONFIGURE_VERSION}; then
-    -   if is_final_tag ${MENDER_CONFIGURE_VERSION}; then
-    -     codename=stable
-    -   else
-    -     codename=experimental
-    -   fi
+    - if is_final_tag ${MENDER_CONFIGURE_VERSION}; then
+    -   codename=stable
+    - else
+    -   codename=experimental
+    - fi
+    - if is_newer_version mender-configure ${MENDER_CONFIGURE_VERSION} ${codename}; then
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-configure_*.changes); do
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
