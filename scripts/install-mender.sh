@@ -32,8 +32,7 @@ mender-monitor \
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
 
 # URL prefix from where to download commercial compoments
-# TODO: Update after MC-5726
-MENDER_COMMERCIAL_DOWNLOAD_URL="https://download.mender.io/content/hosted/"
+MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hosted/"
 
 # URL path for the actual components, formatted by version
 declare -A COMMERCIAL_COMP_TO_URL_PATH_F=(
