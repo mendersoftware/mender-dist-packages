@@ -14,14 +14,16 @@ variables:
   S3_BUCKET_REPO_PATH: "repos/debian"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
-  # Set to true to skip tests (i.e. old Mender client build). See QA-123
-  SKIP_TESTS: "false"
   # Update the 'latest' debian alias to a new client release
   PUBLISH_LATEST_CLIENT_PACKAGE: "false"
   # GPG keys for build and distribution, to be set by CI/CD variables
   GPG_PRIV_KEY_BUILD: ""
   GPG_PUB_KEY_BUILD: ""
   GPG_PRIV_KEY_DIST: ""
+  # Whether to run acceptance tests.
+  TEST_MENDER_DIST_PACKAGES: "true"
+  # Whether to publish packages automatically - they can always be published manually
+  PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC: "false"
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -57,10 +59,22 @@ build:
     paths:
       - output/*
 
-test:acceptance:
-  except:
+test:check-commits:
+  only:
     variables:
-      - $SKIP_TESTS == "true"
+      - '$TEST_MENDER_DIST_PACKAGES == "true"'
+
+test:check-license:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
+
+test:check-python3-formatting:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
+
+test:acceptance:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   stage: test
   image: docker:19.03-dind
   tags:
@@ -128,10 +142,8 @@ test:acceptance:
     [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$-build[0-9]+$ ]] && return 0 || return $?
   }
 
-publish:s3:apt-repo:
+.template:publish:s3:apt-repo:
   stage: publish
-  only:
-    - master
   image: debian:buster
   dependencies:
     - build
@@ -196,13 +208,14 @@ publish:s3:apt-repo:
         return 0
       }
     # Bash function to check if the given version for the given package is newer
-    # than the current version of that package in the APT repo (stable)
+    # than the current version of that package in the APT repo
     - |
       function is_newer_version() {
         package_name=$1
         package_version=$2
+        codename=$3
 
-        current_version=$(reprepro --architecture amd64 --list-format '${version}' list stable ${package_name})
+        current_version=$(reprepro --architecture amd64 --list-format '${version}' list ${codename} ${package_name})
         if [ -z "${current_version}" ]; then
           # Package doesn't exist, so we assume is "newer"
           return 0
@@ -216,6 +229,21 @@ publish:s3:apt-repo:
         return 1
       }
 
+    # Bash function to securely copy packages to the pool, warning and not copying
+    # if the files already exist
+    - |
+      function copy_if_non_existent() {
+        packages_glob="$1"
+        pool_dest=$2
+
+        first_filename=$(basename $(ls $packages_glob | head -1))
+        if [ -f ${pool_dest}/${first_filename} ]; then
+          echo "WARNING: $(basename "$packages_glob") exist in $pool_dest. Not overriding."
+        else
+          cp $packages_glob $pool_dest
+        fi
+      }
+
     # For each package:
     #  * if version is newer and is a final tag
     #      --> include to stable via reprepro
@@ -225,45 +253,45 @@ publish:s3:apt-repo:
     #      --> manually copy to pool unprocessed (and unsigned) by reprepro
 
     # mender-client
-    - if is_newer_version mender-client ${MENDER_VERSION}; then
-    -   if is_final_tag ${MENDER_VERSION}; then
-    -     codename=stable
-    -   else
-    -     codename=experimental
-    -   fi
+    - if is_final_tag ${MENDER_VERSION}; then
+    -   codename=stable
+    - else
+    -   codename=experimental
+    - fi
+    - if is_newer_version mender-client ${MENDER_VERSION} ${codename}; then
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-client_*.changes); do
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp ${CI_PROJECT_DIR}/output/mender-client*.deb pool/main/m/mender-client/
+    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-client*.deb" pool/main/m/mender-client/
     - fi
 
     # mender-connect
-    - if is_newer_version mender-connect ${MENDER_CONNECT_VERSION}; then
-    -   if is_final_tag ${MENDER_CONNECT_VERSION}; then
-    -     codename=stable
-    -   else
-    -     codename=experimental
-    -   fi
+    - if is_final_tag ${MENDER_CONNECT_VERSION}; then
+    -   codename=stable
+    - else
+    -   codename=experimental
+    - fi
+    - if is_newer_version mender-connect ${MENDER_CONNECT_VERSION} ${codename}; then
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp ${CI_PROJECT_DIR}/output/mender-connect*.deb pool/main/m/mender-connect/
+    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-connect*.deb" pool/main/m/mender-connect/
     - fi
 
     # mender-configure
-    - if is_newer_version mender-configure ${MENDER_CONFIGURE_VERSION}; then
-    -   if is_final_tag ${MENDER_CONFIGURE_VERSION}; then
-    -     codename=stable
-    -   else
-    -     codename=experimental
-    -   fi
+    - if is_final_tag ${MENDER_CONFIGURE_VERSION}; then
+    -   codename=stable
+    - else
+    -   codename=experimental
+    - fi
+    - if is_newer_version mender-configure ${MENDER_CONFIGURE_VERSION} ${codename}; then
     -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-configure_*.changes); do
     -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
     -   done
     - else
-    -   cp ${CI_PROJECT_DIR}/output/mender-configure*.deb pool/main/m/mender-configure/
+    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-configure*.deb" pool/main/m/mender-configure/
     - fi
 
     # Upload to bucket
@@ -277,7 +305,16 @@ publish:s3:apt-repo:
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
-publish:s3:legacy:mender-client:
+publish:s3:apt-repo:manual:
+  when: manual
+  extends: .template:publish:s3:apt-repo
+
+publish:s3:apt-repo:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:apt-repo
+
+.template:publish:s3:docs-link:mender-client:
   stage: publish
   image: debian:buster
   dependencies:
@@ -300,22 +337,15 @@ publish:s3:legacy:mender-client:
             --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
         fi;
       done
-  only:
-    - master
 
-publish:s3:legacy:mender-client:latest:
-  extends: publish:s3:legacy:mender-client
-  only:
-    variables:
-      - $PUBLISH_LATEST_CLIENT_PACKAGE == "true"
-  script:
-    - echo "Publishing latest packages to S3"
-    - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
-          s3://${S3_BUCKET_NAME}/latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
-        aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-          --key latest/${S3_BUCKET_SUBPATH}/${arch}/mender-client_latest_${arch}.deb;
-      done
+publish:s3:docs-link:mender-client:manual:
+  when: manual
+  extends: .template:publish:s3:docs-link:mender-client
+
+publish:s3:docs-link:mender-client:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:docs-link:mender-client
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
@@ -346,11 +376,9 @@ publish:production:s3:scripts:install-mender-sh:
     refs:
       - production
 
-publish:s3:mender-monitor:
+.template:publish:s3:mender-monitor:
   stage: publish
   image: debian:buster
-  only:
-    - master
   dependencies:
     - build
   before_script:
@@ -369,3 +397,12 @@ publish:s3:mender-monitor:
     - if is_final_tag ${MENDER_MONITOR_VERSION}; then
     -   aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/latest/mender-monitor_latest-1_all.deb
     - fi
+
+publish:s3:mender-monitor:manual:
+  when: manual
+  extends: .template:publish:s3:mender-monitor
+
+publish:s3:mender-monitor:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:mender-monitor
