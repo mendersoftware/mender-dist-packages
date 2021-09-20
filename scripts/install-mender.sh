@@ -30,6 +30,7 @@ mender-monitor \
 "
 
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
+DEMO="0"
 
 # URL prefix from where to download commercial compoments
 MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hosted/"
