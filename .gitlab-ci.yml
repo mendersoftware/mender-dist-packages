@@ -296,12 +296,8 @@ test:acceptance:
 
     # Upload to bucket
     - aws s3 sync db s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db
-    - aws s3 sync pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
-    - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool/ |
-      awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
-    - aws s3 sync dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
-    - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists/ |
-      awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
+    - aws s3 sync --acl public-read pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
+    - aws s3 sync --acl public-read dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
