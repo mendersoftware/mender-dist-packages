@@ -217,12 +217,22 @@ test:acceptance:
 
         current_version=$(reprepro --architecture amd64 --list-format '${version}' list ${codename} ${package_name})
         if [ -z "${current_version}" ]; then
-          # Package doesn't exist, so we assume is "newer"
+          # Package doesn't exist, assume $package_version is "newer"
           return 0
         fi
-        current_version_semver=$(echo $current_version | cut -d"-" -f1 )
+        # Handle git versions
+        if [[ "${current_version}" == *"~git"* ]]; then
+          # Package is master, assume $package_version is "newer"
+          return 0
+        fi
 
-        vercomp $package_version $current_version_semver
+        # Remove debian -1 suffix
+        current_version_semver=$(echo $current_version | sed 's/-1$//' )
+        # Handle build versions for comparison
+        current_version_comp=$(echo $current_version_semver | sed 's/-build/\./' )
+        package_version_comp=$(echo $package_version | sed 's/-build/\./' )
+
+        vercomp $package_version_comp $current_version_comp
         if [ $? -eq 1 ]; then
           return 0
         fi
@@ -296,12 +306,8 @@ test:acceptance:
 
     # Upload to bucket
     - aws s3 sync db s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db
-    - aws s3 sync pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
-    - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool/ |
-      awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
-    - aws s3 sync dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
-    - aws s3 ls --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists/ |
-      awk '{cmd="aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key "$4; system(cmd)}'
+    - aws s3 sync --acl public-read pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
+    - aws s3 sync --acl public-read dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
