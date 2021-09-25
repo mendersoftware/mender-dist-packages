@@ -91,9 +91,6 @@ ENV PATH "$PATH:/usr/local/go/bin"
 # For newer clients with a go.mod file, this is a no-op however.
 ENV GO111MODULE auto
 
-# Copy the debian recipe(s)
-COPY recipes /recipes
-
 # Import GPG key, if set
 ARG GPG_KEY_BUILD=""
 RUN if [ -n "$GPG_KEY_BUILD" ]; then \
