@@ -139,7 +139,7 @@ test:acceptance:
   # Bash function to check if the string is a build tag
   function is_build_tag () {
     version="$1"
-    [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$-build[0-9]+$ ]] && return 0 || return $?
+    [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-build[0-9]+$ ]] && return 0 || return $?
   }
 
 .template:publish:s3:apt-repo:
