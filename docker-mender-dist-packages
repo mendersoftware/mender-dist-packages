@@ -24,12 +24,14 @@ for arch in amd64 armhf arm64; do
 
     # Pass GPG key as build argument if set
     if [ -n "${GPG_KEY_BUILD}" ]; then
-        docker build --tag ${IMAGE_NAME}:cross-${arch} \
+        docker build --network host \
+                --tag ${IMAGE_NAME}:cross-${arch} \
                 --build-arg ARCH=${arch} \
                 --build-arg GPG_KEY_BUILD="${GPG_KEY_BUILD}" \
                 .
     else
-        docker build --tag ${IMAGE_NAME}:cross-${arch} \
+        docker build --network host \
+                --tag ${IMAGE_NAME}:cross-${arch} \
                 --build-arg ARCH=${arch} \
                 .
     fi
