@@ -150,7 +150,7 @@ test:acceptance:
   dependencies:
     - build
   before_script:
-    - apt update && apt install -yyq awscli
+    - apt update && apt install -yyq gpg awscli
     # Check and import GPG keys
     - if [ -z "$GPG_PRIV_KEY_DIST" -o -z "$GPG_PUB_KEY_BUILD" ]; then
     -   echo "Error. GPG keys not available"
