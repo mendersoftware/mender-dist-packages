@@ -54,7 +54,8 @@ build:images:
   services:
     - docker:dind
   before_script:
-    - apk --update --no-cache add bash
+    - apk --update --no-cache add bash curl aws-cli
+    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
   script:
     # GPG key is available only in protected branches
     - if [ "$GPG_PRIV_KEY_BUILD" != "" ]; then
@@ -66,9 +67,12 @@ build:images:
     - docker save mendersoftware/mender-dist-packages:debian-builder-arm64 -o builder-arm64.tar
     - docker save mendersoftware/mender-dist-packages:debian-builder-armhf -o builder-armhf.tar
     - docker save mendersoftware/mender-dist-packages:debian-builder-amd64 -o builder-amd64.tar
+    - mender_ci_save_tmp_artifact builder-arm64.tar
+    - mender_ci_save_tmp_artifact builder-armhf.tar
+    - mender_ci_save_tmp_artifact builder-amd64.tar
   artifacts:
     paths:
-      - builder*.tar
+      - checksums
 
 .template:build:packages:
   stage: build:packages
@@ -97,6 +101,11 @@ build:packages:local-image:
   dependencies:
     - build:images
   before_script:
+    - apk --update --no-cache add bash curl aws-cli
+    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
+    - mender_ci_load_tmp_artifact builder-arm64.tar
+    - mender_ci_load_tmp_artifact builder-armhf.tar
+    - mender_ci_load_tmp_artifact builder-amd64.tar
     - docker load -i builder-arm64.tar
     - docker load -i builder-armhf.tar
     - docker load -i builder-amd64.tar
@@ -202,6 +211,11 @@ publish:images:
   dependencies:
     - build:images
   before_script:
+    - apk --update --no-cache add bash curl aws-cli
+    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
+    - mender_ci_load_tmp_artifact builder-arm64.tar
+    - mender_ci_load_tmp_artifact builder-armhf.tar
+    - mender_ci_load_tmp_artifact builder-amd64.tar
     - docker load -i builder-arm64.tar
     - docker load -i builder-armhf.tar
     - docker load -i builder-amd64.tar
