@@ -10,8 +10,8 @@ variables:
   # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
   S3_BUCKET_SUBPATH: "dist-packages/debian"
   S3_BUCKET_SUBPATH_PRIVATE: "mender-monitor/debian"
-  # APT repo path
-  S3_BUCKET_REPO_PATH: "repos/debian"
+  # APT repo path for incoming packages
+  S3_BUCKET_REPO_PATH: "repos/debian/incoming"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
   # Update the 'latest' debian alias to a new client release
@@ -150,7 +150,7 @@ test:acceptance:
   dependencies:
     - build
   before_script:
-    - apt update && apt install -yyq reprepro awscli
+    - apt update && apt install -yyq awscli
     # Check and import GPG keys
     - if [ -z "$GPG_PRIV_KEY_DIST" -o -z "$GPG_PUB_KEY_BUILD" ]; then
     -   echo "Error. GPG keys not available"
@@ -160,156 +160,19 @@ test:acceptance:
     - echo "$GPG_PUB_KEY_BUILD" | gpg --import
     # Lock the bucket to block concurrent jobs
     - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
-    -     echo "$S3_BUCKET_REPO_PATH locked, waiting..."
-    -     sleep 10
+    -   echo "$S3_BUCKET_REPO_PATH locked, waiting..."
+    -   sleep 10
     - done
     - touch lock
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
-    # Prepare repo from two S3 buckets
-    - mkdir repo
-    - cd repo
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/conf conf
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db db
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists dists
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool pool
   script:
-    - *publish_helper_functions
-    # Bash function to compare two semantic versions, returns: 0 (=), 1(>) or 2(<)
-    #  * "master" always evaluates to greater than any other version
-    #  * "build" versions like 1.2.3-build4 for are evaluated as 1.2.3
-    # Original source: https://stackoverflow.com/a/4025065
-    - |
-      function vercomp () {
-        if [[ $1 == $2 ]]; then
-          return 0
-        fi
-        if [[ $1 == "master" ]]; then
-          return 1
-        fi
-        if [[ $2 == "master" ]]; then
-          return 2
-        fi
-        local IFS=.
-        local i ver1=($1) ver2=($2)
-        # fill empty fields in ver1 with zeros
-        for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
-          ver1[i]=0
-        done
-        for ((i=0; i<${#ver1[@]}; i++)); do
-          if [[ -z ${ver2[i]} ]]; then
-            # fill empty fields in ver2 with zeros
-            ver2[i]=0
-          fi
-          if ((10#${ver1[i]} > 10#${ver2[i]})); then
-            return 1
-          fi
-          if ((10#${ver1[i]} < 10#${ver2[i]})); then
-            return 2
-          fi
-        done
-        return 0
-      }
-    # Bash function to check if the given version for the given package is newer
-    # than the current version of that package in the APT repo
-    - |
-      function is_newer_version() {
-        package_name=$1
-        package_version=$2
-        codename=$3
-
-        current_version=$(reprepro --architecture amd64 --list-format '${version}' list ${codename} ${package_name})
-        if [ -z "${current_version}" ]; then
-          # Package doesn't exist, assume $package_version is "newer"
-          return 0
-        fi
-        # Handle git versions
-        if [[ "${current_version}" == *"~git"* ]]; then
-          # Package is master, assume $package_version is "newer"
-          return 0
-        fi
-
-        # Remove debian -1 suffix
-        current_version_semver=$(echo $current_version | sed 's/-1$//' )
-        # Handle build versions for comparison
-        current_version_comp=$(echo $current_version_semver | sed 's/-build/\./' )
-        package_version_comp=$(echo $package_version | sed 's/-build/\./' )
-
-        vercomp $package_version_comp $current_version_comp
-        if [ $? -eq 1 ]; then
-          return 0
-        fi
-        return 1
-      }
-
-    # Bash function to securely copy packages to the pool, warning and not copying
-    # if the files already exist
-    - |
-      function copy_if_non_existent() {
-        packages_glob="$1"
-        pool_dest=$2
-
-        first_filename=$(basename $(ls $packages_glob | head -1))
-        if [ -f ${pool_dest}/${first_filename} ]; then
-          echo "WARNING: $(basename "$packages_glob") exist in $pool_dest. Not overriding."
-        else
-          cp $packages_glob $pool_dest
-        fi
-      }
-
-    # For each package:
-    #  * if version is newer and is a final tag
-    #      --> include to stable via reprepro
-    #  * if version is newer but not final tag (master of build tags)
-    #      --> include to experimental via reprepro
-    #  * else version is older
-    #      --> manually copy to pool unprocessed (and unsigned) by reprepro
-
-    # mender-client
-    - if is_final_tag ${MENDER_VERSION}; then
-    -   codename=stable
-    - else
-    -   codename=experimental
-    - fi
-    - if is_newer_version mender-client ${MENDER_VERSION} ${codename}; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-client_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
-    -   done
-    - else
-    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-client*.deb" pool/main/m/mender-client/
-    - fi
-
-    # mender-connect
-    - if is_final_tag ${MENDER_CONNECT_VERSION}; then
-    -   codename=stable
-    - else
-    -   codename=experimental
-    - fi
-    - if is_newer_version mender-connect ${MENDER_CONNECT_VERSION} ${codename}; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
-    -   done
-    - else
-    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-connect*.deb" pool/main/m/mender-connect/
-    - fi
-
-    # mender-configure
-    - if is_final_tag ${MENDER_CONFIGURE_VERSION}; then
-    -   codename=stable
-    - else
-    -   codename=experimental
-    - fi
-    - if is_newer_version mender-configure ${MENDER_CONFIGURE_VERSION} ${codename}; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-configure_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
-    -   done
-    - else
-    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-configure*.deb" pool/main/m/mender-configure/
-    - fi
-
-    # Upload to bucket
-    - aws s3 sync db s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db
-    - aws s3 sync --acl public-read pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
-    - aws s3 sync --acl public-read dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
+    # Upload files: first .buildinfo and .deb, then .changes
+    - for file in $(find output/ -name *.buildinfo -o -name *.deb); do
+    -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - done
+    - for file in $(find output/ -name *.changes); do
+    -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - done
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
