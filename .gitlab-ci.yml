@@ -150,14 +150,7 @@ test:acceptance:
   dependencies:
     - build
   before_script:
-    - apt update && apt install -yyq gpg awscli
-    # Check and import GPG keys
-    - if [ -z "$GPG_PRIV_KEY_DIST" -o -z "$GPG_PUB_KEY_BUILD" ]; then
-    -   echo "Error. GPG keys not available"
-    -   exit 1
-    - fi
-    - echo "$GPG_PRIV_KEY_DIST" | gpg --import
-    - echo "$GPG_PUB_KEY_BUILD" | gpg --import
+    - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
     - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
     -   echo "$S3_BUCKET_REPO_PATH locked, waiting..."
