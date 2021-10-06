@@ -219,6 +219,7 @@ publish:images:
     - docker load -i builder-arm64.tar
     - docker load -i builder-armhf.tar
     - docker load -i builder-amd64.tar
+    - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
   script:
     - docker push mendersoftware/mender-dist-packages:debian-builder-arm64
     - docker push mendersoftware/mender-dist-packages:debian-builder-armhf
