@@ -1,0 +1,127 @@
+#!/bin/bash
+#
+# Copyright 2020 Northern.tech AS
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+set -e
+
+declare -A mender_client_props=(
+  [recipe_name]="mender-client"
+  [src_url]="https://github.com/mendersoftware/mender"
+  [arch_indep]="false"
+  [commercial]="false"
+)
+declare -A mender_connect_props=(
+  [recipe_name]="mender-connect"
+  [src_url]="https://github.com/mendersoftware/mender-connect"
+  [arch_indep]="false"
+  [commercial]="false"
+)
+declare -A mender_configure_props=(
+  [recipe_name]="mender-configure"
+  [src_url]="https://github.com/mendersoftware/mender-configure-module"
+  [arch_indep]="true"
+  [commercial]="false"
+)
+declare -A mender_monitor_props=(
+  [recipe_name]="mender-monitor"
+  [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/monitor-client"
+  [arch_indep]="true"
+  [commercial]="true"
+)
+
+declare -a packages=(
+    mender_client_props
+    mender_connect_props
+    mender_configure_props
+    mender_monitor_props
+)
+
+# Parse args
+if [ $# -lt 1 ]; then
+    echo "usage: $0 package [version]"
+    exit 1
+fi
+RECIPE_NAME="${1}"
+RECIPE_VERSION="${2:-master}"
+
+# Look for the recipe
+recipe_found=0
+for recipe in "${packages[@]}"; do
+    recipe_name=$(eval echo \${$recipe[recipe_name]})
+    if [ "$recipe_name" = "$RECIPE_NAME" ]; then
+        recipe_found=1
+        src_url=$(eval echo \${$recipe[src_url]})
+        arch_indep=$(eval echo \${$recipe[arch_indep]})
+        commercial=$(eval echo \${$recipe[commercial]})
+        break
+    fi
+done
+if [ $recipe_found -eq 0 ]; then
+    echo "unrecognized package $RECIPE_NAME, supported are: ${!packages[@]}"
+    exit 1
+fi
+
+# Extra check for commercial recipes
+if [ $commercial = "true" -a -z "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
+    echo "recipe $RECIPE_NAME requires MENDER_PRIVATE_REPO_ACCESS_TOKEN"
+    exit 1
+fi
+
+echo "Building $recipe_name..."
+echo ""
+
+IMAGE_NAME_PREFIX=mendersoftware/mender-dist-packages:debian-builder
+mkdir -p output
+
+if [ "$arch_indep" = "true" ]; then
+    # Build architecture independent binary packages (all)
+    docker run --rm \
+            --volume $(pwd)/recipes:/recipes \
+            --volume $(pwd)/output:/output \
+            -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
+            -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
+            ${IMAGE_NAME_PREFIX}-amd64 \
+            $recipe_name \
+            all \
+            $src_url \
+            ${RECIPE_VERSION} \
+            amd64 \
+            ${CI_PIPELINE_ID:-LOCAL}
+else
+    for arch in amd64 armhf arm64; do
+        if [ "$arch" = "amd64" ]; then
+            # For amd64, build both architecture dependent and independent packages.
+            BUILD_TYPE=binary
+        else
+            # For others, build only architecture dependent packages.
+            BUILD_TYPE=any
+        fi
+
+        docker run --rm \
+                --volume $(pwd)/recipes:/recipes \
+                --volume $(pwd)/output:/output \
+                -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
+                -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
+                ${IMAGE_NAME_PREFIX}-${arch} \
+                $recipe_name \
+                $BUILD_TYPE \
+                $src_url \
+                ${RECIPE_VERSION} \
+                ${arch} \
+                ${CI_PIPELINE_ID:-LOCAL}
+    done
+fi
+
+exit 0

@@ -22,16 +22,19 @@ You need to [install Docker Engine](https://docs.docker.com/install) to use this
 
 ### Instructions
 
-To build the Docker image and create the Debian packages for master:
+To build the Docker image:
 
 ```bash
-./docker-mender-dist-packages
+./docker-build-images
 ```
 
-or for any other version:
+And then build the Debian packages:
 
 ```bash
-MENDER_VERSION=x.y.z ./docker-mender-dist-packages
+./docker-build-package mender-client <version>
+./docker-build-package mender-connect <version>
+./docker-build-package mender-configure <version>
+./docker-build-package mender-monitor <version>
 ```
 
 The deb packages should be ready at output/
