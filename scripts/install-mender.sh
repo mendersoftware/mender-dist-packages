@@ -282,13 +282,18 @@ do_setup_mender() {
         return
     fi
 
-    # Return if no setup options were passed
-    if [ -z "$MENDER_SETUP_ARGS" ]; then
+    # Return if no setup options were passed and no DEMO
+    if [ -z "$MENDER_SETUP_ARGS" -a "$DEMO" -eq 0 ]; then
         return
     fi
 
-    echo "  Setting up mender with options: $MENDER_SETUP_ARGS"
-    mender setup $MENDER_SETUP_ARGS
+    local mender_setup_args="$MENDER_SETUP_ARGS"
+    if [ "$DEMO" -eq 1 ]; then
+        mender_setup_args="$mender_setup_args --demo-intervals"
+    fi
+
+    echo "  Setting up mender with options: $mender_setup_args"
+    mender setup $mender_setup_args
     pidof systemd && systemctl restart mender-client
     echo "  Success!"
 }
