@@ -14,8 +14,6 @@ variables:
   S3_BUCKET_REPO_PATH: "repos/debian/incoming"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
-  # Update the 'latest' debian alias to a new client release
-  PUBLISH_LATEST_CLIENT_PACKAGE: "false"
   # GPG keys for build and distribution, to be set by CI/CD variables
   GPG_PRIV_KEY_BUILD: ""
   GPG_PUB_KEY_BUILD: ""
