@@ -20,6 +20,7 @@ import re
 from helpers import package_filename, upload_deb_package
 
 
+@pytest.mark.skip(reason="Needs mender-client 3.2.0, see MEN-5231")
 @pytest.mark.usefixtures("setup_mender_configured")
 class TestPackageAddons:
     def test_mender_connect(

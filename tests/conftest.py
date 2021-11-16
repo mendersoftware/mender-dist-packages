@@ -87,7 +87,7 @@ def mender_dist_packages_versions(request):
 
 
 # Required for mender_test_containers/conftest.py::setup_mender_configured, which
-# is only used on addons packages tests. Use version 3.2.0 (mender-connect dependency)
+# is only used on addons packages tests. Use version 2.5.0 (dependency)
 @pytest.fixture(scope="session")
 def mender_deb_version(request):
-    return "3.2.0"
+    return "2.5.0"
