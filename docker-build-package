@@ -83,13 +83,18 @@ echo "Building $recipe_name..."
 echo ""
 
 IMAGE_NAME_PREFIX=mendersoftware/mender-dist-packages:debian-builder
-mkdir -p output
+
+output_dir="output/opensource"
+if [ $commercial = "true" ]; then
+    output_dir="output/commercial"
+fi
+mkdir -p ${output_dir}
 
 if [ "$arch_indep" = "true" ]; then
     # Build architecture independent binary packages (all)
     docker run --rm \
             --volume $(pwd)/recipes:/recipes \
-            --volume $(pwd)/output:/output \
+            --volume $(pwd)/${output_dir}:/output \
             -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
             -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
             ${IMAGE_NAME_PREFIX}-amd64 \
@@ -111,7 +116,7 @@ else
 
         docker run --rm \
                 --volume $(pwd)/recipes:/recipes \
-                --volume $(pwd)/output:/output \
+                --volume $(pwd)/${output_dir}:/output \
                 -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
                 -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
                 ${IMAGE_NAME_PREFIX}-${arch} \
