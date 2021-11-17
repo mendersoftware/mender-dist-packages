@@ -174,22 +174,22 @@ test:acceptance:
     - pip3 install -r requirements.txt
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
-      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-connect-deb-version)
+      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
-      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version)
+      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version)
     - |-
-        if [ -f ${CI_PROJECT_DIR}/output/mender-monitor-deb-version ]; then
+        if [ -f ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version ]; then
           python3 -m pytest -v \
             --mender-client-version $MENDER_VERSION \
-            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version) \
+            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version) \
             --mender-connect-version $MENDER_CONNECT_VERSION \
-            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-connect-deb-version) \
+            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version) \
             --mender-configure-version $MENDER_CONFIGURE_VERSION \
-            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version) \
-            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-monitor-deb-version) \
-            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-monitor-deb-version) \
+            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version) \
+            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version) \
+            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version) \
             --commercial-tests
         fi
 
@@ -253,10 +253,10 @@ publish:images:
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
   script:
     # Upload files: first .buildinfo and .deb, then .changes
-    - for file in $(find output/ -name *.buildinfo -o -name *.deb); do
+    - for file in $(find output/opensource -name *.buildinfo -o -name *.deb); do
     -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
     - done
-    - for file in $(find output/ -name *.changes); do
+    - for file in $(find output/opensource -name *.changes); do
     -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
     - done
   after_script:
@@ -280,17 +280,17 @@ publish:s3:apt-repo:automatic:
     - build:packages:upstream-image
   before_script:
     - apt update && apt install -yyq awscli
-    - deb_version=$(cat output/mender-client-deb-version)
+    - deb_version=$(cat output/opensource/mender-client-deb-version)
   script:
     - echo "Publishing ${MENDER_VERSION} packages to S3"
     # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
     - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+        aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
           s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
           --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         if [ "${MENDER_VERSION}" == "master" ]; then
-          aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+          aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
             s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
           aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
             --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
@@ -347,16 +347,16 @@ publish:production:s3:scripts:install-mender-sh:
     - *publish_helper_functions
   script:
     - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/"
-    - aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/
+    - aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/
     # Make copies in known destinations to be consumed by get.mender.io script:
     # * For "experimental" channel, we make a copy of the newest master package in the master directory
     # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
     # This needs to be reworked before Mender 3.2, see MEN-5029 for more details.
     - if is_build_tag ${MENDER_MONITOR_VERSION} || [ "${MENDER_MONITOR_VERSION}" == "master" ]; then
-    -   aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/master/mender-monitor_master-1_all.deb
+    -   aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/master/mender-monitor_master-1_all.deb
     - fi
     - if is_final_tag ${MENDER_MONITOR_VERSION}; then
-    -   aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/latest/mender-monitor_latest-1_all.deb
+    -   aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/latest/mender-monitor_latest-1_all.deb
     - fi
 
 publish:s3:mender-monitor:manual:
