@@ -43,11 +43,11 @@ stages:
 
 build:images:
   stage: build:images
-  rules:
-    - changes:
-      - Dockerfile
-      - docker-build-images
-      - mender-deb-package
+  # rules:
+  #   - changes:
+  #     - Dockerfile
+  #     - docker-build-images
+  #     - mender-deb-package
   image: docker:git
   services:
     - docker:dind
@@ -91,11 +91,11 @@ build:images:
 
 build:packages:local-image:
   extends: .template:build:packages
-  rules:
-    - changes:
-      - Dockerfile
-      - docker-build-images
-      - mender-deb-package
+  # rules:
+  #   - changes:
+  #     - Dockerfile
+  #     - docker-build-images
+  #     - mender-deb-package
   dependencies:
     - build:images
   before_script:
@@ -108,18 +108,18 @@ build:packages:local-image:
     - docker load -i builder-armhf.tar
     - docker load -i builder-amd64.tar
 
-build:packages:upstream-image:
-  extends: .template:build:packages
-  rules:
-    - changes:
-      - Dockerfile
-      - docker-build-images
-      - mender-deb-package
-      when: never
-  before_script:
-    - docker pull mendersoftware/mender-dist-packages:debian-builder-arm64
-    - docker pull mendersoftware/mender-dist-packages:debian-builder-armhf
-    - docker pull mendersoftware/mender-dist-packages:debian-builder-amd64
+# build:packages:upstream-image:
+#   extends: .template:build:packages
+#   rules:
+#     - changes:
+#       - Dockerfile
+#       - docker-build-images
+#       - mender-deb-package
+#       when: never
+#   before_script:
+#     - docker pull mendersoftware/mender-dist-packages:debian-builder-arm64
+#     - docker pull mendersoftware/mender-dist-packages:debian-builder-armhf
+#     - docker pull mendersoftware/mender-dist-packages:debian-builder-amd64
 
 test:check-commits:
   only:
@@ -144,7 +144,7 @@ test:acceptance:
   dependencies:
     # It depends on either of them
     - build:packages:local-image
-    - build:packages:upstream-image
+    # - build:packages:upstream-image
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -193,35 +193,35 @@ test:acceptance:
             --commercial-tests
         fi
 
-publish:images:
-  stage: publish
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "master"'
-      changes:
-        - Dockerfile
-        - docker-build-images
-        - mender-deb-package
-  image: docker:git
-  services:
-    - docker:dind
-  tags:
-    - docker
-  dependencies:
-    - build:images
-  before_script:
-    - apk --update --no-cache add bash curl aws-cli
-    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
-    - mender_ci_load_tmp_artifact builder-arm64.tar
-    - mender_ci_load_tmp_artifact builder-armhf.tar
-    - mender_ci_load_tmp_artifact builder-amd64.tar
-    - docker load -i builder-arm64.tar
-    - docker load -i builder-armhf.tar
-    - docker load -i builder-amd64.tar
-    - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
-  script:
-    - docker push mendersoftware/mender-dist-packages:debian-builder-arm64
-    - docker push mendersoftware/mender-dist-packages:debian-builder-armhf
-    - docker push mendersoftware/mender-dist-packages:debian-builder-amd64
+# publish:images:
+#   stage: publish
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "master"'
+#       changes:
+#         - Dockerfile
+#         - docker-build-images
+#         - mender-deb-package
+#   image: docker:git
+#   services:
+#     - docker:dind
+#   tags:
+#     - docker
+#   dependencies:
+#     - build:images
+#   before_script:
+#     - apk --update --no-cache add bash curl aws-cli
+#     - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
+#     - mender_ci_load_tmp_artifact builder-arm64.tar
+#     - mender_ci_load_tmp_artifact builder-armhf.tar
+#     - mender_ci_load_tmp_artifact builder-amd64.tar
+#     - docker load -i builder-arm64.tar
+#     - docker load -i builder-armhf.tar
+#     - docker load -i builder-amd64.tar
+#     - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+#   script:
+#     - docker push mendersoftware/mender-dist-packages:debian-builder-arm64
+#     - docker push mendersoftware/mender-dist-packages:debian-builder-armhf
+#     - docker push mendersoftware/mender-dist-packages:debian-builder-amd64
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
@@ -241,7 +241,7 @@ publish:images:
   dependencies:
     # It depends on either of them
     - build:packages:local-image
-    - build:packages:upstream-image
+    # - build:packages:upstream-image
   before_script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
@@ -277,7 +277,7 @@ publish:s3:apt-repo:automatic:
   dependencies:
     # It depends on either of them
     - build:packages:local-image
-    - build:packages:upstream-image
+    # - build:packages:upstream-image
   before_script:
     - apt update && apt install -yyq awscli
     - deb_version=$(cat output/opensource/mender-client-deb-version)
@@ -341,7 +341,7 @@ publish:production:s3:scripts:install-mender-sh:
   dependencies:
     # It depends on either of them
     - build:packages:local-image
-    - build:packages:upstream-image
+    # - build:packages:upstream-image
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
