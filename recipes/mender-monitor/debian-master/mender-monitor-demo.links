@@ -1,3 +1,0 @@
-/etc/mender-monitor/monitor.d/available/log_usb.sh /etc/mender-monitor/monitor.d/enabled/log_usb.sh
-/etc/mender-monitor/monitor.d/available/connectivity_example.sh /etc/mender-monitor/monitor.d/enabled/connectivity_example.sh
-/etc/mender-monitor/monitor.d/available/disk_root_space.sh /etc/mender-monitor/monitor.d/enabled/disk_root_space.sh
