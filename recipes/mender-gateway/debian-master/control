@@ -1,0 +1,15 @@
+Source: mender-gateway
+Maintainer: Mender Team <mender@northern.tech>
+Section: admin
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: mender-gateway
+Architecture: any
+Depends: libc6 (>= 2.12)
+Description: Mender Gateway
+ Mender Gateway exposes the Mender Device APIs to local devices
+ running the Mender client and forwards the requests to an upstream
+ Mender Server. It can optionally enhance the APIs with additional
+ edge-specific features.

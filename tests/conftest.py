@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -33,6 +33,8 @@ def pytest_addoption(parser):
     parser.addoption("--mender-connect-deb-version", required=True)
     parser.addoption("--mender-configure-version", required=True)
     parser.addoption("--mender-configure-deb-version", required=True)
+    parser.addoption("--mender-gateway-version", required=False, default="none")
+    parser.addoption("--mender-gateway-deb-version", required=False, default="none")
     parser.addoption("--mender-monitor-version", required=False, default="none")
     parser.addoption("--mender-monitor-deb-version", required=False, default="none")
     parser.addoption(
@@ -53,6 +55,11 @@ def mender_connect_version(request):
 @pytest.fixture(scope="session")
 def mender_configure_version(request):
     return request.config.getoption("--mender-configure-version")
+
+
+@pytest.fixture(scope="session")
+def mender_gateway_version(request):
+    return request.config.getoption("--mender-gateway-version")
 
 
 @pytest.fixture(scope="session")
@@ -82,6 +89,7 @@ def mender_dist_packages_versions(request):
         "mender-client": request.config.getoption("--mender-client-deb-version"),
         "mender-connect": request.config.getoption("--mender-connect-deb-version"),
         "mender-configure": request.config.getoption("--mender-configure-deb-version"),
+        "mender-gateway": request.config.getoption("--mender-gateway-deb-version"),
         "mender-monitor": request.config.getoption("--mender-monitor-deb-version"),
     }
 
