@@ -8,6 +8,7 @@ Build-Depends: debhelper (>= 9)
 Package: mender-gateway
 Architecture: any
 Depends: libc6 (>= 2.12)
+Suggests: mender-client
 Description: Mender Gateway
  Mender Gateway exposes the Mender Device APIs to local devices
  running the Mender client and forwards the requests to an upstream
