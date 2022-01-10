@@ -95,6 +95,8 @@ prepare_recipe() {
     fi
   elif [ "${DEB_PACKAGE}" = "mender-connect" ]; then
     cp support/mender-connect.service debian/
+  elif [ "${DEB_PACKAGE}" = "mender-gateway" ]; then
+    cp support/mender-gateway.service debian/
   elif [ "${DEB_PACKAGE}" = "mender-monitor" ]; then
     cp support/mender-monitor.service debian/
   fi

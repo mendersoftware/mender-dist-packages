@@ -34,6 +34,7 @@ And then build the Debian packages:
 ./docker-build-package mender-client <version>
 ./docker-build-package mender-connect <version>
 ./docker-build-package mender-configure <version>
+./docker-build-package mender-gateway <version>
 ./docker-build-package mender-monitor <version>
 ```
 

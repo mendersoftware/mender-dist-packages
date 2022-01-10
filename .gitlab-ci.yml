@@ -3,13 +3,15 @@ variables:
   MENDER_VERSION: "master"
   MENDER_CONNECT_VERSION: "master"
   MENDER_CONFIGURE_VERSION: "master"
+  MENDER_GATEWAY_VERSION: "master"
   MENDER_MONITOR_VERSION: "master"
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
   # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
   S3_BUCKET_SUBPATH: "dist-packages/debian"
-  S3_BUCKET_SUBPATH_PRIVATE: "mender-monitor/debian"
+  S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
+  S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
   # APT repo path for incoming packages
   S3_BUCKET_REPO_PATH: "repos/debian/incoming"
   # Scripts folder subpath
@@ -83,6 +85,7 @@ build:images:
     - ./docker-build-package mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package mender-configure $MENDER_CONFIGURE_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
+    -   ./docker-build-package mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package mender-monitor $MENDER_MONITOR_VERSION
     - fi
   artifacts:
@@ -180,7 +183,8 @@ test:acceptance:
       --mender-configure-version $MENDER_CONFIGURE_VERSION
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version)
     - |-
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version ]; then
+        if [ -f ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version ] && \
+           [ -f ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version ]; then
           python3 -m pytest -v \
             --mender-client-version $MENDER_VERSION \
             --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version) \
@@ -188,7 +192,9 @@ test:acceptance:
             --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version) \
             --mender-configure-version $MENDER_CONFIGURE_VERSION \
             --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version) \
-            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version) \
+            --mender-gateway-version $MENDER_GATEWAY_VERSION \
+            --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version) \
+            --mender-monitor-version $MENDER_MONITOR_VERSION \
             --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version) \
             --commercial-tests
         fi
@@ -346,17 +352,17 @@ publish:production:s3:scripts:install-mender-sh:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
-    - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/"
-    - aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/
+    - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/"
+    - aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/
     # Make copies in known destinations to be consumed by get.mender.io script:
     # * For "experimental" channel, we make a copy of the newest master package in the master directory
     # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
-    # This needs to be reworked before Mender 3.2, see MEN-5029 for more details.
+    # This can to be reworked for better maintainability, see MEN-5029 for more details.
     - if is_build_tag ${MENDER_MONITOR_VERSION} || [ "${MENDER_MONITOR_VERSION}" == "master" ]; then
-    -   aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/master/mender-monitor_master-1_all.deb
+    -   aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor_master-1_all.deb
     - fi
     - if is_final_tag ${MENDER_MONITOR_VERSION}; then
-    -   aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/latest/mender-monitor_latest-1_all.deb
+    -   aws s3 cp output/commercial/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/latest/mender-monitor_latest-1_all.deb
     - fi
 
 publish:s3:mender-monitor:manual:
@@ -367,3 +373,36 @@ publish:s3:mender-monitor:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
   extends: .template:publish:s3:mender-monitor
+
+.template:publish:s3:mender-gateway:
+  stage: publish
+  image: debian:buster
+  dependencies:
+    # It depends on either of them
+    - build:packages:local-image
+    # - build:packages:upstream-image
+  before_script:
+    - apt update && apt install -yyq awscli
+    - *publish_helper_functions
+  script:
+    - echo "Publishing mender-gateway version ${MENDER_GATEWAY_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/"
+    - aws s3 cp output/commercial/mender-gateway*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/
+    # Make copies in known destinations to be consumed by get.mender.io script:
+    # * For "experimental" channel, we make a copy of the newest master package in the master directory
+    # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
+    # This needs to be reworked before Mender 3.2, see MEN-5029 for more details.
+    - if is_build_tag ${MENDER_GATEWAY_VERSION} || [ "${MENDER_GATEWAY_VERSION}" == "master" ]; then
+    -   aws s3 cp output/commercial/mender-gateway*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/master/mender-gateway_master-1_all.deb
+    - fi
+    - if is_final_tag ${MENDER_GATEWAY_VERSION}; then
+    -   aws s3 cp output/commercial/mender-gateway*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/latest/mender-gateway_latest-1_all.deb
+    - fi
+
+publish:s3:mender-gateway:manual:
+  when: manual
+  extends: .template:publish:s3:mender-gateway
+
+publish:s3:mender-gateway:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:mender-gateway

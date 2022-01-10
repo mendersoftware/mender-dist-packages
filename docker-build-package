@@ -41,10 +41,18 @@ declare -A mender_monitor_props=(
   [commercial]="true"
 )
 
+declare -A mender_gateway_props=(
+  [recipe_name]="mender-gateway"
+  [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/mender-gateway"
+  [arch_indep]="false"
+  [commercial]="true"
+)
+
 declare -a packages=(
     mender_client_props
     mender_connect_props
     mender_configure_props
+    mender_gateway_props
     mender_monitor_props
 )
 
