@@ -12,6 +12,7 @@ mender-configure-demo \
 mender-configure-timezone \
 mender-connect \
 mender-monitor \
+mender-monitor-demo \
 "
 
 DEFAULT_COMPONENTS="\
@@ -27,6 +28,10 @@ mender-configure-timezone \
 
 COMMERCIAL_COMPONENTS="\
 mender-monitor \
+"
+
+COMMERCIAL_DEMO_COMPONENTS="\
+mender-monitor-demo \
 "
 
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
@@ -120,6 +125,9 @@ parse_args() {
                     exit 1
                 fi
                 SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_COMPONENTS"
+                if [[ "$args_copy" == *"--demo"* ]]; then
+                    SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS"
+                fi
                 ;;
             --jwt-token)
                 if [ -n "$2" ]; then

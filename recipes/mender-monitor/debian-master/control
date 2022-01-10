@@ -9,7 +9,11 @@ Package: mender-monitor
 Architecture: all
 Depends: bash, lmdb-utils, mender-client (>=2.5.0), ${misc:Depends}
 Description: Mender Monitor client
- The monitor client is a Mender add-on which enables the reporting of certain
- device events to the Mender server, such as log, service files and D-Bus
- signals.
+ Mender Monitor is a Mender add-on which enables the reporting of certain
+ device events to the Mender server, such as log events, service files statuses
+ and D-Bus signals.
  
+Package: mender-monitor-demo
+Architecture: all
+Depends: mender-monitor, ${misc:Depends}
+Description: Adds demo functionality to Mender Monitor.
