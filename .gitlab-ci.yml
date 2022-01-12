@@ -390,16 +390,20 @@ publish:s3:mender-monitor:automatic:
     - *publish_helper_functions
   script:
     - echo "Publishing mender-gateway version ${MENDER_GATEWAY_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/"
-    - aws s3 cp output/commercial/mender-gateway*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/
+    - aws s3 cp output/commercial/ s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/ --recursive --exclude "*" --include "mender-gateway*.deb"
     # Make copies in known destinations to be consumed by get.mender.io script:
     # * For "experimental" channel, we make a copy of the newest master package in the master directory
     # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
     # This needs to be reworked before Mender 3.2, see MEN-5029 for more details.
     - if is_build_tag ${MENDER_GATEWAY_VERSION} || [ "${MENDER_GATEWAY_VERSION}" == "master" ]; then
-    -   aws s3 cp output/commercial/mender-gateway*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/master/mender-gateway_master-1_all.deb
+    -   for arch in amd64 arm64 armhf; do
+    -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/master/mender-gateway_master-1_${arch}.deb 
+    -  done
     - fi
     - if is_final_tag ${MENDER_GATEWAY_VERSION}; then
-    -   aws s3 cp output/commercial/mender-gateway*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/latest/mender-gateway_latest-1_all.deb
+    -   for arch in amd64 arm64 armhf; do
+    -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/latest/mender-gateway_latest-1_${arch}.deb
+    -   done
     - fi
 
 publish:s3:mender-gateway:manual:
