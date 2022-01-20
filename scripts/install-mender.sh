@@ -221,7 +221,7 @@ do_install_open() {
     # Filter out commercial components
     local selected_components_open=""
     for c in $SELECTED_COMPONENTS; do
-        if ! echo "$COMMERCIAL_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+        if ! echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
             selected_components_open="$selected_components_open $c"
         fi
     done
@@ -246,7 +246,7 @@ do_install_commercial() {
     # Filter commercial components
     local selected_components_commercial=""
     for c in $SELECTED_COMPONENTS; do
-        if echo "$COMMERCIAL_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+        if echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
             selected_components_commercial="$selected_components_commercial $c"
         fi
     done
