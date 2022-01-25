@@ -319,6 +319,13 @@ EOF
     fi
 }
 
+do_install_missing_monitor_dirs () {
+    if [[ "$SELECTED_COMPONENTS" == *"mender-monitor-demo"* ]]; then
+        mkdir -p /etc/mender-monitor/monitor.d/enabled || true
+        mkdir -p /etc/mender-monitor/monitor.d/available || true
+    fi
+}
+
 banner
 init "$@"
 print_components
@@ -328,5 +335,6 @@ do_install_open
 do_install_commercial
 do_setup_mender
 do_setup_addons
+do_install_missing_monitor_dirs
 
 exit 0
