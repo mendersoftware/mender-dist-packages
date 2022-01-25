@@ -43,6 +43,7 @@ MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hos
 # URL path for the actual components, formatted by version
 declare -A COMMERCIAL_COMP_TO_URL_PATH_F=(
   [mender-monitor]="mender-monitor/debian/%s/mender-monitor_%s-1_all.deb"
+  [mender-monitor-demo]="mender-monitor/debian/%s/mender-monitor-demo_%s-1_all.deb"
 )
 
 export DEBIAN_FRONTEND=noninteractive
