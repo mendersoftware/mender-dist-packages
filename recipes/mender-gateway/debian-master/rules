@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	make CGO_CFLAGS="${CGO_CFLAGS}" CGO_LDFLAGS="${CGO_LDFLAGS}" CC="${CC}" \
+	GOOS=linux CGO_ENABLED=1 build
+
+override_dh_auto_install:
+	# All install targets except install-systemd
+	DESTDIR=debian/mender-gateway make install-bin install-conf
+
+override_dh_auto_test:
+	true
+
+override_dh_strip:
+	${CROSS_COMPILE}-strip --remove-section=.comment --remove-section=.note \
+	debian/mender-gateway/usr/bin/mender-gateway
+
+override_dh_shlibdeps:
+	true

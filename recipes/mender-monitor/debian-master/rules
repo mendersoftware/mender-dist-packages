@@ -5,5 +5,11 @@
 %:
 	dh $@
 
+override_dh_auto_install:
+	DESTDIR=debian/tmp make install install-example-monitors
+
+override_dh_missing:
+	dh_missing --fail-missing
+
 override_dh_link:
 	true

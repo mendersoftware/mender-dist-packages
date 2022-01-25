@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -16,9 +16,21 @@
 import os.path
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
+output_path = os.path.normpath(os.path.join(tests_path, "..", "output"))
 
-# Path were to find the packages under test
-packages_path_default = os.path.normpath(os.path.join(tests_path, "..", "output"))
+
+COMMERCIAL_PACKAGES = [
+    "mender-gateway",
+    "mender-monitor",
+]
+
+
+# Returns path were to find the package to install
+def packages_path(package):
+    subdir = "opensource"
+    if package in COMMERCIAL_PACKAGES:
+        subdir = "commercial"
+    return os.path.join(output_path, subdir)
 
 
 def package_filename(
@@ -33,7 +45,7 @@ def package_filename_path(
     package_version, package_name="mender-client", package_arch="armhf"
 ):
     return os.path.join(
-        packages_path_default,
+        packages_path(package_name),
         package_filename(package_version, package_name, package_arch),
     )
 

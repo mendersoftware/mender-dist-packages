@@ -12,6 +12,7 @@ mender-configure-demo \
 mender-configure-timezone \
 mender-connect \
 mender-monitor \
+mender-monitor-demo \
 "
 
 DEFAULT_COMPONENTS="\
@@ -27,6 +28,10 @@ mender-configure-timezone \
 
 COMMERCIAL_COMPONENTS="\
 mender-monitor \
+"
+
+COMMERCIAL_DEMO_COMPONENTS="\
+mender-monitor-demo \
 "
 
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
@@ -120,6 +125,9 @@ parse_args() {
                     exit 1
                 fi
                 SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_COMPONENTS"
+                if [[ "$args_copy" == *"--demo"* ]]; then
+                    SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS"
+                fi
                 ;;
             --jwt-token)
                 if [ -n "$2" ]; then
@@ -213,7 +221,7 @@ do_install_open() {
     # Filter out commercial components
     local selected_components_open=""
     for c in $SELECTED_COMPONENTS; do
-        if ! echo "$COMMERCIAL_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+        if ! echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
             selected_components_open="$selected_components_open $c"
         fi
     done
@@ -238,7 +246,7 @@ do_install_commercial() {
     # Filter commercial components
     local selected_components_commercial=""
     for c in $SELECTED_COMPONENTS; do
-        if echo "$COMMERCIAL_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+        if echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
             selected_components_commercial="$selected_components_commercial $c"
         fi
     done

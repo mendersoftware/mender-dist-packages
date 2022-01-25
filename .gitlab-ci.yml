@@ -3,19 +3,19 @@ variables:
   MENDER_VERSION: "master"
   MENDER_CONNECT_VERSION: "master"
   MENDER_CONFIGURE_VERSION: "master"
+  MENDER_GATEWAY_VERSION: "master"
   MENDER_MONITOR_VERSION: "master"
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
   # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
   S3_BUCKET_SUBPATH: "dist-packages/debian"
-  S3_BUCKET_SUBPATH_PRIVATE: "mender-monitor/debian"
-  # APT repo path
-  S3_BUCKET_REPO_PATH: "repos/debian"
+  S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
+  S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
+  # APT repo path for incoming packages
+  S3_BUCKET_REPO_PATH: "repos/debian/incoming"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
-  # Update the 'latest' debian alias to a new client release
-  PUBLISH_LATEST_CLIENT_PACKAGE: "false"
   # GPG keys for build and distribution, to be set by CI/CD variables
   GPG_PRIV_KEY_BUILD: ""
   GPG_PUB_KEY_BUILD: ""
@@ -38,28 +38,91 @@ include:
     file: '.gitlab-ci-github-status-updates.yml'
 
 stages:
-  - build
+  - build:images
+  - build:packages
   - test
   - publish
 
-build:
-  stage: build
+build:images:
+  stage: build:images
+  # rules:
+  #   - changes:
+  #     - Dockerfile
+  #     - docker-build-images
+  #     - mender-deb-package
   image: docker:git
   services:
     - docker:dind
   before_script:
-    - apk --update --no-cache add bash sudo
+    - apk --update --no-cache add bash curl aws-cli
+    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
   script:
     # GPG key is available only in protected branches
     - if [ "$GPG_PRIV_KEY_BUILD" != "" ]; then
     -   GPG_KEY_BUILD="$GPG_PRIV_KEY_BUILD"
-        ./docker-mender-dist-packages
+        ./docker-build-images
     - else
-    -   ./docker-mender-dist-packages
+    -   ./docker-build-images
+    - fi
+    - docker save mendersoftware/mender-dist-packages:debian-builder-arm64 -o builder-arm64.tar
+    - docker save mendersoftware/mender-dist-packages:debian-builder-armhf -o builder-armhf.tar
+    - docker save mendersoftware/mender-dist-packages:debian-builder-amd64 -o builder-amd64.tar
+    - mender_ci_save_tmp_artifact builder-arm64.tar
+    - mender_ci_save_tmp_artifact builder-armhf.tar
+    - mender_ci_save_tmp_artifact builder-amd64.tar
+  artifacts:
+    paths:
+      - checksums
+
+.template:build:packages:
+  stage: build:packages
+  image: docker:git
+  services:
+    - docker:dind
+  script:
+    - apk --update --no-cache add bash
+    - ./docker-build-package mender-client $MENDER_VERSION
+    - ./docker-build-package mender-connect $MENDER_CONNECT_VERSION
+    - ./docker-build-package mender-configure $MENDER_CONFIGURE_VERSION
+    - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
+    -   ./docker-build-package mender-gateway $MENDER_GATEWAY_VERSION
+    -   ./docker-build-package mender-monitor $MENDER_MONITOR_VERSION
     - fi
   artifacts:
     paths:
       - output/*
+
+build:packages:local-image:
+  extends: .template:build:packages
+  # rules:
+  #   - changes:
+  #     - Dockerfile
+  #     - docker-build-images
+  #     - mender-deb-package
+  dependencies:
+    - build:images
+  before_script:
+    - apk --update --no-cache add bash curl aws-cli
+    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
+    - mender_ci_load_tmp_artifact builder-arm64.tar
+    - mender_ci_load_tmp_artifact builder-armhf.tar
+    - mender_ci_load_tmp_artifact builder-amd64.tar
+    - docker load -i builder-arm64.tar
+    - docker load -i builder-armhf.tar
+    - docker load -i builder-amd64.tar
+
+# build:packages:upstream-image:
+#   extends: .template:build:packages
+#   rules:
+#     - changes:
+#       - Dockerfile
+#       - docker-build-images
+#       - mender-deb-package
+#       when: never
+#   before_script:
+#     - docker pull mendersoftware/mender-dist-packages:debian-builder-arm64
+#     - docker pull mendersoftware/mender-dist-packages:debian-builder-armhf
+#     - docker pull mendersoftware/mender-dist-packages:debian-builder-amd64
 
 test:check-commits:
   only:
@@ -82,7 +145,9 @@ test:acceptance:
   tags:
     - mender-qa-slave
   dependencies:
-    - build
+    # It depends on either of them
+    - build:packages:local-image
+    # - build:packages:upstream-image
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -112,25 +177,57 @@ test:acceptance:
     - pip3 install -r requirements.txt
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version)
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
-      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-connect-deb-version)
+      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
-      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version)
+      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version)
     - |-
-        if [ -f ${CI_PROJECT_DIR}/output/mender-monitor-deb-version ]; then
+        if [ -f ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version ] && \
+           [ -f ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version ]; then
           python3 -m pytest -v \
             --mender-client-version $MENDER_VERSION \
-            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-client-deb-version) \
+            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version) \
             --mender-connect-version $MENDER_CONNECT_VERSION \
-            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-connect-deb-version) \
+            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version) \
             --mender-configure-version $MENDER_CONFIGURE_VERSION \
-            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-configure-deb-version) \
-            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-monitor-deb-version) \
-            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/mender-monitor-deb-version) \
+            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version) \
+            --mender-gateway-version $MENDER_GATEWAY_VERSION \
+            --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version) \
+            --mender-monitor-version $MENDER_MONITOR_VERSION \
+            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version) \
             --commercial-tests
         fi
 
+# publish:images:
+#   stage: publish
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "master"'
+#       changes:
+#         - Dockerfile
+#         - docker-build-images
+#         - mender-deb-package
+#   image: docker:git
+#   services:
+#     - docker:dind
+#   tags:
+#     - docker
+#   dependencies:
+#     - build:images
+#   before_script:
+#     - apk --update --no-cache add bash curl aws-cli
+#     - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
+#     - mender_ci_load_tmp_artifact builder-arm64.tar
+#     - mender_ci_load_tmp_artifact builder-armhf.tar
+#     - mender_ci_load_tmp_artifact builder-amd64.tar
+#     - docker load -i builder-arm64.tar
+#     - docker load -i builder-armhf.tar
+#     - docker load -i builder-amd64.tar
+#     - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+#   script:
+#     - docker push mendersoftware/mender-dist-packages:debian-builder-arm64
+#     - docker push mendersoftware/mender-dist-packages:debian-builder-armhf
+#     - docker push mendersoftware/mender-dist-packages:debian-builder-amd64
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
@@ -148,168 +245,26 @@ test:acceptance:
   stage: publish
   image: debian:buster
   dependencies:
-    - build
+    # It depends on either of them
+    - build:packages:local-image
+    # - build:packages:upstream-image
   before_script:
-    - apt update && apt install -yyq reprepro awscli
-    # Check and import GPG keys
-    - if [ -z "$GPG_PRIV_KEY_DIST" -o -z "$GPG_PUB_KEY_BUILD" ]; then
-    -   echo "Error. GPG keys not available"
-    -   exit 1
-    - fi
-    - echo "$GPG_PRIV_KEY_DIST" | gpg --import
-    - echo "$GPG_PUB_KEY_BUILD" | gpg --import
+    - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
     - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
-    -     echo "$S3_BUCKET_REPO_PATH locked, waiting..."
-    -     sleep 10
+    -   echo "$S3_BUCKET_REPO_PATH locked, waiting..."
+    -   sleep 10
     - done
     - touch lock
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
-    # Prepare repo from two S3 buckets
-    - mkdir repo
-    - cd repo
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/conf conf
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db db
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists dists
-    - aws s3 cp --recursive s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool pool
   script:
-    - *publish_helper_functions
-    # Bash function to compare two semantic versions, returns: 0 (=), 1(>) or 2(<)
-    #  * "master" always evaluates to greater than any other version
-    #  * "build" versions like 1.2.3-build4 for are evaluated as 1.2.3
-    # Original source: https://stackoverflow.com/a/4025065
-    - |
-      function vercomp () {
-        if [[ $1 == $2 ]]; then
-          return 0
-        fi
-        if [[ $1 == "master" ]]; then
-          return 1
-        fi
-        if [[ $2 == "master" ]]; then
-          return 2
-        fi
-        local IFS=.
-        local i ver1=($1) ver2=($2)
-        # fill empty fields in ver1 with zeros
-        for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
-          ver1[i]=0
-        done
-        for ((i=0; i<${#ver1[@]}; i++)); do
-          if [[ -z ${ver2[i]} ]]; then
-            # fill empty fields in ver2 with zeros
-            ver2[i]=0
-          fi
-          if ((10#${ver1[i]} > 10#${ver2[i]})); then
-            return 1
-          fi
-          if ((10#${ver1[i]} < 10#${ver2[i]})); then
-            return 2
-          fi
-        done
-        return 0
-      }
-    # Bash function to check if the given version for the given package is newer
-    # than the current version of that package in the APT repo
-    - |
-      function is_newer_version() {
-        package_name=$1
-        package_version=$2
-        codename=$3
-
-        current_version=$(reprepro --architecture amd64 --list-format '${version}' list ${codename} ${package_name})
-        if [ -z "${current_version}" ]; then
-          # Package doesn't exist, assume $package_version is "newer"
-          return 0
-        fi
-        # Handle git versions
-        if [[ "${current_version}" == *"~git"* ]]; then
-          # Package is master, assume $package_version is "newer"
-          return 0
-        fi
-
-        # Remove debian -1 suffix
-        current_version_semver=$(echo $current_version | sed 's/-1$//' )
-        # Handle build versions for comparison
-        current_version_comp=$(echo $current_version_semver | sed 's/-build/\./' )
-        package_version_comp=$(echo $package_version | sed 's/-build/\./' )
-
-        vercomp $package_version_comp $current_version_comp
-        if [ $? -eq 1 ]; then
-          return 0
-        fi
-        return 1
-      }
-
-    # Bash function to securely copy packages to the pool, warning and not copying
-    # if the files already exist
-    - |
-      function copy_if_non_existent() {
-        packages_glob="$1"
-        pool_dest=$2
-
-        first_filename=$(basename $(ls $packages_glob | head -1))
-        if [ -f ${pool_dest}/${first_filename} ]; then
-          echo "WARNING: $(basename "$packages_glob") exist in $pool_dest. Not overriding."
-        else
-          cp $packages_glob $pool_dest
-        fi
-      }
-
-    # For each package:
-    #  * if version is newer and is a final tag
-    #      --> include to stable via reprepro
-    #  * if version is newer but not final tag (master of build tags)
-    #      --> include to experimental via reprepro
-    #  * else version is older
-    #      --> manually copy to pool unprocessed (and unsigned) by reprepro
-
-    # mender-client
-    - if is_final_tag ${MENDER_VERSION}; then
-    -   codename=stable
-    - else
-    -   codename=experimental
-    - fi
-    - if is_newer_version mender-client ${MENDER_VERSION} ${codename}; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-client_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
-    -   done
-    - else
-    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-client*.deb" pool/main/m/mender-client/
-    - fi
-
-    # mender-connect
-    - if is_final_tag ${MENDER_CONNECT_VERSION}; then
-    -   codename=stable
-    - else
-    -   codename=experimental
-    - fi
-    - if is_newer_version mender-connect ${MENDER_CONNECT_VERSION} ${codename}; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-connect_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
-    -   done
-    - else
-    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-connect*.deb" pool/main/m/mender-connect/
-    - fi
-
-    # mender-configure
-    - if is_final_tag ${MENDER_CONFIGURE_VERSION}; then
-    -   codename=stable
-    - else
-    -   codename=experimental
-    - fi
-    - if is_newer_version mender-configure ${MENDER_CONFIGURE_VERSION} ${codename}; then
-    -   for change_file in $(ls ${CI_PROJECT_DIR}/output/mender-configure_*.changes); do
-    -     reprepro --keepunreferencedfiles include ${codename} ${change_file}
-    -   done
-    - else
-    -   copy_if_non_existent "${CI_PROJECT_DIR}/output/mender-configure*.deb" pool/main/m/mender-configure/
-    - fi
-
-    # Upload to bucket
-    - aws s3 sync db s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/db
-    - aws s3 sync --acl public-read pool s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/pool
-    - aws s3 sync --acl public-read dists s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/dists
+    # Upload files: first .buildinfo and .deb, then .changes
+    - for file in $(find output/opensource -name *.buildinfo -o -name *.deb); do
+    -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - done
+    - for file in $(find output/opensource -name *.changes); do
+    -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - done
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
@@ -326,20 +281,22 @@ publish:s3:apt-repo:automatic:
   stage: publish
   image: debian:buster
   dependencies:
-    - build
+    # It depends on either of them
+    - build:packages:local-image
+    # - build:packages:upstream-image
   before_script:
     - apt update && apt install -yyq awscli
-    - deb_version=$(cat output/mender-client-deb-version)
+    - deb_version=$(cat output/opensource/mender-client-deb-version)
   script:
     - echo "Publishing ${MENDER_VERSION} packages to S3"
     # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
     - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+        aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
           s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
           --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         if [ "${MENDER_VERSION}" == "master" ]; then
-          aws s3 cp output/mender-client_${deb_version}_${arch}.deb
+          aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
             s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
           aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
             --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
@@ -388,22 +345,28 @@ publish:production:s3:scripts:install-mender-sh:
   stage: publish
   image: debian:buster
   dependencies:
-    - build
+    # It depends on either of them
+    - build:packages:local-image
+    # - build:packages:upstream-image
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
-    - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/"
-    - aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/${MENDER_MONITOR_VERSION}/
+    - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/"
+    - aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/
+    - echo "Publishing mender-monitor-demo version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/"
+    - aws s3 cp output/commercial/mender-monitor-demo*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/
     # Make copies in known destinations to be consumed by get.mender.io script:
     # * For "experimental" channel, we make a copy of the newest master package in the master directory
     # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
-    # This needs to be reworked before Mender 3.2, see MEN-5029 for more details.
+    # This can to be reworked for better maintainability, see MEN-5029 for more details.
     - if is_build_tag ${MENDER_MONITOR_VERSION} || [ "${MENDER_MONITOR_VERSION}" == "master" ]; then
-    -   aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/master/mender-monitor_master-1_all.deb
+    -   aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor_master-1_all.deb
+    -   aws s3 cp output/commercial/mender-monitor-demo*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor-demo_master-1_all.deb
     - fi
     - if is_final_tag ${MENDER_MONITOR_VERSION}; then
-    -   aws s3 cp output/mender-monitor*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_PRIVATE}/latest/mender-monitor_latest-1_all.deb
+    -   aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/latest/mender-monitor_latest-1_all.deb
+    -   aws s3 cp output/commercial/mender-monitor-demo*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/latest/mender-monitor-demo_latest-1_all.deb
     - fi
 
 publish:s3:mender-monitor:manual:
@@ -414,3 +377,40 @@ publish:s3:mender-monitor:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
   extends: .template:publish:s3:mender-monitor
+
+.template:publish:s3:mender-gateway:
+  stage: publish
+  image: debian:buster
+  dependencies:
+    # It depends on either of them
+    - build:packages:local-image
+    # - build:packages:upstream-image
+  before_script:
+    - apt update && apt install -yyq awscli
+    - *publish_helper_functions
+  script:
+    - echo "Publishing mender-gateway version ${MENDER_GATEWAY_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/"
+    - aws s3 cp output/commercial/ s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/ --recursive --exclude "*" --include "mender-gateway*.deb"
+    # Make copies in known destinations to be consumed by get.mender.io script:
+    # * For "experimental" channel, we make a copy of the newest master package in the master directory
+    # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
+    # This can to be reworked for better maintainability, see MEN-5029 for more details.
+    - if is_build_tag ${MENDER_GATEWAY_VERSION} || [ "${MENDER_GATEWAY_VERSION}" == "master" ]; then
+    -   for arch in amd64 arm64 armhf; do
+    -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/master/mender-gateway_master-1_${arch}.deb 
+    -  done
+    - fi
+    - if is_final_tag ${MENDER_GATEWAY_VERSION}; then
+    -   for arch in amd64 arm64 armhf; do
+    -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/latest/mender-gateway_latest-1_${arch}.deb
+    -   done
+    - fi
+
+publish:s3:mender-gateway:manual:
+  when: manual
+  extends: .template:publish:s3:mender-gateway
+
+publish:s3:mender-gateway:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:mender-gateway

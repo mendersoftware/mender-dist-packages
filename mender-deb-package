@@ -37,7 +37,7 @@ verify_script_arguments() {
 checkout_repo_clean_local_path() {
   local -r repo_url="$1"
   local repo_path="${repo_url#https://}"
-  if [[ -n "${MENDER_PRIVATE_REPO_ACCESS_USER}" ]]; then
+  if [[ "$repo_url" == *"${MENDER_PRIVATE_REPO_ACCESS_USER:-none}"* ]]; then
     repo_path="${REPO_URL//${MENDER_PRIVATE_REPO_ACCESS_USER}:*@/}"
   fi
   echo "${repo_path}"
@@ -62,8 +62,8 @@ get_deb_version() {
     if [ -z "${DEB_VERSION}" ]; then
       DEB_VERSION="0.0.0"
     fi
-    # Increment 1 on the bugfix number
-    DEB_VERSION="$(echo ${DEB_VERSION} | sed -E 's/([0-9]+\.[0-9]+\.)([0-9]+)/echo "\1$((\2+1))"/e')"
+    # Increment 1 on the minor number and set to 0 bugfix version
+    DEB_VERSION="$(echo ${DEB_VERSION} | sed -E 's/([0-9]+\.)([0-9]+)\.[0-9]+/echo "\1$((\2+1))\.0"/e')"
     # Append git date and commit
     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
     # Append Debian suffix
@@ -95,6 +95,8 @@ prepare_recipe() {
     fi
   elif [ "${DEB_PACKAGE}" = "mender-connect" ]; then
     cp support/mender-connect.service debian/
+  elif [ "${DEB_PACKAGE}" = "mender-gateway" ]; then
+    cp support/mender-gateway.service debian/
   elif [ "${DEB_PACKAGE}" = "mender-monitor" ]; then
     cp support/mender-monitor.service debian/
   fi
