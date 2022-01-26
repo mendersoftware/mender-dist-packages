@@ -17,6 +17,3 @@ override_dh_auto_test:
 override_dh_strip:
 	${CROSS_COMPILE}-strip --remove-section=.comment --remove-section=.note \
 	debian/mender-connect/usr/bin/mender-connect
-
-override_dh_shlibdeps:
-	true

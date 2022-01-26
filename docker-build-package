@@ -16,6 +16,8 @@
 
 set -e
 
+source docker-build-common
+
 declare -A mender_client_props=(
   [recipe_name]="mender-client"
   [src_url]="https://github.com/mendersoftware/mender"
@@ -90,51 +92,54 @@ fi
 echo "Building $recipe_name..."
 echo ""
 
-IMAGE_NAME_PREFIX=mendersoftware/mender-dist-packages:debian-builder
+for build in "${BASE_IMAGES[@]}"; do
+    distro_name=$(eval echo \${$build[distro]})
+    distro_version=$(eval echo \${$build[version]})
 
-output_dir="output/opensource"
-if [ $commercial = "true" ]; then
-    output_dir="output/commercial"
-fi
-mkdir -p ${output_dir}
+    output_dir="output/opensource/$distro_name/$distro_version"
+    if [ $commercial = "true" ]; then
+        output_dir="output/commercial/$distro_name/$distro_version"
+    fi
+    mkdir -p ${output_dir}
 
-if [ "$arch_indep" = "true" ]; then
-    # Build architecture independent binary packages (all)
-    docker run --rm \
-            --volume $(pwd)/recipes:/recipes \
-            --volume $(pwd)/${output_dir}:/output \
-            -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
-            -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
-            ${IMAGE_NAME_PREFIX}-amd64 \
-            $recipe_name \
-            all \
-            $src_url \
-            ${RECIPE_VERSION} \
-            amd64 \
-            ${CI_PIPELINE_ID:-LOCAL}
-else
-    for arch in amd64 armhf arm64; do
-        if [ "$arch" = "amd64" ]; then
-            # For amd64, build both architecture dependent and independent packages.
-            BUILD_TYPE=binary
-        else
-            # For others, build only architecture dependent packages.
-            BUILD_TYPE=any
-        fi
-
+    if [ "$arch_indep" = "true" ]; then
+        # Build architecture independent binary packages (all)
         docker run --rm \
                 --volume $(pwd)/recipes:/recipes \
                 --volume $(pwd)/${output_dir}:/output \
                 -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
                 -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
-                ${IMAGE_NAME_PREFIX}-${arch} \
-                $recipe_name \
-                $BUILD_TYPE \
-                $src_url \
+                ${IMAGE_NAME_PREFIX}-${distro_name}-${distro_version}-amd64 \
+                ${recipe_name} \
+                all \
+                ${src_url} \
                 ${RECIPE_VERSION} \
-                ${arch} \
+                amd64 \
                 ${CI_PIPELINE_ID:-LOCAL}
-    done
-fi
+    else
+        for arch in amd64 armhf arm64; do
+            if [ "$arch" = "amd64" ]; then
+                # For amd64, build both architecture dependent and independent packages.
+                BUILD_TYPE=binary
+            else
+                # For others, build only architecture dependent packages.
+                BUILD_TYPE=any
+            fi
+
+            docker run --rm \
+                    --volume $(pwd)/recipes:/recipes \
+                    --volume $(pwd)/${output_dir}:/output \
+                    -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
+                    -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
+                    ${IMAGE_NAME_PREFIX}-${distro_name}-${distro_version}-${arch} \
+                    ${recipe_name} \
+                    ${BUILD_TYPE} \
+                    ${src_url} \
+                    ${RECIPE_VERSION} \
+                    ${arch} \
+                    ${CI_PIPELINE_ID:-LOCAL}
+        done
+    fi
+done
 
 exit 0

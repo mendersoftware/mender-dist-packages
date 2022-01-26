@@ -64,12 +64,30 @@ build:images:
     - else
     -   ./docker-build-images
     - fi
-    - docker save mendersoftware/mender-dist-packages:debian-builder-arm64 -o builder-arm64.tar
-    - docker save mendersoftware/mender-dist-packages:debian-builder-armhf -o builder-armhf.tar
-    - docker save mendersoftware/mender-dist-packages:debian-builder-amd64 -o builder-amd64.tar
-    - mender_ci_save_tmp_artifact builder-arm64.tar
-    - mender_ci_save_tmp_artifact builder-armhf.tar
-    - mender_ci_save_tmp_artifact builder-amd64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-debian-bullseye-amd64 -o builder-debian-bullseye-amd64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-debian-bullseye-armhf -o builder-debian-bullseye-armhf.tar
+    - docker save mendersoftware/mender-dist-packages:builder-debian-bullseye-arm64 -o builder-debian-bullseye-arm64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-debian-buster-amd64 -o builder-debian-buster-amd64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-debian-buster-armhf -o builder-debian-buster-armhf.tar
+    - docker save mendersoftware/mender-dist-packages:builder-debian-buster-arm64 -o builder-debian-buster-arm64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-bionic-amd64 -o builder-ubuntu-bionic-amd64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-bionic-armhf -o builder-ubuntu-bionic-armhf.tar
+    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-bionic-arm64 -o builder-ubuntu-bionic-arm64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-focal-amd64 -o builder-ubuntu-focal-amd64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-focal-armhf -o builder-ubuntu-focal-armhf.tar
+    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-focal-arm64 -o builder-ubuntu-focal-arm64.tar
+    - mender_ci_save_tmp_artifact builder-debian-bullseye-amd64.tar
+    - mender_ci_save_tmp_artifact builder-debian-bullseye-armhf.tar
+    - mender_ci_save_tmp_artifact builder-debian-bullseye-arm64.tar
+    - mender_ci_save_tmp_artifact builder-debian-buster-amd64.tar
+    - mender_ci_save_tmp_artifact builder-debian-buster-armhf.tar
+    - mender_ci_save_tmp_artifact builder-debian-buster-arm64.tar
+    - mender_ci_save_tmp_artifact builder-ubuntu-bionic-amd64.tar
+    - mender_ci_save_tmp_artifact builder-ubuntu-bionic-armhf.tar
+    - mender_ci_save_tmp_artifact builder-ubuntu-bionic-arm64.tar
+    - mender_ci_save_tmp_artifact builder-ubuntu-focal-amd64.tar
+    - mender_ci_save_tmp_artifact builder-ubuntu-focal-armhf.tar
+    - mender_ci_save_tmp_artifact builder-ubuntu-focal-arm64.tar
   artifacts:
     paths:
       - checksums
@@ -104,12 +122,30 @@ build:packages:local-image:
   before_script:
     - apk --update --no-cache add bash curl aws-cli
     - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
-    - mender_ci_load_tmp_artifact builder-arm64.tar
-    - mender_ci_load_tmp_artifact builder-armhf.tar
-    - mender_ci_load_tmp_artifact builder-amd64.tar
-    - docker load -i builder-arm64.tar
-    - docker load -i builder-armhf.tar
-    - docker load -i builder-amd64.tar
+    - mender_ci_load_tmp_artifact builder-debian-bullseye-amd64.tar
+    - mender_ci_load_tmp_artifact builder-debian-bullseye-armhf.tar
+    - mender_ci_load_tmp_artifact builder-debian-bullseye-arm64.tar
+    - mender_ci_load_tmp_artifact builder-debian-buster-amd64.tar
+    - mender_ci_load_tmp_artifact builder-debian-buster-armhf.tar
+    - mender_ci_load_tmp_artifact builder-debian-buster-arm64.tar
+    - mender_ci_load_tmp_artifact builder-ubuntu-bionic-amd64.tar
+    - mender_ci_load_tmp_artifact builder-ubuntu-bionic-armhf.tar
+    - mender_ci_load_tmp_artifact builder-ubuntu-bionic-arm64.tar
+    - mender_ci_load_tmp_artifact builder-ubuntu-focal-amd64.tar
+    - mender_ci_load_tmp_artifact builder-ubuntu-focal-armhf.tar
+    - mender_ci_load_tmp_artifact builder-ubuntu-focal-arm64.tar
+    - docker load -i builder-debian-bullseye-amd64.tar
+    - docker load -i builder-debian-bullseye-armhf.tar
+    - docker load -i builder-debian-bullseye-arm64.tar
+    - docker load -i builder-debian-buster-amd64.tar
+    - docker load -i builder-debian-buster-armhf.tar
+    - docker load -i builder-debian-buster-arm64.tar
+    - docker load -i builder-ubuntu-bionic-amd64.tar
+    - docker load -i builder-ubuntu-bionic-armhf.tar
+    - docker load -i builder-ubuntu-bionic-arm64.tar
+    - docker load -i builder-ubuntu-focal-amd64.tar
+    - docker load -i builder-ubuntu-focal-armhf.tar
+    - docker load -i builder-ubuntu-focal-arm64.tar
 
 # build:packages:upstream-image:
 #   extends: .template:build:packages
@@ -120,9 +156,18 @@ build:packages:local-image:
 #       - mender-deb-package
 #       when: never
 #   before_script:
-#     - docker pull mendersoftware/mender-dist-packages:debian-builder-arm64
-#     - docker pull mendersoftware/mender-dist-packages:debian-builder-armhf
-#     - docker pull mendersoftware/mender-dist-packages:debian-builder-amd64
+#     - docker pull mendersoftware/mender-dist-packages:builder-debian-bullseye-amd64
+#     - docker pull mendersoftware/mender-dist-packages:builder-debian-bullseye-armhf
+#     - docker pull mendersoftware/mender-dist-packages:builder-debian-bullseye-arm64
+#     - docker pull mendersoftware/mender-dist-packages:builder-debian-buster-amd64
+#     - docker pull mendersoftware/mender-dist-packages:builder-debian-buster-armhf
+#     - docker pull mendersoftware/mender-dist-packages:builder-debian-buster-arm64
+#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-bionic-amd64
+#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-bionic-armhf
+#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-bionic-arm64
+#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-focal-amd64
+#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-focal-armhf
+#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-focal-arm64
 
 test:check-commits:
   only:
@@ -175,27 +220,29 @@ test:acceptance:
       libffi-dev libc-dev python3-dev bash musl-dev rust cargo
     - cd tests
     - pip3 install -r requirements.txt
+    - OPENSOURCE_PACKAGES_PATH=${CI_PROJECT_DIR}/output/opensource/debian/buster/
+    - COMMERCIAL_PACKAGES_PATH=${CI_PROJECT_DIR}/output/opensource/debian/buster/
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version)
+      --mender-client-deb-version $(cat ${OPENSOURCE_PACKAGES_PATH}/mender-client-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
-      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version)
+      --mender-connect-deb-version $(cat ${OPENSOURCE_PACKAGES_PATH}/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
-      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version)
+      --mender-configure-deb-version $(cat ${OPENSOURCE_PACKAGES_PATH}/mender-configure-deb-version)
     - |-
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version ] && \
-           [ -f ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version ]; then
+        if [ -f ${COMMERCIAL_PACKAGES_PATH}/mender-gateway-deb-version ] && \
+           [ -f ${COMMERCIAL_PACKAGES_PATH}/mender-monitor-deb-version ]; then
           python3 -m pytest -v \
             --mender-client-version $MENDER_VERSION \
-            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version) \
+            --mender-client-deb-version $(cat ${OPENSOURCE_PACKAGES_PATH}/mender-client-deb-version) \
             --mender-connect-version $MENDER_CONNECT_VERSION \
-            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version) \
+            --mender-connect-deb-version $(cat ${OPENSOURCE_PACKAGES_PATH}/mender-connect-deb-version) \
             --mender-configure-version $MENDER_CONFIGURE_VERSION \
-            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version) \
+            --mender-configure-deb-version $(cat ${OPENSOURCE_PACKAGES_PATH}/mender-configure-deb-version) \
             --mender-gateway-version $MENDER_GATEWAY_VERSION \
-            --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version) \
+            --mender-gateway-deb-version $(cat ${COMMERCIAL_PACKAGES_PATH}/mender-gateway-deb-version) \
             --mender-monitor-version $MENDER_MONITOR_VERSION \
-            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version) \
+            --mender-monitor-deb-version $(cat ${COMMERCIAL_PACKAGES_PATH}/mender-monitor-deb-version) \
             --commercial-tests
         fi
 
@@ -217,17 +264,44 @@ test:acceptance:
 #   before_script:
 #     - apk --update --no-cache add bash curl aws-cli
 #     - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
-#     - mender_ci_load_tmp_artifact builder-arm64.tar
-#     - mender_ci_load_tmp_artifact builder-armhf.tar
-#     - mender_ci_load_tmp_artifact builder-amd64.tar
-#     - docker load -i builder-arm64.tar
-#     - docker load -i builder-armhf.tar
-#     - docker load -i builder-amd64.tar
+#     - mender_ci_load_tmp_artifact builder-debian-bullseye-amd64.tar
+#     - mender_ci_load_tmp_artifact builder-debian-bullseye-armhf.tar
+#     - mender_ci_load_tmp_artifact builder-debian-bullseye-arm64.tar
+#     - mender_ci_load_tmp_artifact builder-debian-buster-amd64.tar
+#     - mender_ci_load_tmp_artifact builder-debian-buster-armhf.tar
+#     - mender_ci_load_tmp_artifact builder-debian-buster-arm64.tar
+#     - mender_ci_load_tmp_artifact builder-ubuntu-bionic-amd64.tar
+#     - mender_ci_load_tmp_artifact builder-ubuntu-bionic-armhf.tar
+#     - mender_ci_load_tmp_artifact builder-ubuntu-bionic-arm64.tar
+#     - mender_ci_load_tmp_artifact builder-ubuntu-focal-amd64.tar
+#     - mender_ci_load_tmp_artifact builder-ubuntu-focal-armhf.tar
+#     - mender_ci_load_tmp_artifact builder-ubuntu-focal-arm64.tar
+#     - docker load -i builder-debian-bullseye-amd64.tar
+#     - docker load -i builder-debian-bullseye-armhf.tar
+#     - docker load -i builder-debian-bullseye-arm64.tar
+#     - docker load -i builder-debian-buster-amd64.tar
+#     - docker load -i builder-debian-buster-armhf.tar
+#     - docker load -i builder-debian-buster-arm64.tar
+#     - docker load -i builder-ubuntu-bionic-amd64.tar
+#     - docker load -i builder-ubuntu-bionic-armhf.tar
+#     - docker load -i builder-ubuntu-bionic-arm64.tar
+#     - docker load -i builder-ubuntu-focal-amd64.tar
+#     - docker load -i builder-ubuntu-focal-armhf.tar
+#     - docker load -i builder-ubuntu-focal-arm64.tar
 #     - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
 #   script:
-#     - docker push mendersoftware/mender-dist-packages:debian-builder-arm64
-#     - docker push mendersoftware/mender-dist-packages:debian-builder-armhf
-#     - docker push mendersoftware/mender-dist-packages:debian-builder-amd64
+#     - docker push mendersoftware/mender-dist-packages:builder-debian-bullseye-amd64
+#     - docker push mendersoftware/mender-dist-packages:builder-debian-bullseye-armhf
+#     - docker push mendersoftware/mender-dist-packages:builder-debian-bullseye-arm64
+#     - docker push mendersoftware/mender-dist-packages:builder-debian-buster-amd64
+#     - docker push mendersoftware/mender-dist-packages:builder-debian-buster-armhf
+#     - docker push mendersoftware/mender-dist-packages:builder-debian-buster-arm64
+#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-bionic-amd64
+#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-bionic-armhf
+#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-bionic-arm64
+#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-focal-amd64
+#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-focal-armhf
+#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-focal-arm64
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
@@ -260,6 +334,7 @@ test:acceptance:
   script:
     # Upload files: first .buildinfo and .deb, then .changes
     - for file in $(find output/opensource -name *.buildinfo -o -name *.deb); do
+    # TODO: does s3 cp recreate the path?
     -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
     - done
     - for file in $(find output/opensource -name *.changes); do
@@ -286,17 +361,17 @@ publish:s3:apt-repo:automatic:
     # - build:packages:upstream-image
   before_script:
     - apt update && apt install -yyq awscli
-    - deb_version=$(cat output/opensource/mender-client-deb-version)
+    - deb_version=$(cat output/opensource/debian/buster/mender-client-deb-version)
   script:
     - echo "Publishing ${MENDER_VERSION} packages to S3"
     # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
     - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
+        aws s3 cp output/opensource/debian/buster/mender-client_${deb_version}_${arch}.deb
           s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
           --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         if [ "${MENDER_VERSION}" == "master" ]; then
-          aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
+          aws s3 cp output/opensource/debian/buster/mender-client_${deb_version}_${arch}.deb
             s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
           aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
             --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
@@ -352,6 +427,7 @@ publish:production:s3:scripts:install-mender-sh:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
+    # TODO: fix
     - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/"
     - aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/
     - echo "Publishing mender-monitor-demo version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/"
@@ -389,6 +465,7 @@ publish:s3:mender-monitor:automatic:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
+    # TODO: fix
     - echo "Publishing mender-gateway version ${MENDER_GATEWAY_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/"
     - aws s3 cp output/commercial/ s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/ --recursive --exclude "*" --include "mender-gateway*.deb"
     # Make copies in known destinations to be consumed by get.mender.io script:

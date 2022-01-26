@@ -16,19 +16,31 @@
 
 set -e
 
-IMAGE_NAME_PREFIX=mendersoftware/mender-dist-packages:debian-builder
+source docker-build-common
 
-for arch in amd64 armhf arm64; do
+for build in "${BASE_IMAGES[@]}"; do
+    distro=$(eval echo \${$build[distro]})
+    version=$(eval echo \${$build[version]})
 
-    # Pass GPG key as build argument if set
-    if [ -n "${GPG_KEY_BUILD}" ]; then
-        docker build --tag ${IMAGE_NAME_PREFIX}-${arch} \
-                --build-arg ARCH=${arch} \
-                --build-arg GPG_KEY_BUILD="${GPG_KEY_BUILD}" \
-                .
-    else
-        docker build --tag ${IMAGE_NAME_PREFIX}-${arch} \
-                --build-arg ARCH=${arch} \
-                .
-    fi
+    for arch in amd64 armhf arm64; do
+
+        # Pass GPG key as build argument if set
+        if [ -n "${GPG_KEY_BUILD}" ]; then
+            docker build \
+                    --tag ${IMAGE_NAME_PREFIX}-${distro}-${version}-${arch} \
+                    --build-arg ARCH=${arch} \
+                    --build-arg DISTRO=${distro} \
+                    --build-arg VERSION=${version} \
+                    --build-arg GPG_KEY_BUILD="${GPG_KEY_BUILD}" \
+                    .
+        else
+            docker build \
+                    --tag ${IMAGE_NAME_PREFIX}-${distro}-${version}-${arch} \
+                    --build-arg ARCH=${arch} \
+                    --build-arg DISTRO=${distro} \
+                    --build-arg VERSION=${version} \
+                    .
+        fi
+
+    done
 done
