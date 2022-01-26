@@ -18,25 +18,19 @@ set -e
 
 IMAGE_NAME_PREFIX=mendersoftware/mender-dist-packages:builder
 
-declare -A debian_buster=(
-  [distro]="debian"
-  [version]="buster"
-)
-declare -A debian_bullseye=(
-  [distro]="debian"
-  [version]="bullseye"
-)
-declare -A ubuntu_bionic=(
-  [distro]="ubuntu"
-  [version]="bionic"
-)
-declare -A ubuntu_focal=(
-  [distro]="ubuntu"
-  [version]="focal"
-)
-declare -a BASE_IMAGES=(
-    debian_buster
-    debian_bullseye
-    ubuntu_bionic
-    ubuntu_focal
-)
+# Parse args
+if [ $# -ne 3 ]; then
+    echo "usage: $0 distro release arch"
+    exit 1
+fi
+DISTRO="${1}"
+RELEASE="${2}"
+ARCH="${3}"
+
+docker build \
+        --tag ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH} \
+        --build-arg DISTRO=${DISTRO} \
+        --build-arg VERSION=${RELEASE} \
+        --build-arg ARCH=${ARCH} \
+        ${GPG_KEY_BUILD:+--build-arg GPG_KEY_BUILD="${GPG_KEY_BUILD}"} \
+        .

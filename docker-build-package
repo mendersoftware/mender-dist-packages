@@ -16,38 +16,38 @@
 
 set -e
 
-source docker-build-common
+IMAGE_NAME_PREFIX=mendersoftware/mender-dist-packages:builder
 
 declare -A mender_client_props=(
-  [recipe_name]="mender-client"
-  [src_url]="https://github.com/mendersoftware/mender"
-  [arch_indep]="false"
-  [commercial]="false"
+    [recipe_name]="mender-client"
+    [src_url]="https://github.com/mendersoftware/mender"
+    [arch_indep]="false"
+    [commercial]="false"
 )
 declare -A mender_connect_props=(
-  [recipe_name]="mender-connect"
-  [src_url]="https://github.com/mendersoftware/mender-connect"
-  [arch_indep]="false"
-  [commercial]="false"
+    [recipe_name]="mender-connect"
+    [src_url]="https://github.com/mendersoftware/mender-connect"
+    [arch_indep]="false"
+    [commercial]="false"
 )
 declare -A mender_configure_props=(
-  [recipe_name]="mender-configure"
-  [src_url]="https://github.com/mendersoftware/mender-configure-module"
-  [arch_indep]="true"
-  [commercial]="false"
+    [recipe_name]="mender-configure"
+    [src_url]="https://github.com/mendersoftware/mender-configure-module"
+    [arch_indep]="true"
+    [commercial]="false"
 )
 declare -A mender_monitor_props=(
-  [recipe_name]="mender-monitor"
-  [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/monitor-client"
-  [arch_indep]="true"
-  [commercial]="true"
+    [recipe_name]="mender-monitor"
+    [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/monitor-client"
+    [arch_indep]="true"
+    [commercial]="true"
 )
 
 declare -A mender_gateway_props=(
-  [recipe_name]="mender-gateway"
-  [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/mender-gateway"
-  [arch_indep]="false"
-  [commercial]="true"
+    [recipe_name]="mender-gateway"
+    [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/mender-gateway"
+    [arch_indep]="false"
+    [commercial]="true"
 )
 
 declare -a packages=(
@@ -59,12 +59,15 @@ declare -a packages=(
 )
 
 # Parse args
-if [ $# -lt 1 ]; then
-    echo "usage: $0 package [version]"
+if [ $# -lt 4 ]; then
+    echo "usage: $0 distro release arch package [version]"
     exit 1
 fi
-RECIPE_NAME="${1}"
-RECIPE_VERSION="${2:-master}"
+DISTRO="${1}"
+RELEASE="${2}"
+ARCH="${3}"
+RECIPE_NAME="${4}"
+RECIPE_VERSION="${5:-master}"
 
 # Look for the recipe
 recipe_found=0
@@ -85,61 +88,47 @@ fi
 
 # Extra check for commercial recipes
 if [ $commercial = "true" -a -z "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    echo "recipe $RECIPE_NAME requires MENDER_PRIVATE_REPO_ACCESS_TOKEN"
+    echo "recipe $recipe_name requires MENDER_PRIVATE_REPO_ACCESS_TOKEN"
     exit 1
+fi
+
+if [ "$arch_indep" = "true" -a "$ARCH" != "amd64" ]; then
+    # Architecture independent pacakges are built only on amd64 build host
+    echo "Not building arch independent package $recipe_name on architecture $ARCH"
+    exit 0
 fi
 
 echo "Building $recipe_name..."
 echo ""
 
-for build in "${BASE_IMAGES[@]}"; do
-    distro_name=$(eval echo \${$build[distro]})
-    distro_version=$(eval echo \${$build[version]})
+output_dir="output/opensource/$DISTRO/$RELEASE"
+if [ $commercial = "true" ]; then
+    output_dir="output/commercial/$DISTRO/$RELEASE"
+fi
+mkdir -p ${output_dir}
 
-    output_dir="output/opensource/$distro_name/$distro_version"
-    if [ $commercial = "true" ]; then
-        output_dir="output/commercial/$distro_name/$distro_version"
-    fi
-    mkdir -p ${output_dir}
+if [ "$arch_indep" = "true" -a "$ARCH" = "amd64" ]; then
+    # On amd64, build architecture independent packages.
+    BUILD_TYPE=all
+elif [ "$arch_indep" = "false" -a "$ARCH" = "amd64" ]; then
+    # On amd64, build both architecture dependent and independent packages.
+    BUILD_TYPE=binary
+else
+    # On others, build only architecture dependent packages.
+    BUILD_TYPE=any
+fi
 
-    if [ "$arch_indep" = "true" ]; then
-        # Build architecture independent binary packages (all)
-        docker run --rm \
-                --volume $(pwd)/recipes:/recipes \
-                --volume $(pwd)/${output_dir}:/output \
-                -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
-                -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
-                ${IMAGE_NAME_PREFIX}-${distro_name}-${distro_version}-amd64 \
-                ${recipe_name} \
-                all \
-                ${src_url} \
-                ${RECIPE_VERSION} \
-                amd64 \
-                ${CI_PIPELINE_ID:-LOCAL}
-    else
-        for arch in amd64 armhf arm64; do
-            if [ "$arch" = "amd64" ]; then
-                # For amd64, build both architecture dependent and independent packages.
-                BUILD_TYPE=binary
-            else
-                # For others, build only architecture dependent packages.
-                BUILD_TYPE=any
-            fi
-
-            docker run --rm \
-                    --volume $(pwd)/recipes:/recipes \
-                    --volume $(pwd)/${output_dir}:/output \
-                    -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
-                    -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
-                    ${IMAGE_NAME_PREFIX}-${distro_name}-${distro_version}-${arch} \
-                    ${recipe_name} \
-                    ${BUILD_TYPE} \
-                    ${src_url} \
-                    ${RECIPE_VERSION} \
-                    ${arch} \
-                    ${CI_PIPELINE_ID:-LOCAL}
-        done
-    fi
-done
+docker run --rm \
+        --volume $(pwd)/recipes:/recipes \
+        --volume $(pwd)/${output_dir}:/output \
+        -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
+        -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
+        ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH} \
+        ${recipe_name} \
+        ${BUILD_TYPE} \
+        ${src_url} \
+        ${RECIPE_VERSION} \
+        ${ARCH} \
+        ${CI_PIPELINE_ID:-LOCAL}
 
 exit 0

@@ -43,13 +43,8 @@ stages:
   - test
   - publish
 
-build:images:
+.template:build:image:
   stage: build:images
-  # rules:
-  #   - changes:
-  #     - Dockerfile
-  #     - docker-build-images
-  #     - mender-deb-package
   image: docker:git
   services:
     - docker:dind
@@ -60,114 +55,230 @@ build:images:
     # GPG key is available only in protected branches
     - if [ "$GPG_PRIV_KEY_BUILD" != "" ]; then
     -   GPG_KEY_BUILD="$GPG_PRIV_KEY_BUILD"
-        ./docker-build-images
+        ./docker-build-image $DISTRO $RELEASE $ARCH
     - else
-    -   ./docker-build-images
+    -   ./docker-build-image $DISTRO $RELEASE $ARCH
     - fi
-    - docker save mendersoftware/mender-dist-packages:builder-debian-bullseye-amd64 -o builder-debian-bullseye-amd64.tar
-    - docker save mendersoftware/mender-dist-packages:builder-debian-bullseye-armhf -o builder-debian-bullseye-armhf.tar
-    - docker save mendersoftware/mender-dist-packages:builder-debian-bullseye-arm64 -o builder-debian-bullseye-arm64.tar
-    - docker save mendersoftware/mender-dist-packages:builder-debian-buster-amd64 -o builder-debian-buster-amd64.tar
-    - docker save mendersoftware/mender-dist-packages:builder-debian-buster-armhf -o builder-debian-buster-armhf.tar
-    - docker save mendersoftware/mender-dist-packages:builder-debian-buster-arm64 -o builder-debian-buster-arm64.tar
-    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-bionic-amd64 -o builder-ubuntu-bionic-amd64.tar
-    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-bionic-armhf -o builder-ubuntu-bionic-armhf.tar
-    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-bionic-arm64 -o builder-ubuntu-bionic-arm64.tar
-    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-focal-amd64 -o builder-ubuntu-focal-amd64.tar
-    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-focal-armhf -o builder-ubuntu-focal-armhf.tar
-    - docker save mendersoftware/mender-dist-packages:builder-ubuntu-focal-arm64 -o builder-ubuntu-focal-arm64.tar
-    - mender_ci_save_tmp_artifact builder-debian-bullseye-amd64.tar
-    - mender_ci_save_tmp_artifact builder-debian-bullseye-armhf.tar
-    - mender_ci_save_tmp_artifact builder-debian-bullseye-arm64.tar
-    - mender_ci_save_tmp_artifact builder-debian-buster-amd64.tar
-    - mender_ci_save_tmp_artifact builder-debian-buster-armhf.tar
-    - mender_ci_save_tmp_artifact builder-debian-buster-arm64.tar
-    - mender_ci_save_tmp_artifact builder-ubuntu-bionic-amd64.tar
-    - mender_ci_save_tmp_artifact builder-ubuntu-bionic-armhf.tar
-    - mender_ci_save_tmp_artifact builder-ubuntu-bionic-arm64.tar
-    - mender_ci_save_tmp_artifact builder-ubuntu-focal-amd64.tar
-    - mender_ci_save_tmp_artifact builder-ubuntu-focal-armhf.tar
-    - mender_ci_save_tmp_artifact builder-ubuntu-focal-arm64.tar
+    - docker save mendersoftware/mender-dist-packages:builder-$DISTRO-$RELEASE-$ARCH -o builder-$DISTRO-$RELEASE-$ARCH.tar
+    - mender_ci_save_tmp_artifact builder-$DISTRO-$RELEASE-$ARCH.tar
   artifacts:
     paths:
       - checksums
+
+build:image:debian:buster:amd64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "amd64"
+  extends: .template:build:image
+
+build:image:debian:buster:armhf:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "armhf"
+  extends: .template:build:image
+
+build:image:debian:buster:arm64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "arm64"
+  extends: .template:build:image
+
+build:image:debian:bullseye:amd64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "bullseye"
+    ARCH: "amd64"
+  extends: .template:build:image
+
+build:image:debian:bullseye:armhf:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "bullseye"
+    ARCH: "armhf"
+  extends: .template:build:image
+
+build:image:debian:bullseye:arm64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "bullseye"
+    ARCH: "arm64"
+  extends: .template:build:image
+
+build:image:ubuntu:bionic:amd64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "bionic"
+    ARCH: "amd64"
+  extends: .template:build:image
+
+build:image:ubuntu:bionic:armhf:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "bionic"
+    ARCH: "armhf"
+  extends: .template:build:image
+
+build:image:ubuntu:bionic:arm64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "bionic"
+    ARCH: "arm64"
+  extends: .template:build:image
+
+build:image:ubuntu:focal:amd64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "focal"
+    ARCH: "amd64"
+  extends: .template:build:image
+
+build:image:ubuntu:focal:armhf:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "focal"
+    ARCH: "armhf"
+  extends: .template:build:image
+
+build:image:ubuntu:focal:arm64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "focal"
+    ARCH: "arm64"
+  extends: .template:build:image
 
 .template:build:packages:
   stage: build:packages
   image: docker:git
   services:
     - docker:dind
+  before_script:
+    - apk --update --no-cache add bash curl aws-cli
+    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
+    - mender_ci_load_tmp_artifact builder-$DISTRO-$RELEASE-$ARCH.tar
+    - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
   script:
     - apk --update --no-cache add bash
-    - ./docker-build-package mender-client $MENDER_VERSION
-    - ./docker-build-package mender-connect $MENDER_CONNECT_VERSION
-    - ./docker-build-package mender-configure $MENDER_CONFIGURE_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    -   ./docker-build-package mender-gateway $MENDER_GATEWAY_VERSION
-    -   ./docker-build-package mender-monitor $MENDER_MONITOR_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
     - fi
   artifacts:
     paths:
       - output/*
 
-build:packages:local-image:
-  extends: .template:build:packages
-  # rules:
-  #   - changes:
-  #     - Dockerfile
-  #     - docker-build-images
-  #     - mender-deb-package
+build:packages:debian:buster:amd64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "amd64"
   dependencies:
-    - build:images
-  before_script:
-    - apk --update --no-cache add bash curl aws-cli
-    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
-    - mender_ci_load_tmp_artifact builder-debian-bullseye-amd64.tar
-    - mender_ci_load_tmp_artifact builder-debian-bullseye-armhf.tar
-    - mender_ci_load_tmp_artifact builder-debian-bullseye-arm64.tar
-    - mender_ci_load_tmp_artifact builder-debian-buster-amd64.tar
-    - mender_ci_load_tmp_artifact builder-debian-buster-armhf.tar
-    - mender_ci_load_tmp_artifact builder-debian-buster-arm64.tar
-    - mender_ci_load_tmp_artifact builder-ubuntu-bionic-amd64.tar
-    - mender_ci_load_tmp_artifact builder-ubuntu-bionic-armhf.tar
-    - mender_ci_load_tmp_artifact builder-ubuntu-bionic-arm64.tar
-    - mender_ci_load_tmp_artifact builder-ubuntu-focal-amd64.tar
-    - mender_ci_load_tmp_artifact builder-ubuntu-focal-armhf.tar
-    - mender_ci_load_tmp_artifact builder-ubuntu-focal-arm64.tar
-    - docker load -i builder-debian-bullseye-amd64.tar
-    - docker load -i builder-debian-bullseye-armhf.tar
-    - docker load -i builder-debian-bullseye-arm64.tar
-    - docker load -i builder-debian-buster-amd64.tar
-    - docker load -i builder-debian-buster-armhf.tar
-    - docker load -i builder-debian-buster-arm64.tar
-    - docker load -i builder-ubuntu-bionic-amd64.tar
-    - docker load -i builder-ubuntu-bionic-armhf.tar
-    - docker load -i builder-ubuntu-bionic-arm64.tar
-    - docker load -i builder-ubuntu-focal-amd64.tar
-    - docker load -i builder-ubuntu-focal-armhf.tar
-    - docker load -i builder-ubuntu-focal-arm64.tar
+    - build:image:debian:buster:amd64
+  extends: .template:build:packages
 
-# build:packages:upstream-image:
-#   extends: .template:build:packages
-#   rules:
-#     - changes:
-#       - Dockerfile
-#       - docker-build-images
-#       - mender-deb-package
-#       when: never
-#   before_script:
-#     - docker pull mendersoftware/mender-dist-packages:builder-debian-bullseye-amd64
-#     - docker pull mendersoftware/mender-dist-packages:builder-debian-bullseye-armhf
-#     - docker pull mendersoftware/mender-dist-packages:builder-debian-bullseye-arm64
-#     - docker pull mendersoftware/mender-dist-packages:builder-debian-buster-amd64
-#     - docker pull mendersoftware/mender-dist-packages:builder-debian-buster-armhf
-#     - docker pull mendersoftware/mender-dist-packages:builder-debian-buster-arm64
-#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-bionic-amd64
-#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-bionic-armhf
-#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-bionic-arm64
-#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-focal-amd64
-#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-focal-armhf
-#     - docker pull mendersoftware/mender-dist-packages:builder-ubuntu-focal-arm64
+build:packages:debian:buster:armhf:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "armhf"
+  dependencies:
+    - build:image:debian:buster:armhf
+  extends: .template:build:packages
+
+build:packages:debian:buster:arm64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "arm64"
+  dependencies:
+    - build:image:debian:buster:arm64
+  extends: .template:build:packages
+
+build:packages:debian:bullseye:amd64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "bullseye"
+    ARCH: "amd64"
+  dependencies:
+    - build:image:debian:bullseye:amd64
+  extends: .template:build:packages
+
+build:packages:debian:bullseye:armhf:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "bullseye"
+    ARCH: "armhf"
+  dependencies:
+    - build:image:debian:bullseye:armhf
+  extends: .template:build:packages
+
+build:packages:debian:bullseye:arm64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "bullseye"
+    ARCH: "arm64"
+  dependencies:
+    - build:image:debian:bullseye:arm64
+  extends: .template:build:packages
+
+build:packages:ubuntu:bionic:amd64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "bionic"
+    ARCH: "amd64"
+  dependencies:
+    - build:image:ubuntu:bionic:amd64
+  extends: .template:build:packages
+
+build:packages:ubuntu:bionic:armhf:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "bionic"
+    ARCH: "armhf"
+  dependencies:
+    - build:image:ubuntu:bionic:armhf
+  extends: .template:build:packages
+
+build:packages:ubuntu:bionic:arm64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "bionic"
+    ARCH: "arm64"
+  dependencies:
+    - build:image:ubuntu:bionic:arm64
+  extends: .template:build:packages
+
+build:packages:ubuntu:focal:amd64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "focal"
+    ARCH: "amd64"
+  dependencies:
+    - build:image:ubuntu:focal:amd64
+  extends: .template:build:packages
+
+build:packages:ubuntu:focal:armhf:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "focal"
+    ARCH: "armhf"
+  dependencies:
+    - build:image:ubuntu:focal:armhf
+  extends: .template:build:packages
+
+build:packages:ubuntu:focal:arm64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "focal"
+    ARCH: "arm64"
+  dependencies:
+    - build:image:ubuntu:focal:arm64
+  extends: .template:build:packages
 
 test:check-commits:
   only:
@@ -190,9 +301,10 @@ test:acceptance:
   tags:
     - mender-qa-slave
   dependencies:
-    # It depends on either of them
-    - build:packages:local-image
-    # - build:packages:upstream-image
+    # Note that we are only testing packages from Debian buster
+    - build:packages:debian:buster:amd64
+    - build:packages:debian:buster:armhf
+    - build:packages:debian:buster:arm64
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -246,63 +358,6 @@ test:acceptance:
             --commercial-tests
         fi
 
-# publish:images:
-#   stage: publish
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "master"'
-#       changes:
-#         - Dockerfile
-#         - docker-build-images
-#         - mender-deb-package
-#   image: docker:git
-#   services:
-#     - docker:dind
-#   tags:
-#     - docker
-#   dependencies:
-#     - build:images
-#   before_script:
-#     - apk --update --no-cache add bash curl aws-cli
-#     - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
-#     - mender_ci_load_tmp_artifact builder-debian-bullseye-amd64.tar
-#     - mender_ci_load_tmp_artifact builder-debian-bullseye-armhf.tar
-#     - mender_ci_load_tmp_artifact builder-debian-bullseye-arm64.tar
-#     - mender_ci_load_tmp_artifact builder-debian-buster-amd64.tar
-#     - mender_ci_load_tmp_artifact builder-debian-buster-armhf.tar
-#     - mender_ci_load_tmp_artifact builder-debian-buster-arm64.tar
-#     - mender_ci_load_tmp_artifact builder-ubuntu-bionic-amd64.tar
-#     - mender_ci_load_tmp_artifact builder-ubuntu-bionic-armhf.tar
-#     - mender_ci_load_tmp_artifact builder-ubuntu-bionic-arm64.tar
-#     - mender_ci_load_tmp_artifact builder-ubuntu-focal-amd64.tar
-#     - mender_ci_load_tmp_artifact builder-ubuntu-focal-armhf.tar
-#     - mender_ci_load_tmp_artifact builder-ubuntu-focal-arm64.tar
-#     - docker load -i builder-debian-bullseye-amd64.tar
-#     - docker load -i builder-debian-bullseye-armhf.tar
-#     - docker load -i builder-debian-bullseye-arm64.tar
-#     - docker load -i builder-debian-buster-amd64.tar
-#     - docker load -i builder-debian-buster-armhf.tar
-#     - docker load -i builder-debian-buster-arm64.tar
-#     - docker load -i builder-ubuntu-bionic-amd64.tar
-#     - docker load -i builder-ubuntu-bionic-armhf.tar
-#     - docker load -i builder-ubuntu-bionic-arm64.tar
-#     - docker load -i builder-ubuntu-focal-amd64.tar
-#     - docker load -i builder-ubuntu-focal-armhf.tar
-#     - docker load -i builder-ubuntu-focal-arm64.tar
-#     - docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
-#   script:
-#     - docker push mendersoftware/mender-dist-packages:builder-debian-bullseye-amd64
-#     - docker push mendersoftware/mender-dist-packages:builder-debian-bullseye-armhf
-#     - docker push mendersoftware/mender-dist-packages:builder-debian-bullseye-arm64
-#     - docker push mendersoftware/mender-dist-packages:builder-debian-buster-amd64
-#     - docker push mendersoftware/mender-dist-packages:builder-debian-buster-armhf
-#     - docker push mendersoftware/mender-dist-packages:builder-debian-buster-arm64
-#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-bionic-amd64
-#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-bionic-armhf
-#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-bionic-arm64
-#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-focal-amd64
-#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-focal-armhf
-#     - docker push mendersoftware/mender-dist-packages:builder-ubuntu-focal-arm64
-
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
   function is_final_tag () {
@@ -319,9 +374,18 @@ test:acceptance:
   stage: publish
   image: debian:buster
   dependencies:
-    # It depends on either of them
-    - build:packages:local-image
-    # - build:packages:upstream-image
+    - build:packages:debian:buster:amd64
+    - build:packages:debian:buster:armhf
+    - build:packages:debian:buster:arm64
+    - build:packages:debian:bullseye:amd64
+    - build:packages:debian:bullseye:armhf
+    - build:packages:debian:bullseye:arm64
+    - build:packages:ubuntu:bionic:amd64
+    - build:packages:ubuntu:bionic:armhf
+    - build:packages:ubuntu:bionic:arm64
+    - build:packages:ubuntu:focal:amd64
+    - build:packages:ubuntu:focal:armhf
+    - build:packages:ubuntu:focal:arm64
   before_script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
@@ -356,9 +420,10 @@ publish:s3:apt-repo:automatic:
   stage: publish
   image: debian:buster
   dependencies:
-    # It depends on either of them
-    - build:packages:local-image
-    # - build:packages:upstream-image
+    # Note that we are using the packages from Debian buster
+    - build:packages:debian:buster:amd64
+    - build:packages:debian:buster:armhf
+    - build:packages:debian:buster:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - deb_version=$(cat output/opensource/debian/buster/mender-client-deb-version)
@@ -420,9 +485,10 @@ publish:production:s3:scripts:install-mender-sh:
   stage: publish
   image: debian:buster
   dependencies:
-    # It depends on either of them
-    - build:packages:local-image
-    # - build:packages:upstream-image
+    # Note that we are using the packages from Debian buster
+    - build:packages:debian:buster:amd64
+    - build:packages:debian:buster:armhf
+    - build:packages:debian:buster:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
@@ -458,9 +524,10 @@ publish:s3:mender-monitor:automatic:
   stage: publish
   image: debian:buster
   dependencies:
-    # It depends on either of them
-    - build:packages:local-image
-    # - build:packages:upstream-image
+    # Note that we are using the packages from Debian buster
+    - build:packages:debian:buster:amd64
+    - build:packages:debian:buster:armhf
+    - build:packages:debian:buster:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
