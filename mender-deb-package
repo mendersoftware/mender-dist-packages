@@ -50,13 +50,27 @@ checkout_repo() {
   git checkout $VERSION
 }
 
+get_os_version() {
+  OS_DISTRO="$(. /etc/os-release && echo "$ID")"
+  OS_CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+}
+
+get_deb_distribution() {
+  if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
+    DEB_DISTRIBUTION="stable"
+  else
+    DEB_DISTRIBUTION="experimental"
+  fi
+}
+
 get_deb_version() {
   # Create a version from Git.
-  #  - For Git tags: X.Y.Z-1
-  #  - For master: X.Y.Z~git<commit-date>.<commit-sha>-1+b<BUILD_ID>
+  #  - For Git tags: X.Y.Z-<debian_suffix>
+  #  - For master: X.Y.Z~git<commit-date>.<commit-sha>-<debian_suffix>+b<BUILD_ID>
   #     where X.Y.Z is latest tag (not necessarily matching git describe)
-  if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
-    DEB_VERSION="$(git describe --tags --exact-match)-1"
+  debian_suffix="1+$OS_DISTRO+$OS_CODENAME"
+  if [ "$DEB_DISTRIBUTION" = "stable" ]; then
+    DEB_VERSION="$(git describe --tags --exact-match)-$debian_suffix"
   else
     DEB_VERSION="$(git tag | egrep '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -n1)"
     if [ -z "${DEB_VERSION}" ]; then
@@ -67,15 +81,10 @@ get_deb_version() {
     # Append git date and commit
     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
     # Append Debian suffix
-    DEB_VERSION="${DEB_VERSION}-1"
+    DEB_VERSION="${DEB_VERSION}-$debian_suffix"
     # Append build number
     DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
   fi
-}
-
-get_os_version() {
-  OS_DISTRO="$(. /etc/os-release && echo "$ID")"
-  OS_CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
 }
 
 prepare_recipe() {
@@ -106,15 +115,9 @@ prepare_recipe() {
     cp support/mender-monitor.service debian/
   fi
 
-  distribution=""
-  if echo "${DEB_VERSION}" | egrep -q '^[0-9]+\.[0-9]+\.[0-9]+-1$'; then
-    distribution="stable"
-  else
-    distribution="experimental"
-  fi
   dch --create \
     --newversion ${DEB_VERSION} \
-    --distribution ${distribution} \
+    --distribution ${DEB_DISTRIBUTION} \
     --package ${DEB_PACKAGE} \
     "Release ${DEB_VERSION}. See online docs for complete changelog"
 }
@@ -219,9 +222,11 @@ verify_script_arguments "$@"
 
 checkout_repo
 
-get_deb_version
-
 get_os_version
+
+get_deb_distribution
+
+get_deb_version
 
 prepare_recipe
 

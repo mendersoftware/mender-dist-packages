@@ -101,9 +101,9 @@ fi
 echo "Building $recipe_name..."
 echo ""
 
-output_dir="output/opensource/$DISTRO/$RELEASE"
+output_dir="output/opensource"
 if [ $commercial = "true" ]; then
-    output_dir="output/commercial/$DISTRO/$RELEASE"
+    output_dir="output/commercial"
 fi
 mkdir -p ${output_dir}
 
