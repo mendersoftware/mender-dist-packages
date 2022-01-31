@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -19,16 +19,16 @@ import pytest
 
 
 def verify_package_version(version, deb_version):
-    # For master, expect something like: "0.0~git20191022.dade697-1+b279517265"
+    # For master, expect something like: "0.0~git20191022.dade697-1+debian+buster+b279517265"
     master_version_re = re.compile(
-        r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-1\+b([0-9]+|LOCAL)"
+        r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-1\+debian\+buster\+b([0-9]+|LOCAL)"
     )
 
     if version == "master":
         m = master_version_re.match(deb_version)
         assert m is not None, "Cannot match %s" % deb_version
     else:
-        assert deb_version == version + "-1"
+        assert deb_version == version + "-1+debian+buster"
 
 
 def test_versions(

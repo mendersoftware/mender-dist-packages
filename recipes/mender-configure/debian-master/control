@@ -7,21 +7,21 @@ Build-Depends: debhelper (>= 9)
 
 Package: mender-configure
 Architecture: all
-Depends: dbus, curl, mender-client (>=2.5.0)
+Depends: dbus, curl, mender-client (>=2.5.0), ${misc:Depends}
 Description: Mender Configure
  Mender Configure is a Mender add-on which enhances the Mender Client providing an Update
  Module to configure the device
 
 Package: mender-configure-timezone
 Architecture: all
-Depends: mender-configure, jq
+Depends: mender-configure (= ${binary:Version}), jq, ${misc:Depends}
 Description: Mender Configure Timezone
  Mender Configure Timezone is an add-on to Mender Configure which enables configuration
  of timezone on the device
 
 Package: mender-configure-demo
 Architecture: all
-Depends: mender-configure, mender-configure-timezone, jq
+Depends: mender-configure (= ${binary:Version}), mender-configure-timezone (= ${binary:Version}), jq, ${misc:Depends}
 Description: Mender Configure Demo
  Mender Configure Demo is an add-on to Mender Configure which enables some demo
  configurations on the device
