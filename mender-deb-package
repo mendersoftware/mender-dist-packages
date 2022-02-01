@@ -90,8 +90,8 @@ get_deb_version() {
 prepare_recipe() {
   # Select the correct Debian recipe according to the minor version of Mender
   local debian_recipe="debian-master";
-  if echo $DEB_VERSION | egrep '^[0-9]+\.[0-9]+\.[0-9](b[0-9]+)?(-build[0-9]+)?-1$'; then
-    branch=$(echo $DEB_VERSION | sed -E 's/\.[^.]+$/.x/')
+  if echo $VERSION | egrep '^[0-9]+\.[0-9]+\.[0-9](b[0-9]+)?(-build[0-9]+)?$'; then
+    branch=$(echo $VERSION | sed -E 's/\.[^.]+$/.x/')
     if [ -d "/recipes/${DEB_PACKAGE}/debian-${branch}" ]; then
       debian_recipe="debian-${branch}"
     fi
