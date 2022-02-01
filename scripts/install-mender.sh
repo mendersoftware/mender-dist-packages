@@ -37,6 +37,9 @@ mender-monitor-demo \
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
 DEMO="0"
 
+# Path where to install the Mender APT repository
+MENDER_APT_SOURCES_LIST="/etc/apt/sources.list.d/mender.list"
+
 # URL prefix from where to download commercial compoments
 MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hosted/"
 
@@ -209,10 +212,10 @@ add_repo() {
         echo "See https://docs.mender.io for updated APT repos information"
         exit 1
     fi
-    if test -f /etc/apt/sources.list.d/mender.list && \
-            grep -F "$repo_deprecated" /etc/apt/sources.list >/dev/null; then
+    if test -f "$MENDER_APT_SOURCES_LIST" && \
+            grep -F "$repo_deprecated" "$MENDER_APT_SOURCES_LIST" >/dev/null; then
         echo "ERROR: deprecated repository found in apt sources lists."
-        echo "Please remove it manually with: sudo rm /etc/apt/sources.list.d/mender.list"
+        echo "Please remove it manually with: sudo rm $MENDER_APT_SOURCES_LIST"
         echo "See https://docs.mender.io for updated APT repos information"
         exit 1
     fi
@@ -225,8 +228,8 @@ add_repo() {
     fi
 
     local repo="deb [arch=$ARCH] $REPO_URL $repo_dist/$DIST_VERSION/$CHANNEL main"
-    echo "Installing Mender APT repository at /etc/apt/sources.list.d/mender.list..."
-    echo "$repo" > /etc/apt/sources.list.d/mender.list
+    echo "Installing Mender APT repository at $MENDER_APT_SOURCES_LIST..."
+    echo "$repo" > "$MENDER_APT_SOURCES_LIST"
 }
 
 do_install_open() {
