@@ -210,7 +210,7 @@ add_repo() {
         exit 1
     fi
     if test -f /etc/apt/sources.list.d/mender.list && \
-            grep -F "$repo_deprecated" /etc/apt/sources.list >/dev/null; then
+            grep -F "$repo_deprecated" /etc/apt/sources.list.d/mender.list >/dev/null; then
         echo "ERROR: deprecated repository found in apt sources lists."
         echo "Please remove it manually with: sudo rm /etc/apt/sources.list.d/mender.list"
         echo "See https://docs.mender.io for updated APT repos information"
