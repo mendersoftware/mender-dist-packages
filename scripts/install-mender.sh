@@ -37,6 +37,9 @@ mender-monitor-demo \
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
 DEMO="0"
 
+# Path where to install the Mender APT repository
+MENDER_APT_SOURCES_LIST="/etc/apt/sources.list.d/mender.list"
+
 # URL prefix from where to download commercial compoments
 MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hosted/"
 
@@ -202,20 +205,31 @@ get_deps() {
 add_repo() {
     curl -fsSL $REPO_URL/gpg | apt-key add -
 
-    repo="deb [arch=$ARCH] $REPO_URL $CHANNEL main"
-
-    echo "Checking if mender sources already exist in '/etc/apt/sources.list'..."
-    if grep -F "$repo" /etc/apt/sources.list; then
-        echo "Removing the old mender debian source list from /etc/apt/sources.list..."
-        if ! sed -i.bak -e "\,$REPO_URL,d" /etc/apt/sources.list; then
-            echo "Failed to remove the existing mender debian source from '/etc/apt/sources.list'."
-            echo "This probably means that there already exists a source in your sources.list."
-            echo "Please remove it manually before proceeding."
-            exit 1
-        fi
+    local repo_deprecated="deb [arch=$ARCH] $REPO_URL $CHANNEL main"
+    if grep -F "$repo_deprecated" /etc/apt/sources.list >/dev/null; then
+        echo "ERROR: deprecated repository found in apt sources lists."
+        echo "Please remove it manually with: sudo sed -i.bak -e \"\,$repo_deprecated,d\" /etc/apt/sources.list"
+        echo "See https://docs.mender.io for updated APT repos information"
+        exit 1
+    fi
+    if test -f "$MENDER_APT_SOURCES_LIST" && \
+            grep -F "$repo_deprecated" "$MENDER_APT_SOURCES_LIST" >/dev/null; then
+        echo "ERROR: deprecated repository found in apt sources lists."
+        echo "Please remove it manually with: sudo rm $MENDER_APT_SOURCES_LIST"
+        echo "See https://docs.mender.io for updated APT repos information"
+        exit 1
     fi
 
-    echo "$repo" > /etc/apt/sources.list.d/mender.list
+    local repo_dist=""
+    if [[ "$LSB_DIST" == "raspbian" ]]; then
+        repo_dist="debian"
+    else
+        repo_dist="$LSB_DIST"
+    fi
+
+    local repo="deb [arch=$ARCH] $REPO_URL $repo_dist/$DIST_VERSION/$CHANNEL main"
+    echo "Installing Mender APT repository at $MENDER_APT_SOURCES_LIST..."
+    echo "$repo" > "$MENDER_APT_SOURCES_LIST"
 }
 
 do_install_open() {
@@ -326,7 +340,109 @@ do_install_missing_monitor_dirs () {
     fi
 }
 
+command_exists() {
+    command -v "$@" > /dev/null 2>&1
+}
+
+# Set the LSB_DIST and DIST_VERSION variables guessing the distribution and version;
+# It also checks if this is a forked Linux distro.
+# Credits: https://get.docker.com/
+check_dist_and_version() {
+    # Every system that we officially support has /etc/os-release
+    if [ -r /etc/os-release ]; then
+        LSB_DIST="$(. /etc/os-release && echo "$ID" | tr '[:upper:]' '[:lower:]')"
+    fi
+    case "$LSB_DIST" in
+        ubuntu)
+            if command_exists lsb_release; then
+                DIST_VERSION="$(lsb_release --codename | cut -f2)"
+            fi
+            if [ -z "$DIST_VERSION" ] && [ -r /etc/lsb-release ]; then
+                DIST_VERSION="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
+            fi
+            case "$DIST_VERSION" in
+                focal)
+                    DIST_VERSION="focal"
+                ;;
+                bionic)
+                    DIST_VERSION="bionic"
+                ;;
+                *)
+                    echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
+                    echo "Aborting."
+                    exit 1
+                ;;
+            esac
+        ;;
+        debian|raspbian)
+            DIST_VERSION="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+            case "$DIST_VERSION" in
+                11)
+                    DIST_VERSION="bullseye"
+                ;;
+                10)
+                    DIST_VERSION="buster"
+                ;;
+                *)
+                    echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
+                    echo "Aborting."
+                    exit 1
+                ;;
+            esac
+        ;;
+        *)
+            echo "ERROR: your distribution ($LSB_DIST) is either not recognized or not supported."
+            echo "Aborting."
+            exit 1
+        ;;
+    esac
+
+    # Check for lsb_release command existence, it usually exists in forked distros
+    if command_exists lsb_release; then
+        # Check if the `-u` option is supported
+        set +e
+        lsb_release -a -u > /dev/null 2>&1
+        lsb_release_exit_code=$?
+        set -e
+
+        # Check if the command has exited successfully, it means we're in a forked distro
+        if [ "$lsb_release_exit_code" = "0" ]; then
+            # Get the upstream release info
+            LSB_DIST=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
+            DIST_VERSION=$(lsb_release -a -u 2>&1 | tr '[:upper:]' '[:lower:]' | grep -E 'codename' | cut -d ':' -f 2 | tr -d '[:space:]')
+        else
+            if [ -r /etc/debian_version ] && [ "$LSB_DIST" != "ubuntu" ] && [ "$LSB_DIST" != "raspbian" ]; then
+                if [ "$LSB_DIST" = "osmc" ]; then
+                    # OSMC runs Raspbian
+                    LSB_DIST=raspbian
+                else
+                    # We're Debian and don't even know it!
+                    LSB_DIST=debian
+                fi
+                DIST_VERSION="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
+                case "$DIST_VERSION" in
+                    11)
+                        DIST_VERSION="bullseye"
+                    ;;
+                    10)
+                        DIST_VERSION="buster"
+                    ;;
+                    *)
+                        echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
+                        echo "Aborting."
+                        exit 1
+                    ;;
+                esac
+            fi
+        fi
+    fi
+
+    echo "  Detected distribution:"
+    printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
+}
+
 banner
+check_dist_and_version
 init "$@"
 print_components
 get_deps

@@ -7,7 +7,9 @@ Build-Depends: debhelper (>= 9)
 
 Package: mender-connect
 Architecture: any
-Depends: libc6 (>= 2.12), libglib2.0-0 (>=2.50), mender-client (>3.1.99)
+Depends: mender-client (>3.1.99), ${shlibs:Depends}, ${misc:Depends}
+# debian bullseye Depends: mender-client (>= 3.1.99), libc6 (>= 2.3.2), libglib2.0-0 (>= 2.26.0)
+# debian buster Depends: mender-client (>= 3.1.99), libc6 (>= 2.3.2), libglib2.0-0 (>= 2.26.0)
 Description: Mender Connect
  Mender Connect is a Mender add-on which enhances the Mender Client providing a bidirectional
  communication channel with the server. It supports the following troubleshooting features:
