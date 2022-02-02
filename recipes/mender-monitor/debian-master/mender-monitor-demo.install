@@ -2,3 +2,4 @@
 /etc/mender-monitor/monitor.d/diskusage.sh
 /etc/mender-monitor/monitor.d/dockerevents.sh
 /etc/mender-monitor/monitor.d/connectivity.sh
+/etc/mender-monitor/monitor.d/enabled/

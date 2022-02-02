@@ -15,5 +15,5 @@ Description: Mender Monitor client
  
 Package: mender-monitor-demo
 Architecture: all
-Depends: mender-monitor, ${misc:Depends}
+Depends: mender-monitor (= ${binary:Version}), ${misc:Depends}
 Description: Adds demo functionality to Mender Monitor.
