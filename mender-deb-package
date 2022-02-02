@@ -56,7 +56,7 @@ get_os_version() {
 }
 
 get_deb_distribution() {
-  if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
+  if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     DEB_DISTRIBUTION="stable"
   else
     DEB_DISTRIBUTION="experimental"
@@ -69,7 +69,7 @@ get_deb_version() {
   #  - For master: X.Y.Z~git<commit-date>.<commit-sha>-<debian_suffix>+b<BUILD_ID>
   #     where X.Y.Z is latest tag (not necessarily matching git describe)
   debian_suffix="1+$OS_DISTRO+$OS_CODENAME"
-  if [ "$DEB_DISTRIBUTION" = "stable" ]; then
+  if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
     DEB_VERSION="$(git describe --tags --exact-match)-$debian_suffix"
   else
     DEB_VERSION="$(git tag | egrep '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -n1)"
