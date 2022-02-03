@@ -125,13 +125,17 @@ prepare_recipe() {
 postprocess_recipe() {
   # On Debian armhf build, set the Depends for the corresponding build OS
   if [ "$OS_DISTRO" = "debian" -a "$ARCH" = "armhf" ]; then
-    echo "Post-processing Depends in debian/control..."
-    sed -i -e "s/^Depends:/#Depends:/" debian/control
-    sed -i -e "s/^# $OS_DISTRO $OS_CODENAME Depends:/Depends:/" debian/control
-    echo "Post-processing Depends in debian/rules..."
-    echo "" >> debian/rules
-    echo "override_dh_shlibdeps:" >> debian/rules
-    echo -e "\ttrue" >> debian/rules
+    if grep -q -e "^# $OS_DISTRO $OS_CODENAME Depends:" debian/control; then
+      echo "Post-processing Depends in debian/control..."
+      sed -i -e "s/^Depends:/#Depends:/" debian/control
+      sed -i -e "s/^# $OS_DISTRO $OS_CODENAME Depends:/Depends:/" debian/control
+      echo "Post-processing Depends in debian/rules..."
+      echo "" >> debian/rules
+      echo "override_dh_shlibdeps:" >> debian/rules
+      echo -e "\ttrue" >> debian/rules
+    else
+      echo "Recipe has no pre-processed Depends. Skipping post-processing of debian/control"
+    fi
   fi
 }
 
