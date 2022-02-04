@@ -79,11 +79,11 @@ get_deb_version() {
     # Increment 1 on the minor number and set to 0 bugfix version
     DEB_VERSION="$(echo ${DEB_VERSION} | sed -E 's/([0-9]+\.)([0-9]+)\.[0-9]+/echo "\1$((\2+1))\.0"/e')"
     # Append git date and commit
-    DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
+#     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
     # Append Debian suffix
     DEB_VERSION="${DEB_VERSION}-$debian_suffix"
     # Append build number
-    DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
+#   DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
   fi
 }
 
@@ -152,9 +152,48 @@ build_packages() {
   case "$ARCH" in
     amd64)
       # Native build (amd64)
-      dpkg-buildpackage \
-        ${sign_flags} \
-        --build=$DEB_BUILD_TYPE
+      export USER=root
+# unset DEB_VERSION
+      locale
+      set
+      bp="/tmp/bp0"
+      echo "waiting on $bp"
+      set +x
+      declare -p `echo ${!DEB_@}`
+      while [ ! -f "$bp" ]; do sleep 0.8; done;
+      set -x
+      echo "released on $bp"
+#        export v=`dpkg-parsechangelog | grep -F Version | awk '{print($NF);}'`
+# echo DEB_VERSION vs `dpkg-parsechangelog | grep -F Version` vs ${DEB_VERSION%%-*}
+      dh_make --createorig --packagename "${DEB_PACKAGE}_${DEB_VERSION}" -s -y || true
+# ln -s ../mender-client_${DEB_VERSION}.orig.tar.xz ../mender-client_${DEB_VERSION%%-*}.orig.tar.xz
+# ln -s ../mender-client_${DEB_VERSION}.dsc ../mender-client_${DEB_VERSION%+*}.dsc
+# ln -s ../mender-client_${DEB_VERSION}.changes ../mender-client_${DEB_VERSION%+*}.changes
+# cp ../mender-client_${DEB_VERSION}.orig.tar.xz ./mender-client_${DEB_VERSION%%-*}.orig.tar.xz
+      ls -al .. .
+#       find / -name Package.pm
+      sed -i.backup -e 's/\(my \$vs = \$v->as_string(omit_epoch => 1, omit_revision => \).*/\1 0);/' /usr/share/perl5/Dpkg/Source/Package.pm
+      mv /usr/share/perl5/Dpkg/Source/Package.pm.backup /tmp/
+      uname -a
+      cat /etc/issue
+      dpkg-buildpackage --version
+# cp ../mender-client_${v}.orig.tar.xz ../mender-client_${v%%-*}.orig.tar.xz
+# dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary -v${v}
+      dpkg-buildpackage ${sign_flags} -v${DEB_VERSION} --build=source,$DEB_BUILD_TYPE
+#       dpkg-source -b .
+      mv /tmp/Package.pm.backup /usr/share/perl5/Dpkg/Source/Package.pm
+# dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
+# rm -f debian/mender-client/usr/bin/mender debian/mender-client/usr/share/doc/mender-client/changelog.Debian.gz debian/mender-client-dev/usr/share/doc/mender-client-dev/changelog.Debian.gz
+# dpkg-source -b .
+# dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
+#  strace -o /tmp/o${v}.log -f -s8192 dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
+#  bzip2 -9 /tmp/o${v}.log
+#  mkdir -p /output || true; mv /tmp/o${v}.log.bz2 /output/
+#      dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
+#  || true
+# exit 1
+# dh_make --createorig --packagename "mender-client_${DEB_VERSION}" -s -y || true
+# dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source
       ;;
 
     armhf)
