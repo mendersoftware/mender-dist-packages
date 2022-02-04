@@ -9,7 +9,7 @@ RUN grep 'archive.ubuntu.com' /etc/apt/sources.list && sed -i.bak 's/archive.ubu
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
     apt-get install -y \
-    build-essential \
+    build-essential dh-make \
     git wget curl \
     debhelper devscripts
 
