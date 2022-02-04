@@ -152,9 +152,19 @@ build_packages() {
   case "$ARCH" in
     amd64)
       # Native build (amd64)
-      dpkg-buildpackage \
-        ${sign_flags} \
-        --build=$DEB_BUILD_TYPE
+      export USER=root
+      unset DEB_VERSION
+      export v=`dpkg-parsechangelog | grep -F Version | awk '{print($NF);}'`
+# echo DEB_VERSION vs `dpkg-parsechangelog | grep -F Version` vs ${DEB_VERSION%%-*}
+      dh_make --createorig --packagename "mender-client_${v%%-*}" -s -y || true
+# ln -s ../mender-client_${DEB_VERSION}.orig.tar.xz ../mender-client_${DEB_VERSION%%-*}.orig.tar.xz
+# ln -s ../mender-client_${DEB_VERSION}.dsc ../mender-client_${DEB_VERSION%+*}.dsc
+# ln -s ../mender-client_${DEB_VERSION}.changes ../mender-client_${DEB_VERSION%+*}.changes
+# cp ../mender-client_${DEB_VERSION}.orig.tar.xz ./mender-client_${DEB_VERSION%%-*}.orig.tar.xz
+      ls -al .. .
+      dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
+# dh_make --createorig --packagename "mender-client_${DEB_VERSION}" -s -y || true
+# dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source
       ;;
 
     armhf)
