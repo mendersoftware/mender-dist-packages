@@ -83,7 +83,7 @@ get_deb_version() {
     # Append Debian suffix
     DEB_VERSION="${DEB_VERSION}-$debian_suffix"
     # Append build number
-    DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
+    DEB_VERSION="${DEB_VERSION}+bLOCAL"
   fi
 }
 
@@ -152,9 +152,13 @@ build_packages() {
   case "$ARCH" in
     amd64)
       # Native build (amd64)
-      dpkg-buildpackage \
-        ${sign_flags} \
-        --build=$DEB_BUILD_TYPE
+      export USER=root
+      declare -p `echo ${!DEB_@}`
+      dh_make --createorig --packagename "${DEB_PACKAGE}_${DEB_VERSION}" -s -y || true
+# sed -i.backup -e 's/\(my \$vs = \$v->as_string(omit_epoch => 1, omit_revision => \).*/\1 0);/' /usr/share/perl5/Dpkg/Source/Package.pm
+# mv /usr/share/perl5/Dpkg/Source/Package.pm.backup /tmp/
+      dpkg-buildpackage ${sign_flags} -v${DEB_VERSION} --build=source,$DEB_BUILD_TYPE
+#       mv /tmp/Package.pm.backup /usr/share/perl5/Dpkg/Source/Package.pm
       ;;
 
     armhf)
