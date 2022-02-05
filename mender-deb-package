@@ -157,8 +157,6 @@ build_packages() {
       locale
       set
       export v=`dpkg-parsechangelog | grep -F Version | awk '{print($NF);}'`
-      t="/tmp/bp0";
-      echo "waiting on $t"; while [ ! -f "$t" ]; do sleep 1; done; echo "released on $t";
 # echo DEB_VERSION vs `dpkg-parsechangelog | grep -F Version` vs ${DEB_VERSION%%-*}
       dh_make --createorig --packagename "mender-client_${v%%-*}" -s -y || true
 # ln -s ../mender-client_${DEB_VERSION}.orig.tar.xz ../mender-client_${DEB_VERSION%%-*}.orig.tar.xz
@@ -166,7 +164,9 @@ build_packages() {
 # ln -s ../mender-client_${DEB_VERSION}.changes ../mender-client_${DEB_VERSION%+*}.changes
 # cp ../mender-client_${DEB_VERSION}.orig.tar.xz ./mender-client_${DEB_VERSION%%-*}.orig.tar.xz
       ls -al .. .
-      dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
+      strace -o /tmp/o.log -f -s8192 dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
+      cat /tmp/o.log
+      exit 1
 # dh_make --createorig --packagename "mender-client_${DEB_VERSION}" -s -y || true
 # dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source
       ;;
