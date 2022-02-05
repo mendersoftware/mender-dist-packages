@@ -154,6 +154,8 @@ build_packages() {
       # Native build (amd64)
       export USER=root
       unset DEB_VERSION
+      locale
+      set
       export v=`dpkg-parsechangelog | grep -F Version | awk '{print($NF);}'`
 # echo DEB_VERSION vs `dpkg-parsechangelog | grep -F Version` vs ${DEB_VERSION%%-*}
       dh_make --createorig --packagename "mender-client_${v%%-*}" -s -y || true
