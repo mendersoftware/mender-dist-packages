@@ -157,6 +157,8 @@ build_packages() {
       locale
       set
       export v=`dpkg-parsechangelog | grep -F Version | awk '{print($NF);}'`
+      t="/tmp/bp0";
+      echo "waiting on $t"; while [ ! -f "$t" ]; do sleep 1; done; echo "released on $t";
 # echo DEB_VERSION vs `dpkg-parsechangelog | grep -F Version` vs ${DEB_VERSION%%-*}
       dh_make --createorig --packagename "mender-client_${v%%-*}" -s -y || true
 # ln -s ../mender-client_${DEB_VERSION}.orig.tar.xz ../mender-client_${DEB_VERSION%%-*}.orig.tar.xz
