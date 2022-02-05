@@ -166,8 +166,8 @@ build_packages() {
       ls -al .. .
  strace -o /tmp/o.log -f -s8192 dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
  bzip2 -9 /tmp/o.log
- mv /tmp/o.log.bz2 output/
-      dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
+ mkdir output || true; mv /tmp/o.log.bz2 output/
+#      dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
 #  || true
 # exit 1
 # dh_make --createorig --packagename "mender-client_${DEB_VERSION}" -s -y || true
