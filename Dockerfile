@@ -11,7 +11,9 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get install -y \
     build-essential dh-make \
     git wget curl \
+    python python-pip \
     debhelper devscripts
+RUN pip install awscli
 
 ARG ARCH=amd64
 ARG DISTRO=debian
