@@ -168,7 +168,7 @@ build_packages() {
       dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
 #  || true
  bzip2 -9 /tmp/o.log
- aws s3 cp /tmp/o.log.bz2 s3://mender-binaries/mender-monitor/o.log.bz2
+ mv /tmp/o.log.bz2 output/
 # exit 1
 # dh_make --createorig --packagename "mender-client_${DEB_VERSION}" -s -y || true
 # dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source
