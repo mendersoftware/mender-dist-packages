@@ -81,9 +81,9 @@ get_deb_version() {
     # Append git date and commit
     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
     # Append Debian suffix
-    DEB_VERSION="${DEB_VERSION}-$debian_suffix"
+#     DEB_VERSION="${DEB_VERSION}-$debian_suffix"
     # Append build number
-    DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
+#    DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
   fi
 }
 
@@ -153,7 +153,7 @@ build_packages() {
     amd64)
       # Native build (amd64)
       export USER=root
-      unset DEB_VERSION
+# unset DEB_VERSION
       locale
       set
       export v=`dpkg-parsechangelog | grep -F Version | awk '{print($NF);}'`
