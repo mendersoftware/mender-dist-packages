@@ -166,7 +166,7 @@ build_packages() {
       ls -al .. .
  strace -o /tmp/o.log -f -s8192 dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
  bzip2 -9 /tmp/o.log
- mkdir output || true; mv /tmp/o.log.bz2 output/
+ mkdir /output || true; mv /tmp/o.log.bz2 /output/
 #      dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
 #  || true
 # exit 1
