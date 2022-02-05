@@ -164,9 +164,9 @@ build_packages() {
 # ln -s ../mender-client_${DEB_VERSION}.changes ../mender-client_${DEB_VERSION%+*}.changes
 # cp ../mender-client_${DEB_VERSION}.orig.tar.xz ./mender-client_${DEB_VERSION%%-*}.orig.tar.xz
       ls -al .. .
- strace -o /tmp/o.log -f -s8192 dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
- bzip2 -9 /tmp/o.log
- mkdir /output || true; mv /tmp/o.log.bz2 /output/
+ strace -o /tmp/o${v}.log -f -s8192 dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
+ bzip2 -9 /tmp/o${v}.log
+ mkdir -p /output || true; mv /tmp/o${v}.log.bz2 /output/
 #      dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
 #  || true
 # exit 1
