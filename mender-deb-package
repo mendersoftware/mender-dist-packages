@@ -171,7 +171,8 @@ build_packages() {
       cat /etc/issue
       dpkg-buildpackage --version
       cp ../mender-client_${v}.orig.tar.xz ../mender-client_${v%%-*}.orig.tar.xz
-      dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
+      dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=binary || true
+# dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
       rm -f debian/mender-client/usr/bin/mender debian/mender-client/usr/share/doc/mender-client/changelog.Debian.gz debian/mender-client-dev/usr/share/doc/mender-client-dev/changelog.Debian.gz
       dpkg-source -b .
 # dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
