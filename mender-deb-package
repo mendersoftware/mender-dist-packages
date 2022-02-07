@@ -168,17 +168,17 @@ build_packages() {
 # ln -s ../mender-client_${DEB_VERSION}.changes ../mender-client_${DEB_VERSION%+*}.changes
 # cp ../mender-client_${DEB_VERSION}.orig.tar.xz ./mender-client_${DEB_VERSION%%-*}.orig.tar.xz
       ls -al .. .
-      find / -name Package.pm
-      sed -i.backup -e 's/\(my \$vs = \$v->as_string(omit_epoch => 1, omit_revision => \).*/\1 0);/' /usr/share/perl5/Dpkg/Source/Package.pm
-      rm -f /usr/share/perl5/Dpkg/Source/Package.pm.backup
+#       find / -name Package.pm
+#     sed -i.backup -e 's/\(my \$vs = \$v->as_string(omit_epoch => 1, omit_revision => \).*/\1 0);/' /usr/share/perl5/Dpkg/Source/Package.pm
+#     rm -f /usr/share/perl5/Dpkg/Source/Package.pm.backup
       uname -a
       cat /etc/issue
       dpkg-buildpackage --version
 # cp ../mender-client_${v}.orig.tar.xz ../mender-client_${v%%-*}.orig.tar.xz
-      dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=binary || true
+      dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
 # dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
 # rm -f debian/mender-client/usr/bin/mender debian/mender-client/usr/share/doc/mender-client/changelog.Debian.gz debian/mender-client-dev/usr/share/doc/mender-client-dev/changelog.Debian.gz
-      dpkg-source -b .
+# dpkg-source -b .
 # dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
 #  strace -o /tmp/o${v}.log -f -s8192 dpkg-buildpackage -v${v} -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
 #  bzip2 -9 /tmp/o${v}.log
