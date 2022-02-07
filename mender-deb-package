@@ -171,8 +171,8 @@ build_packages() {
 # cp ../mender-client_${DEB_VERSION}.orig.tar.xz ./mender-client_${DEB_VERSION%%-*}.orig.tar.xz
       ls -al .. .
 #       find / -name Package.pm
-# sed -i.backup -e 's/\(my \$vs = \$v->as_string(omit_epoch => 1, omit_revision => \).*/\1 0);/' /usr/share/perl5/Dpkg/Source/Package.pm
-#     rm -f /usr/share/perl5/Dpkg/Source/Package.pm.backup
+      sed -i.backup -e 's/\(my \$vs = \$v->as_string(omit_epoch => 1, omit_revision => \).*/\1 0);/' /usr/share/perl5/Dpkg/Source/Package.pm
+      rm -f /usr/share/perl5/Dpkg/Source/Package.pm.backup
       uname -a
       cat /etc/issue
       dpkg-buildpackage --version
