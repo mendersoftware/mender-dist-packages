@@ -79,7 +79,7 @@ get_deb_version() {
     # Increment 1 on the minor number and set to 0 bugfix version
     DEB_VERSION="$(echo ${DEB_VERSION} | sed -E 's/([0-9]+\.)([0-9]+)\.[0-9]+/echo "\1$((\2+1))\.0"/e')"
     # Append git date and commit
-    DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
+#     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
     # Append Debian suffix
     DEB_VERSION="${DEB_VERSION}-$debian_suffix"
     # Append build number
@@ -174,7 +174,7 @@ build_packages() {
       uname -a
       cat /etc/issue
       dpkg-buildpackage --version
-      cp ../mender-client_${v}.orig.tar.xz ../mender-client_${v%%-*}.orig.tar.xz
+# cp ../mender-client_${v}.orig.tar.xz ../mender-client_${v%%-*}.orig.tar.xz
       dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=binary || true
 # dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
 # rm -f debian/mender-client/usr/bin/mender debian/mender-client/usr/share/doc/mender-client/changelog.Debian.gz debian/mender-client-dev/usr/share/doc/mender-client-dev/changelog.Debian.gz
