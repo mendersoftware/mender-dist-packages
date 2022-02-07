@@ -434,9 +434,9 @@ publish:s3:apt-repo:automatic:
           --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         if [ "${MENDER_VERSION}" == "master" ]; then
           aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
-            s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+            s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1+debian+buster_${arch}.deb;
           aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-            --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+            --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1+debian+buster_${arch}.deb;
         fi;
       done
 
