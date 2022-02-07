@@ -83,7 +83,7 @@ get_deb_version() {
     # Append Debian suffix
     DEB_VERSION="${DEB_VERSION}-$debian_suffix"
     # Append build number
-    DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
+#   DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
   fi
 }
 
@@ -157,11 +157,11 @@ build_packages() {
       locale
       set
       bp="/tmp/bp0"
- echo "waiting on $bp"
- set +x
- while [ ! -f "$bp" ]; do sleep 0.5; done;
- set -x
- echo "released on $bp"
+# echo "waiting on $bp"
+# set +x
+# while [ ! -f "$bp" ]; do sleep 0.5; done;
+# set -x
+# echo "released on $bp"
       export v=`dpkg-parsechangelog | grep -F Version | awk '{print($NF);}'`
 # echo DEB_VERSION vs `dpkg-parsechangelog | grep -F Version` vs ${DEB_VERSION%%-*}
       dh_make --createorig --packagename "mender-client_${v}" -s -y || true
@@ -171,13 +171,13 @@ build_packages() {
 # cp ../mender-client_${DEB_VERSION}.orig.tar.xz ./mender-client_${DEB_VERSION%%-*}.orig.tar.xz
       ls -al .. .
 #       find / -name Package.pm
-#     sed -i.backup -e 's/\(my \$vs = \$v->as_string(omit_epoch => 1, omit_revision => \).*/\1 0);/' /usr/share/perl5/Dpkg/Source/Package.pm
+# sed -i.backup -e 's/\(my \$vs = \$v->as_string(omit_epoch => 1, omit_revision => \).*/\1 0);/' /usr/share/perl5/Dpkg/Source/Package.pm
 #     rm -f /usr/share/perl5/Dpkg/Source/Package.pm.backup
       uname -a
       cat /etc/issue
       dpkg-buildpackage --version
 # cp ../mender-client_${v}.orig.tar.xz ../mender-client_${v%%-*}.orig.tar.xz
-      dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary
+      dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary -v${v}
 # dpkg-buildpackage -rfakeroot --unsigned-source --unsigned-changes --build=source,binary || true
 # rm -f debian/mender-client/usr/bin/mender debian/mender-client/usr/share/doc/mender-client/changelog.Debian.gz debian/mender-client-dev/usr/share/doc/mender-client-dev/changelog.Debian.gz
 # dpkg-source -b .
