@@ -106,6 +106,7 @@ build:packages:debian:bullseye:amd64:
     - build:image:debian:bullseye:amd64
   extends: .template:build:packages
 
+
 test:check-commits:
   only:
     variables:
