@@ -154,6 +154,8 @@ build:image:ubuntu:focal:arm64:
   image: docker:git
   services:
     - docker:dind
+  tags:
+    - mender-qa-slave-highcpu
   before_script:
     - apk --update --no-cache add bash curl aws-cli
     - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
@@ -299,7 +301,7 @@ test:acceptance:
   stage: test
   image: docker:19.03-dind
   tags:
-    - mender-qa-slave
+    - mender-qa-slave-highcpu
   dependencies:
     # Note that we are only testing packages from Debian buster
     - build:packages:debian:buster:amd64
