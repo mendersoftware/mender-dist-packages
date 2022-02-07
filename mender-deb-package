@@ -157,9 +157,11 @@ build_packages() {
       locale
       set
       bp="/tmp/bp0"
-# echo "waiting on $bp"
-# while [ ! -f "$bp" ]; do sleep 0.5; done;
-# echo "released on $bp"
+ echo "waiting on $bp"
+ set +x
+ while [ ! -f "$bp" ]; do sleep 0.5; done;
+ set -x
+ echo "released on $bp"
       export v=`dpkg-parsechangelog | grep -F Version | awk '{print($NF);}'`
 # echo DEB_VERSION vs `dpkg-parsechangelog | grep -F Version` vs ${DEB_VERSION%%-*}
       dh_make --createorig --packagename "mender-client_${v}" -s -y || true
