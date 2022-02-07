@@ -70,7 +70,9 @@ get_deb_version() {
   #     where X.Y.Z is latest tag (not necessarily matching git describe)
   debian_suffix="1+$OS_DISTRO+$OS_CODENAME"
   if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
-    DEB_VERSION="$(git describe --tags --exact-match)-$debian_suffix"
+    DEB_VERSION="$(git describe --tags --exact-match)"
+    DEB_VERSION_NO_REV="${DEB_VERSION}"
+    DEB_VERSION="${DEB_VERSION}-${debian_suffix}"
   else
     DEB_VERSION="$(git tag | egrep '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -n1)"
     if [ -z "${DEB_VERSION}" ]; then
@@ -80,10 +82,15 @@ get_deb_version() {
     DEB_VERSION="$(echo ${DEB_VERSION} | sed -E 's/([0-9]+\.)([0-9]+)\.[0-9]+/echo "\1$((\2+1))\.0"/e')"
     # Append git date and commit
     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
+    DEB_VERSION_NO_REV="${DEB_VERSION}"
     # Append Debian suffix
     DEB_VERSION="${DEB_VERSION}-$debian_suffix"
     # Append build number
-    DEB_VERSION="${DEB_VERSION}+b${BUILD_ID}"
+    # there is a bizarre feature: it can't be `bNUMBER`
+    # or the source won't build (will not be able to find dsc file)
+    # this has to have something to do with the `b` being a prefix
+    # to binary numbers in perl
+    DEB_VERSION="${DEB_VERSION}+builder${BUILD_ID}"
   fi
 }
 
@@ -147,6 +154,14 @@ build_packages() {
   else
     key_id=$(gpg --list-secret-keys --with-colons| awk -F: '/^sec:/ { print $5 }')
     sign_flags="--sign-key=$key_id"
+  fi
+
+  if [[ $DEB_BUILD_TYPE =~ source ]]; then
+    # dh_make needs a name of the user in the env
+    export USER=root
+    # needed to get the orig file, returns 1 because debian directory exists,
+    # hence the || true, without orig file buildpackage command would fail
+    dh_make --createorig --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
   fi
 
   case "$ARCH" in
