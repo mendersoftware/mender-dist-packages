@@ -48,7 +48,7 @@ RUN if [ "${DISTRO}" = "debian" -a "${ARCH}" = "armhf" ]; then \
     fi
 
 # Golang environment, for cross-compiling the Mender client
-ARG GOLANG_VERSION=1.17.6
+ARG GOLANG_VERSION=1.14.7
 RUN wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
 ENV GOPATH "/root/go"
