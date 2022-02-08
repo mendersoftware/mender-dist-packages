@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ from helpers import package_filename, upload_deb_package
 
 @pytest.mark.usefixtures("setup_mender_configured")
 class TestPackageDev:
+    @pytest.mark.min_mender_client_version("3.0.0")
     def test_mender_client_dev(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
