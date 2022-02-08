@@ -46,6 +46,8 @@ stages:
 .template:build:image:
   stage: build:images
   image: docker:git
+  tags:
+    - mender-qa-slave
   services:
     - docker:dind
   before_script:
@@ -152,6 +154,8 @@ build:image:ubuntu:focal:arm64:
 .template:build:packages:
   stage: build:packages
   image: docker:git
+  tags:
+    - mender-qa-slave
   services:
     - docker:dind
   before_script:
