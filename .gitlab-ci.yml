@@ -165,7 +165,6 @@ build:image:ubuntu:focal:arm64:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
     - fi
   artifacts:
@@ -340,7 +339,7 @@ test:acceptance:
       --mender-configure-version $MENDER_CONFIGURE_VERSION
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version)
     - |-
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version ] && \
+        if \
            [ -f ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version ]; then
           python3 -m pytest -v \
             --mender-client-version $MENDER_VERSION \
@@ -349,8 +348,6 @@ test:acceptance:
             --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version) \
             --mender-configure-version $MENDER_CONFIGURE_VERSION \
             --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version) \
-            --mender-gateway-version $MENDER_GATEWAY_VERSION \
-            --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version) \
             --mender-monitor-version $MENDER_MONITOR_VERSION \
             --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version) \
             --commercial-tests

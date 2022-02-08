@@ -18,6 +18,7 @@ import pytest
 from helpers import package_filename, upload_deb_package
 
 
+@pytest.mark.skip(reason="Not building mender-gateway with golang 1.14")
 class TestPackageGateway:
     @pytest.mark.commercial
     def test_mender_gateway(
