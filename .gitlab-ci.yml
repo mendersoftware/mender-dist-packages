@@ -398,13 +398,13 @@ test:acceptance:
     - touch lock
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
   script:
-    # Upload files: first .buildinfo and .deb, then .changes
-    - for file in $(find output/opensource -name *.buildinfo -o -name *.deb); do
-    -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
-    - done
-    - for file in $(find output/opensource -name *.changes); do
-    -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
-    - done
+    # Upload files: first .buildinfo and .deb, sources, then .changes
+    - aws s3 cp output/opensource/*.deb s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - aws s3 cp output/opensource/*.buildinfo s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - aws s3 cp output/opensource/*.orig.tar.* s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - aws s3 cp output/opensource/*.debian.tar.* s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - aws s3 cp output/opensource/*.dsc s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - aws s3 cp output/opensource/*.changes s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
