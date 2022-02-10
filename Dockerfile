@@ -2,10 +2,6 @@ ARG DISTRO=debian
 ARG VERSION=buster
 FROM $DISTRO:$VERSION
 
-# TODO - remove - Temporary workaround for Ubuntu archive being down
-RUN grep 'archive.ubuntu.com' /etc/apt/sources.list && sed -i.bak 's/archive.ubuntu.com/us.archive.ubuntu.com/' /etc/apt/sources.list; \
-        cat /etc/apt/sources.list
-
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
     apt-get install -y \
@@ -16,7 +12,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 ARG ARCH=amd64
 ARG DISTRO=debian
 ARG VERSION=buster
-
 
 RUN if [ "${DISTRO}" = "ubuntu" -a "${ARCH}" != "amd64" ]; then \
         sed -i 's/^deb/deb [arch=amd64]/' /etc/apt/sources.list && \
