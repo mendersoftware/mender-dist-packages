@@ -503,14 +503,13 @@ publish:production:s3:scripts:install-mender-sh:
     # Make copies in known destinations to be consumed by get.mender.io script:
     # * For "experimental" channel, we make a copy of the newest master package in the master directory
     # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
-
-    # Needs to be reworked, see MEN-5029
-    # - if is_build_tag ${MENDER_MONITOR_VERSION} || [ "${MENDER_MONITOR_VERSION}" == "master" ]; then
-    # -   aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor_master-1_all.deb
-    # -   if test -f output/commercial/mender-monitor-demo*.deb; then
-    # -     aws s3 cp output/commercial/mender-monitor-demo*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor-demo_master-1_all.deb
-    # -  fi
-    # - fi
+    - if [ "${MENDER_MONITOR_VERSION}" == "master" ]; then
+    -   aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor_master-1+debian+buster_all.deb
+    -   if test -f output/commercial/mender-monitor-demo*.deb; then
+    -     aws s3 cp output/commercial/mender-monitor-demo*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor-demo_master-1+debian+buster_all.deb
+    -  fi
+    - fi
+    # Publishing the "latest" package needs to be reworked, see MEN-5029
     # - if is_final_tag ${MENDER_MONITOR_VERSION}; then
     # -   aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/latest/mender-monitor_latest-1_all.deb
     # -   if test -f output/commercial/mender-monitor-demo*.deb; then
@@ -544,13 +543,12 @@ publish:s3:mender-monitor:automatic:
     # Make copies in known destinations to be consumed by get.mender.io script:
     # * For "experimental" channel, we make a copy of the newest master package in the master directory
     # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
-
-    # Needs to be reworked, see MEN-5029
-    # - if is_build_tag ${MENDER_GATEWAY_VERSION} || [ "${MENDER_GATEWAY_VERSION}" == "master" ]; then
-    # -   for arch in amd64 arm64 armhf; do
-    # -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/master/mender-gateway_master-1_${arch}.deb
-    # -  done
-    # - fi
+    - if [ "${MENDER_GATEWAY_VERSION}" == "master" ]; then
+    -   for arch in amd64 arm64 armhf; do
+    -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/master/mender-gateway_master-1+debian+buster_${arch}.deb
+    -  done
+    - fi
+    # Publishing the "latest" package needs to be reworked, see MEN-5029
     # - if is_final_tag ${MENDER_GATEWAY_VERSION}; then
     # -   for arch in amd64 arm64 armhf; do
     # -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/latest/mender-gateway_latest-1_${arch}.deb
