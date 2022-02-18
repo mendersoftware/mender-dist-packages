@@ -117,7 +117,7 @@ else
     BUILD_TYPE=any
 fi
 
-if [ "$commercial" != "true" ]; then
+if [ "$commercial" != "true" -a "$ARCH" = "amd64" ]; then
     echo "Including source packages in the build."
     BUILD_TYPE="source,${BUILD_TYPE}"
 fi
