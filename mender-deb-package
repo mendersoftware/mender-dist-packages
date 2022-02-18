@@ -170,6 +170,16 @@ build_packages() {
       dpkg-buildpackage \
         ${sign_flags} \
         --build=$DEB_BUILD_TYPE
+      set +e
+      echo "checksum check: {{{"
+      echo " from changes: {{{"
+      cat ../*changes | grep -A 128 -F Files: | grep '^ [a-z0-9]* [0-9]* [a-z]* '  | awk '{print($NF);}' | while read; do f="$REPLY"; [ -f ../"$REPLY" ] && md5sum ../"$REPLY"; [ -f "$REPLY" ] && md5sum "$REPLY"; done
+      echo " }}}"
+      echo " changes files: {{{"
+      tail -n 1024 ../*changes
+      echo " }}}"
+      echo "}}}"
+      set -e
       ;;
 
     armhf)
