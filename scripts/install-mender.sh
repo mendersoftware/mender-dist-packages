@@ -11,6 +11,7 @@ mender-configure \
 mender-configure-demo \
 mender-configure-timezone \
 mender-connect \
+mender-gateway \
 mender-monitor \
 mender-monitor-demo \
 "
@@ -27,6 +28,7 @@ mender-configure-timezone \
 "
 
 COMMERCIAL_COMPONENTS="\
+mender-gateway \
 mender-monitor \
 "
 
@@ -44,7 +46,9 @@ MENDER_APT_SOURCES_LIST="/etc/apt/sources.list.d/mender.list"
 MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hosted/"
 
 # URL path for the actual components, formatted by version
+ARCHITECTURE=$(dpkg --print-architecture)
 declare -A COMMERCIAL_COMP_TO_URL_PATH_F=(
+  [mender-gateway]="mender-gateway/debian/%s/mender-gateway_%s-1_$ARCHITECTURE.deb"
   [mender-monitor]="mender-monitor/debian/%s/mender-monitor_%s-1_all.deb"
   [mender-monitor-demo]="mender-monitor/debian/%s/mender-monitor-demo_%s-1_all.deb"
 )
