@@ -79,7 +79,7 @@ get_deb_version() {
       DEB_VERSION="0.0.0"
     fi
     # Increment 1 on the minor number and set to 0 bugfix version
-    DEB_VERSION="$(echo ${DEB_VERSION} | sed -E 's/([0-9]+\.)([0-9]+)\.[0-9]+/echo "\1$((\2+1))\.0"/e')"
+# DEB_VERSION="$(echo ${DEB_VERSION} | sed -E 's/([0-9]+\.)([0-9]+)\.[0-9]+/echo "\1$((\2+1))\.0"/e')"
     # Append git date and commit
     DEB_VERSION="${DEB_VERSION}$(git log -1 --pretty=~git%cd.%h --date format:%Y%m%d)"
     DEB_VERSION_NO_REV="${DEB_VERSION}"
@@ -90,7 +90,7 @@ get_deb_version() {
     # or the source won't build (will not be able to find dsc file)
     # this has to have something to do with the `b` being a prefix
     # to binary numbers in perl
-    DEB_VERSION="${DEB_VERSION}+builder${BUILD_ID}"
+    DEB_VERSION="${DEB_VERSION}+custom"
   fi
 }
 

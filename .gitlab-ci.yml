@@ -1,10 +1,10 @@
 variables:
   # Packages versions
-  MENDER_VERSION: "master"
+  MENDER_VERSION: "3.2.x-men_5502"
   MENDER_CONNECT_VERSION: "master"
   MENDER_CONFIGURE_VERSION: "master"
   MENDER_GATEWAY_VERSION: "master"
-  MENDER_MONITOR_VERSION: "master"
+  MENDER_MONITOR_VERSION: "1.1.x-men_5502"
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
