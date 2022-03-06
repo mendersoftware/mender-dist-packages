@@ -48,9 +48,9 @@ MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hos
 # URL path for the actual components, formatted by version
 ARCHITECTURE=$(dpkg --print-architecture)
 declare -A COMMERCIAL_COMP_TO_URL_PATH_F=(
-  [mender-gateway]="mender-gateway/debian/%s/mender-gateway_%s-1_$ARCHITECTURE.deb"
-  [mender-monitor]="mender-monitor/debian/%s/mender-monitor_%s-1_all.deb"
-  [mender-monitor-demo]="mender-monitor/debian/%s/mender-monitor-demo_%s-1_all.deb"
+  [mender-gateway]="mender-gateway/debian/%s/mender-gateway_%s-1+%s+%s_$ARCHITECTURE.deb"
+  [mender-monitor]="mender-monitor/debian/%s/mender-monitor_%s-1+%s+%s_all.deb"
+  [mender-monitor-demo]="mender-monitor/debian/%s/mender-monitor-demo_%s-1+%s+%s_all.deb"
 )
 
 export DEBIAN_FRONTEND=noninteractive
@@ -224,14 +224,7 @@ add_repo() {
         exit 1
     fi
 
-    local repo_dist=""
-    if [[ "$LSB_DIST" == "raspbian" ]]; then
-        repo_dist="debian"
-    else
-        repo_dist="$LSB_DIST"
-    fi
-
-    local repo="deb [arch=$ARCH] $REPO_URL $repo_dist/$DIST_VERSION/$CHANNEL main"
+    local repo="deb [arch=$ARCH] $REPO_URL $LSB_DIST/$DIST_VERSION/$CHANNEL main"
     echo "Installing Mender APT repository at $MENDER_APT_SOURCES_LIST..."
     echo "$repo" > "$MENDER_APT_SOURCES_LIST"
 }
@@ -286,7 +279,7 @@ do_install_commercial() {
 
     # Download deb packages
     for c in $selected_components_commercial; do
-        url="$MENDER_COMMERCIAL_DOWNLOAD_URL$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $version $version)"
+        url="$MENDER_COMMERCIAL_DOWNLOAD_URL$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $version $version $LSB_DIST $DIST_VERSION)"
         curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url" ||
                 (echo ERROR: Cannot get $c from $url; exit 1)
     done
@@ -443,6 +436,12 @@ check_dist_and_version() {
 
     echo "  Detected distribution:"
     printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
+
+    if [[ "$LSB_DIST" == "raspbian" ]]; then
+        LSB_DIST="debian"
+        echo "  Raspbian detected. Using compatible distribution:"
+        printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
+    fi
 }
 
 banner
