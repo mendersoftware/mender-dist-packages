@@ -509,6 +509,7 @@ publish:production:s3:scripts:install-mender-sh:
     -   if [ "${PUBLISH_PACKAGE_VERSION}" == "master" ]; then
     -     copy_filename=$(basename "$file" | sed 's/_[^\+]*/_master-1/; s/\+builder[^_]*//')
     -     aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/${copy_filename}
+    -   fi
     - done
 
 .template:publish:s3:mender-monitor:
