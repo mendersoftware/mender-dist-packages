@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -81,9 +81,10 @@ class PackageMenderClientChecker:
         Verifies that the Mender state machine starts, and reports the expected
         output as it's transitioning through a full cycle.
 
-        There is two outputs to expect here. One for the older clients, and one for
-        3.2.x and newer, which has the Authorization states removed, and authorizes
-        upon requests to the backend if it finds it is unauthorized upon a request.
+        There is three possible outputs to expect here. One for the older clients, and one for
+        3.2.x, which has the Authorization states removed and authorizes upon requests to the
+        backend if it finds it is unauthorized upon a request, and one for 3.3.x and newer for which
+        the client may attempt inventory-update before update-check.
         """
         # Check first that mender process is running
         result = ssh_connection.run("pgrep mender")
@@ -98,8 +99,9 @@ class PackageMenderClientChecker:
                 [
                     expected_output in result.stdout
                     for expected_output in [
-                        "State transition: check-wait [Idle] -> update-check [Sync]",
                         "State transition: authorize [Sync] -> authorize-wait [Idle]",
+                        "State transition: check-wait [Idle] -> update-check [Sync]",
+                        "State transition: check-wait [Idle] -> inventory-update [Sync]",
                     ]
                 ]
             ):
@@ -116,15 +118,23 @@ class PackageMenderClientChecker:
         assert "Loaded configuration file" in result.stdout, result.stdout
         assert "No dual rootfs configuration present" in result.stdout, result.stdout
 
-        assert any(
-            [
-                expected_output in result.stdout
-                for expected_output in [
-                    "Reauthorization failed with error: transient error: authorization request failed",
-                    "Authorize failed: transient error: authorization request failed",
+        while time.time() - start_time < timeout:
+            result = ssh_connection.run("sudo journalctl -u mender-client --no-pager")
+            if any(
+                [
+                    expected_output in result.stdout
+                    for expected_output in [
+                        "Reauthorization failed with error: transient error: authorization request failed",
+                        "Authorize failed: transient error: authorization request failed",
+                    ]
                 ]
-            ]
-        ), result.stdout
+            ):
+                break
+        else:
+            pytest.fail(
+                "Did not detect a full cycle in %d seconds. Output follows:\n%s"
+                % (timeout, result.stdout)
+            )
 
     def check_removed_files(self, ssh_connection, purge):
         # Check first that mender process has been stopped
