@@ -269,6 +269,7 @@ do_install_open() {
 do_install_commercial() {
     # Filter commercial components
     local selected_components_commercial=""
+    local c
     for c in $SELECTED_COMPONENTS; do
         if echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
             selected_components_commercial="$selected_components_commercial $c"
@@ -283,10 +284,13 @@ do_install_commercial() {
     echo "  Installing commercial components from $MENDER_COMMERCIAL_DOWNLOAD_URL"
 
     # Download deb packages
+    local url
     for c in $selected_components_commercial; do
-        url="$MENDER_COMMERCIAL_DOWNLOAD_URL$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $VERSION $VERSION $LSB_DIST $DIST_VERSION)"
-        curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url" ||
-                (echo ERROR: Cannot get $c from $url; exit 1)
+        url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $VERSION $VERSION $LSB_DIST $DIST_VERSION)"
+        if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
+            echo "ERROR: Cannot get $c from $url"
+            exit 1
+        fi
     done
 
     # Install all of them at once and fallback to install missing dependencies
