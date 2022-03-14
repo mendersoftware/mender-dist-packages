@@ -42,16 +42,19 @@ DEMO="0"
 # Path where to install the Mender APT repository
 MENDER_APT_SOURCES_LIST="/etc/apt/sources.list.d/mender.list"
 
-# URL prefix from where to download commercial compoments
+# URL prefix for the commercial components
 MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hosted/"
 
-# URL path for the actual components, formatted by version
+# URL path for the commercial components, formatted by version, distribution and release
 ARCHITECTURE=$(dpkg --print-architecture)
 declare -A COMMERCIAL_COMP_TO_URL_PATH_F=(
   [mender-gateway]="mender-gateway/debian/%s/mender-gateway_%s-1+%s+%s_$ARCHITECTURE.deb"
   [mender-monitor]="mender-monitor/debian/%s/mender-monitor_%s-1+%s+%s_all.deb"
   [mender-monitor-demo]="mender-monitor/debian/%s/mender-monitor-demo_%s-1+%s+%s_all.deb"
 )
+
+# URL path for mender-gateway demo, formatted by version
+MENDER_GATEWAY_EXAMPLES_URL_PATH_F="mender-gateway/examples/%s/mender-gateway-examples-%s.tar"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -195,6 +198,15 @@ init() {
 
     echo "  Installing from channel:"
     printf "\t%s\n" "$CHANNEL"
+
+    # Translate Debian "channel" into Mender version for commercial packages
+    if [ "$CHANNEL" = "experimental" ]; then
+        VERSION="master"
+    else
+        VERSION="latest"
+    fi
+    echo "  Installing commercial components from:"
+    printf "\t%s\n" "$VERSION"
 }
 
 get_deps() {
@@ -257,6 +269,7 @@ do_install_open() {
 do_install_commercial() {
     # Filter commercial components
     local selected_components_commercial=""
+    local c
     for c in $SELECTED_COMPONENTS; do
         if echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
             selected_components_commercial="$selected_components_commercial $c"
@@ -270,18 +283,14 @@ do_install_commercial() {
 
     echo "  Installing commercial components from $MENDER_COMMERCIAL_DOWNLOAD_URL"
 
-    # Translate Debian "channel" into Mender version
-    if [ "$CHANNEL" = "experimental" ]; then
-        version="master"
-    else
-        version="latest"
-    fi
-
     # Download deb packages
+    local url
     for c in $selected_components_commercial; do
-        url="$MENDER_COMMERCIAL_DOWNLOAD_URL$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $version $version $LSB_DIST $DIST_VERSION)"
-        curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url" ||
-                (echo ERROR: Cannot get $c from $url; exit 1)
+        url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $VERSION $VERSION $LSB_DIST $DIST_VERSION)"
+        if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
+            echo "ERROR: Cannot get $c from $url"
+            exit 1
+        fi
     done
 
     # Install all of them at once and fallback to install missing dependencies
@@ -296,7 +305,7 @@ do_install_commercial() {
     echo "  Success!"
 }
 
-do_setup_mender() {
+do_setup_mender_client() {
     # Return if mender-client was not installed
     if [[ ! "$SELECTED_COMPONENTS" == *"mender-client"* ]]; then
         return
@@ -313,7 +322,7 @@ do_setup_mender() {
     echo "  Success!"
 }
 
-do_setup_addons() {
+do_setup_other_components() {
     # Setup for mender-connect
     if [[ "$SELECTED_COMPONENTS" == *"mender-connect"* ]]; then
         if [ "$DEMO" -eq 1 ]; then
@@ -325,6 +334,22 @@ do_setup_addons() {
 }
 EOF
             pidof systemd && systemctl restart mender-connect
+            echo "  Success!"
+        fi
+    fi
+
+    # Setup for mender-gateway
+    if [[ "$SELECTED_COMPONENTS" == *"mender-gateway"* ]]; then
+        if [ "$DEMO" -eq 1 ]; then
+            echo "  Setting up mender-gateway with demo configuration, certificates and key"
+            local url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${MENDER_GATEWAY_EXAMPLES_URL_PATH_F} $VERSION $VERSION)"
+            if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
+                echo "ERROR: Cannot get mender-gateway-examples from $url"
+                exit 1
+            fi
+            tar -C / --strip-components=2 -xvf mender-gateway-examples-${VERSION}.tar
+
+            pidof systemd && systemctl restart mender-gateway
             echo "  Success!"
         fi
     fi
@@ -452,8 +477,8 @@ get_deps
 add_repo
 do_install_open
 do_install_commercial
-do_setup_mender
-do_setup_addons
+do_setup_mender_client
+do_setup_other_components
 do_install_missing_monitor_dirs
 
 exit 0
