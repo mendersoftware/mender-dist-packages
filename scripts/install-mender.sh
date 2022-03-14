@@ -205,7 +205,7 @@ init() {
     else
         VERSION="latest"
     fi
-    echo "  Installing commercial components from:"
+    echo "  Installing commercial components from source:"
     printf "\t%s\n" "$VERSION"
 }
 
