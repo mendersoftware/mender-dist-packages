@@ -42,16 +42,6 @@ RUN if [ "${DISTRO}" = "debian" -a "${ARCH}" = "armhf" ]; then \
         && rm armv6-eabihf--glibc--stable-2020.08-1.tar.bz2; \
     fi
 
-# Golang environment, for cross-compiling the Mender client
-ARG GOLANG_VERSION=1.17.6
-RUN wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
-    && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
-ENV GOPATH "/root/go"
-ENV PATH "$PATH:/usr/local/go/bin"
-# Support building mender-client 2.3.x, since it does not have go modules support
-# For newer clients with a go.mod file, this is a no-op however.
-ENV GO111MODULE auto
-
 # Get depdendencies from upstream, manually donwloading deb packages, and fake pkg-config.
 # NOTE: pkg-config is used from go build to obtain cflags and libs required to build C code; however
 # for armhf we will explicitly pass these flags for go to use our custom sysroot instead of the system
