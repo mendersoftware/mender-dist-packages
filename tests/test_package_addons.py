@@ -162,3 +162,7 @@ class TestPackageAddons:
             "test -x /usr/share/mender-monitor/mender-monitord"
         )
         setup_tester_ssh_connection.run("test -x /etc/mender-monitor/monitor.d/log.sh")
+        setup_tester_ssh_connection.run("test -d /etc/mender-monitor/monitor.d/enabled")
+        setup_tester_ssh_connection.run(
+            "test -d /etc/mender-monitor/monitor.d/available"
+        )
