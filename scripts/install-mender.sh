@@ -4,7 +4,7 @@ set -e
 
 CHANNEL="stable"
 
-# Each available component shall be in only one of the lists below
+# All available components
 AVAILABLE_COMPONENTS="\
 mender-client \
 mender-configure \
@@ -16,22 +16,32 @@ mender-monitor \
 mender-monitor-demo \
 "
 
+# Default components (installed when no flags and no specified components)
 DEFAULT_COMPONENTS="\
 mender-client \
 mender-configure \
 mender-connect \
 "
 
+# Demo components (added with --demo flag)
 DEMO_COMPONENTS="\
 mender-configure-demo \
 mender-configure-timezone \
 "
 
+# All commercial components (require --jwt-token flag)
 COMMERCIAL_COMPONENTS="\
 mender-gateway \
 mender-monitor \
+mender-monitor-demo \
 "
 
+# Commercial default components (added with --commercial flag)
+COMMERCIAL_DEFAULT_COMPONENTS="\
+mender-monitor \
+"
+
+# Commercial demo components (added with --commercial and --demo flags)
 COMMERCIAL_DEMO_COMPONENTS="\
 mender-monitor-demo \
 "
@@ -106,6 +116,15 @@ is_known_component() {
     return 1
 }
 
+is_commercial_component() {
+    for comp in $COMMERCIAL_COMPONENTS; do
+        if [ "$1" = "$comp" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 parse_args() {
     local selected_components=""
     local args_copy="$@"
@@ -135,7 +154,7 @@ parse_args() {
                     echo "Aborting."
                     exit 1
                 fi
-                SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_COMPONENTS"
+                SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_DEFAULT_COMPONENTS"
                 if [[ "$args_copy" == *"--demo"* ]]; then
                     SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS"
                 fi
@@ -157,7 +176,7 @@ parse_args() {
                 ;;
             *)
                 if is_known_component "$1"; then
-                    if echo "$COMMERCIAL_COMPONENTS" | egrep -q "(^| )$1( |\$)"; then
+                    if is_commercial_component "$1"; then
                         if [[ ! "$args_copy" == *"--jwt-token"* ]]; then
                             echo "ERROR: $1 requires --jwt-token argument."
                             echo "Aborting."
@@ -245,7 +264,7 @@ do_install_open() {
     # Filter out commercial components
     local selected_components_open=""
     for c in $SELECTED_COMPONENTS; do
-        if ! echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+        if ! is_commercial_component "$c"; then
             selected_components_open="$selected_components_open $c"
         fi
     done
@@ -271,7 +290,7 @@ do_install_commercial() {
     local selected_components_commercial=""
     local c
     for c in $SELECTED_COMPONENTS; do
-        if echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+        if is_commercial_component "$c"; then
             selected_components_commercial="$selected_components_commercial $c"
         fi
     done
