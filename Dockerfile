@@ -30,7 +30,12 @@ RUN if ! [ "${DISTRO}" = "debian" -a "${ARCH}" = "armhf" ]; then \
         pkg-config \
         liblzma-dev:${ARCH} \
         libssl-dev:${ARCH} \
-        libglib2.0-dev:${ARCH}; \
+        libglib2.0-dev:${ARCH} \
+        libmount-dev:${ARCH} \
+        libc-dev:${ARCH} \
+        libc6-dev:${ARCH} \
+        linux-libc-dev:${ARCH} \
+        ; \
     fi
 
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
