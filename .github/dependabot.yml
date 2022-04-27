@@ -1,13 +1,13 @@
 version: 2
 updates:
   - commit-message:
-      prefix: "Changelog:All"
+      prefix: "chore: "
     directory: /tests
     package-ecosystem: pip
     schedule:
       interval: weekly
   - commit-message:
-      prefix: "Changelog:All"
+      prefix: "chore: "
     directory: /
     package-ecosystem: gitsubmodule
     schedule:
