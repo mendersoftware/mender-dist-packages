@@ -119,7 +119,8 @@ fi
 
 if [ "$commercial" != "true" -a "$ARCH" = "amd64" ]; then
     echo "Including source packages in the build."
-    BUILD_TYPE="source,${BUILD_TYPE}"
+    # TODO: QA-404 - Disabled until this ticket is done
+    # BUILD_TYPE="source,${BUILD_TYPE}"
 fi
 echo
 
