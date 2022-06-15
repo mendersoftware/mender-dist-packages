@@ -46,6 +46,8 @@ stages:
 .template:build:image:
   stage: build:images
   image: docker:git
+  tags:
+    - mender-qa-slave
   services:
     - docker:dind
   before_script:
@@ -152,6 +154,8 @@ build:image:ubuntu:focal:arm64:
 .template:build:packages:
   stage: build:packages
   image: docker:git
+  tags:
+    - mender-qa-slave
   services:
     - docker:dind
   before_script:
@@ -395,11 +399,11 @@ test:acceptance:
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
   script:
     # Upload files: first .buildinfo and .deb, then .changes
-    - for file in $(find output/opensource -name *.buildinfo -o -name *.deb); do
-    -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - find output/opensource -name '*.buildinfo' -o -name '*.deb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
+    -   aws s3 cp "$file" s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
     - done
-    - for file in $(find output/opensource -name *.changes); do
-    -   aws s3 cp $file s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - find output/opensource -name '*.changes' | while read -r file; do
+    -   aws s3 cp "$file" s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
     - done
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
@@ -434,9 +438,9 @@ publish:s3:apt-repo:automatic:
           --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         if [ "${MENDER_VERSION}" == "master" ]; then
           aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
-            s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+            s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1+debian+buster_${arch}.deb;
           aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-            --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1_${arch}.deb;
+            --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1+debian+buster_${arch}.deb;
         fi;
       done
 
@@ -478,41 +482,42 @@ publish:production:s3:scripts:install-mender-sh:
     refs:
       - production
 
-.template:publish:s3:mender-monitor:
+.template:publish:s3:
   stage: publish
   image: debian:buster
   dependencies:
-    # Note that we are using the packages from Debian buster
     - build:packages:debian:buster:amd64
     - build:packages:debian:buster:armhf
     - build:packages:debian:buster:arm64
+    - build:packages:debian:bullseye:amd64
+    - build:packages:debian:bullseye:armhf
+    - build:packages:debian:bullseye:arm64
+    - build:packages:ubuntu:bionic:amd64
+    - build:packages:ubuntu:bionic:armhf
+    - build:packages:ubuntu:bionic:arm64
+    - build:packages:ubuntu:focal:amd64
+    - build:packages:ubuntu:focal:armhf
+    - build:packages:ubuntu:focal:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
-    - echo "Publishing mender-monitor version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/"
-    - aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/
-    - if test -f output/commercial/mender-monitor-demo*.deb; then
-    -   echo "Publishing mender-monitor-demo version ${MENDER_MONITOR_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/"
-    -   aws s3 cp output/commercial/mender-monitor-demo*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/${MENDER_MONITOR_VERSION}/
-    - fi
-    # Make copies in known destinations to be consumed by get.mender.io script:
-    # * For "experimental" channel, we make a copy of the newest master package in the master directory
-    # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
+    - echo "Publishing ${PUBLISH_PACKAGE_PREFIX} version ${PUBLISH_PACKAGE_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"
+    - find output/commercial -name "${PUBLISH_PACKAGE_PREFIX}*.deb" | while read -r file; do
+    -   aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/
+    #   Make copy for "master" to be consumed by get.mender.io script:
+    -   if [ "${PUBLISH_PACKAGE_VERSION}" == "master" ]; then
+    -     copy_filename=$(basename "$file" | sed 's/_[^\+]*/_master-1/; s/\+builder[^_]*//')
+    -     aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/${copy_filename}
+    -   fi
+    - done
 
-    # Needs to be reworked, see MEN-5029
-    # - if is_build_tag ${MENDER_MONITOR_VERSION} || [ "${MENDER_MONITOR_VERSION}" == "master" ]; then
-    # -   aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor_master-1_all.deb
-    # -   if test -f output/commercial/mender-monitor-demo*.deb; then
-    # -     aws s3 cp output/commercial/mender-monitor-demo*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/master/mender-monitor-demo_master-1_all.deb
-    # -  fi
-    # - fi
-    # - if is_final_tag ${MENDER_MONITOR_VERSION}; then
-    # -   aws s3 cp output/commercial/mender-monitor_*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/latest/mender-monitor_latest-1_all.deb
-    # -   if test -f output/commercial/mender-monitor-demo*.deb; then
-    # -     aws s3 cp output/commercial/mender-monitor-demo*.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_MONITOR}/latest/mender-monitor-demo_latest-1_all.deb
-    # -   fi
-    # - fi
+.template:publish:s3:mender-monitor:
+  variables:
+    PUBLISH_PACKAGE_PREFIX: "mender-monitor"
+    PUBLISH_PACKAGE_VERSION: "$MENDER_MONITOR_VERSION"
+    PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_MONITOR"
+  extends: .template:publish:s3
 
 publish:s3:mender-monitor:manual:
   when: manual
@@ -524,34 +529,11 @@ publish:s3:mender-monitor:automatic:
   extends: .template:publish:s3:mender-monitor
 
 .template:publish:s3:mender-gateway:
-  stage: publish
-  image: debian:buster
-  dependencies:
-    # Note that we are using the packages from Debian buster
-    - build:packages:debian:buster:amd64
-    - build:packages:debian:buster:armhf
-    - build:packages:debian:buster:arm64
-  before_script:
-    - apt update && apt install -yyq awscli
-    - *publish_helper_functions
-  script:
-    - echo "Publishing mender-gateway version ${MENDER_GATEWAY_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/"
-    - aws s3 cp output/commercial/ s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/${MENDER_GATEWAY_VERSION}/ --recursive --exclude "*" --include "mender-gateway*.deb"
-    # Make copies in known destinations to be consumed by get.mender.io script:
-    # * For "experimental" channel, we make a copy of the newest master package in the master directory
-    # * For "stable" channel, we make a copy in a separate "latest" subdirectory of the latest tagged version
-
-    # Needs to be reworked, see MEN-5029
-    # - if is_build_tag ${MENDER_GATEWAY_VERSION} || [ "${MENDER_GATEWAY_VERSION}" == "master" ]; then
-    # -   for arch in amd64 arm64 armhf; do
-    # -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/master/mender-gateway_master-1_${arch}.deb
-    # -  done
-    # - fi
-    # - if is_final_tag ${MENDER_GATEWAY_VERSION}; then
-    # -   for arch in amd64 arm64 armhf; do
-    # -     aws s3 cp output/commercial/mender-gateway*_${arch}.deb s3://${S3_BUCKET_NAME_PRIVATE}/${S3_BUCKET_SUBPATH_GATEWAY}/latest/mender-gateway_latest-1_${arch}.deb
-    # -   done
-    # - fi
+  variables:
+    PUBLISH_PACKAGE_PREFIX: "mender-gateway"
+    PUBLISH_PACKAGE_VERSION: "$MENDER_GATEWAY_VERSION"
+    PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_GATEWAY"
+  extends: .template:publish:s3
 
 publish:s3:mender-gateway:manual:
   when: manual
@@ -561,3 +543,49 @@ publish:s3:mender-gateway:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
   extends: .template:publish:s3:mender-gateway
+
+.template:publish:s3:latest:manual:
+  when: manual
+  stage: publish
+  image: debian:buster
+  dependencies:
+    - build:packages:debian:buster:amd64
+    - build:packages:debian:buster:armhf
+    - build:packages:debian:buster:arm64
+    - build:packages:debian:bullseye:amd64
+    - build:packages:debian:bullseye:armhf
+    - build:packages:debian:bullseye:arm64
+    - build:packages:ubuntu:bionic:amd64
+    - build:packages:ubuntu:bionic:armhf
+    - build:packages:ubuntu:bionic:arm64
+    - build:packages:ubuntu:focal:amd64
+    - build:packages:ubuntu:focal:armhf
+    - build:packages:ubuntu:focal:arm64
+  before_script:
+    - apt update && apt install -yyq awscli
+    - *publish_helper_functions
+  script:
+    - echo "Publishing "latest" package for ${PUBLISH_PACKAGE_PREFIX} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"
+    - if ! is_final_tag "${PUBLISH_PACKAGE_VERSION}"; then
+    -   echo "Attempting to publish a "latest" package for a non final tag!"
+    -   exit 1
+    - fi
+    - find output/commercial -name "${PUBLISH_PACKAGE_PREFIX}*.deb" | while read -r file; do
+    #   Make copy for "latest" to be consumed by get.mender.io script:
+    -   copy_filename=$(basename "$file" | sed 's/_[^\+]*/_latest-1/; s/\+builder[^_]*//')
+    -   aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/${copy_filename}
+    - done
+
+publish:s3:latest:manual:mender-monitor:
+  variables:
+    PUBLISH_PACKAGE_PREFIX: "mender-monitor"
+    PUBLISH_PACKAGE_VERSION: "$MENDER_MONITOR_VERSION"
+    PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_MONITOR"
+  extends: .template:publish:s3:latest:manual
+
+publish:s3:latest:manual:mender-gateway:
+  variables:
+    PUBLISH_PACKAGE_PREFIX: "mender-gateway"
+    PUBLISH_PACKAGE_VERSION: "$MENDER_GATEWAY_VERSION"
+    PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_GATEWAY"
+  extends: .template:publish:s3:latest:manual

@@ -4,32 +4,44 @@ set -e
 
 CHANNEL="stable"
 
-# Each available component shall be in only one of the lists below
+# All available components
 AVAILABLE_COMPONENTS="\
 mender-client \
 mender-configure \
 mender-configure-demo \
 mender-configure-timezone \
 mender-connect \
+mender-gateway \
 mender-monitor \
 mender-monitor-demo \
 "
 
+# Default components (installed when no flags and no specified components)
 DEFAULT_COMPONENTS="\
 mender-client \
 mender-configure \
 mender-connect \
 "
 
+# Demo components (added with --demo flag)
 DEMO_COMPONENTS="\
 mender-configure-demo \
 mender-configure-timezone \
 "
 
+# All commercial components (require --jwt-token flag)
 COMMERCIAL_COMPONENTS="\
+mender-gateway \
+mender-monitor \
+mender-monitor-demo \
+"
+
+# Commercial default components (added with --commercial flag)
+COMMERCIAL_DEFAULT_COMPONENTS="\
 mender-monitor \
 "
 
+# Commercial demo components (added with --commercial and --demo flags)
 COMMERCIAL_DEMO_COMPONENTS="\
 mender-monitor-demo \
 "
@@ -40,14 +52,19 @@ DEMO="0"
 # Path where to install the Mender APT repository
 MENDER_APT_SOURCES_LIST="/etc/apt/sources.list.d/mender.list"
 
-# URL prefix from where to download commercial compoments
+# URL prefix for the commercial components
 MENDER_COMMERCIAL_DOWNLOAD_URL="https://downloads.customer.mender.io/content/hosted/"
 
-# URL path for the actual components, formatted by version
+# URL path for the commercial components, formatted by version, distribution and release
+ARCHITECTURE=$(dpkg --print-architecture)
 declare -A COMMERCIAL_COMP_TO_URL_PATH_F=(
-  [mender-monitor]="mender-monitor/debian/%s/mender-monitor_%s-1_all.deb"
-  [mender-monitor-demo]="mender-monitor/debian/%s/mender-monitor-demo_%s-1_all.deb"
+  [mender-gateway]="mender-gateway/debian/%s/mender-gateway_%s-1+%s+%s_$ARCHITECTURE.deb"
+  [mender-monitor]="mender-monitor/debian/%s/mender-monitor_%s-1+%s+%s_all.deb"
+  [mender-monitor-demo]="mender-monitor/debian/%s/mender-monitor-demo_%s-1+%s+%s_all.deb"
 )
+
+# URL path for mender-gateway demo, formatted by version
+MENDER_GATEWAY_EXAMPLES_URL_PATH_F="mender-gateway/examples/%s/mender-gateway-examples-%s.tar"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -99,6 +116,15 @@ is_known_component() {
     return 1
 }
 
+is_commercial_component() {
+    for comp in $COMMERCIAL_COMPONENTS; do
+        if [ "$1" = "$comp" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 parse_args() {
     local selected_components=""
     local args_copy="$@"
@@ -128,7 +154,7 @@ parse_args() {
                     echo "Aborting."
                     exit 1
                 fi
-                SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_COMPONENTS"
+                SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_DEFAULT_COMPONENTS"
                 if [[ "$args_copy" == *"--demo"* ]]; then
                     SELECTED_COMPONENTS="$SELECTED_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS"
                 fi
@@ -150,7 +176,7 @@ parse_args() {
                 ;;
             *)
                 if is_known_component "$1"; then
-                    if echo "$COMMERCIAL_COMPONENTS" | egrep -q "(^| )$1( |\$)"; then
+                    if is_commercial_component "$1"; then
                         if [[ ! "$args_copy" == *"--jwt-token"* ]]; then
                             echo "ERROR: $1 requires --jwt-token argument."
                             echo "Aborting."
@@ -191,6 +217,15 @@ init() {
 
     echo "  Installing from channel:"
     printf "\t%s\n" "$CHANNEL"
+
+    # Translate Debian "channel" into Mender version for commercial packages
+    if [ "$CHANNEL" = "experimental" ]; then
+        VERSION="master"
+    else
+        VERSION="latest"
+    fi
+    echo "  Installing commercial components from source:"
+    printf "\t%s\n" "$VERSION"
 }
 
 get_deps() {
@@ -220,14 +255,7 @@ add_repo() {
         exit 1
     fi
 
-    local repo_dist=""
-    if [[ "$LSB_DIST" == "raspbian" ]]; then
-        repo_dist="debian"
-    else
-        repo_dist="$LSB_DIST"
-    fi
-
-    local repo="deb [arch=$ARCH] $REPO_URL $repo_dist/$DIST_VERSION/$CHANNEL main"
+    local repo="deb [arch=$ARCH] $REPO_URL $LSB_DIST/$DIST_VERSION/$CHANNEL main"
     echo "Installing Mender APT repository at $MENDER_APT_SOURCES_LIST..."
     echo "$repo" > "$MENDER_APT_SOURCES_LIST"
 }
@@ -236,7 +264,7 @@ do_install_open() {
     # Filter out commercial components
     local selected_components_open=""
     for c in $SELECTED_COMPONENTS; do
-        if ! echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+        if ! is_commercial_component "$c"; then
             selected_components_open="$selected_components_open $c"
         fi
     done
@@ -260,8 +288,9 @@ do_install_open() {
 do_install_commercial() {
     # Filter commercial components
     local selected_components_commercial=""
+    local c
     for c in $SELECTED_COMPONENTS; do
-        if echo "$COMMERCIAL_COMPONENTS $COMMERCIAL_DEMO_COMPONENTS" | egrep -q "(^| )$c( |\$)"; then
+        if is_commercial_component "$c"; then
             selected_components_commercial="$selected_components_commercial $c"
         fi
     done
@@ -273,18 +302,14 @@ do_install_commercial() {
 
     echo "  Installing commercial components from $MENDER_COMMERCIAL_DOWNLOAD_URL"
 
-    # Translate Debian "channel" into Mender version
-    if [ "$CHANNEL" = "experimental" ]; then
-        version="master"
-    else
-        version="latest"
-    fi
-
     # Download deb packages
+    local url
     for c in $selected_components_commercial; do
-        url="$MENDER_COMMERCIAL_DOWNLOAD_URL$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $version $version)"
-        curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url" ||
-                (echo ERROR: Cannot get $c from $url; exit 1)
+        url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $VERSION $VERSION $LSB_DIST $DIST_VERSION)"
+        if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
+            echo "ERROR: Cannot get $c from $url"
+            exit 1
+        fi
     done
 
     # Install all of them at once and fallback to install missing dependencies
@@ -299,7 +324,7 @@ do_install_commercial() {
     echo "  Success!"
 }
 
-do_setup_mender() {
+do_setup_mender_client() {
     # Return if mender-client was not installed
     if [[ ! "$SELECTED_COMPONENTS" == *"mender-client"* ]]; then
         return
@@ -316,7 +341,7 @@ do_setup_mender() {
     echo "  Success!"
 }
 
-do_setup_addons() {
+do_setup_other_components() {
     # Setup for mender-connect
     if [[ "$SELECTED_COMPONENTS" == *"mender-connect"* ]]; then
         if [ "$DEMO" -eq 1 ]; then
@@ -331,12 +356,21 @@ EOF
             echo "  Success!"
         fi
     fi
-}
 
-do_install_missing_monitor_dirs () {
-    if [[ "$SELECTED_COMPONENTS" == *"mender-monitor-demo"* ]]; then
-        mkdir -p /etc/mender-monitor/monitor.d/enabled || true
-        mkdir -p /etc/mender-monitor/monitor.d/available || true
+    # Setup for mender-gateway
+    if [[ "$SELECTED_COMPONENTS" == *"mender-gateway"* ]]; then
+        if [ "$DEMO" -eq 1 ]; then
+            echo "  Setting up mender-gateway with demo configuration, certificates and key"
+            local url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${MENDER_GATEWAY_EXAMPLES_URL_PATH_F} $VERSION $VERSION)"
+            if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
+                echo "ERROR: Cannot get mender-gateway-examples from $url"
+                exit 1
+            fi
+            tar -C / --strip-components=2 -xvf mender-gateway-examples-${VERSION}.tar
+
+            pidof systemd && systemctl restart mender-gateway
+            echo "  Success!"
+        fi
     fi
 }
 
@@ -439,6 +473,12 @@ check_dist_and_version() {
 
     echo "  Detected distribution:"
     printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
+
+    if [[ "$LSB_DIST" == "raspbian" ]]; then
+        LSB_DIST="debian"
+        echo "  Raspbian detected. Using compatible distribution:"
+        printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
+    fi
 }
 
 banner
@@ -449,8 +489,7 @@ get_deps
 add_repo
 do_install_open
 do_install_commercial
-do_setup_mender
-do_setup_addons
-do_install_missing_monitor_dirs
+do_setup_mender_client
+do_setup_other_components
 
 exit 0

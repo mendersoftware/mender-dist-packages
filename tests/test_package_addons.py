@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2021 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import re
 from helpers import package_filename, upload_deb_package
 
 
-@pytest.mark.skip(reason="Needs mender-client 3.2.0, see MEN-5231")
 @pytest.mark.usefixtures("setup_mender_configured")
 class TestPackageAddons:
     def test_mender_connect(
@@ -163,3 +162,7 @@ class TestPackageAddons:
             "test -x /usr/share/mender-monitor/mender-monitord"
         )
         setup_tester_ssh_connection.run("test -x /etc/mender-monitor/monitor.d/log.sh")
+        setup_tester_ssh_connection.run("test -d /etc/mender-monitor/monitor.d/enabled")
+        setup_tester_ssh_connection.run(
+            "test -d /etc/mender-monitor/monitor.d/available"
+        )

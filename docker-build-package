@@ -99,7 +99,6 @@ if [ "$arch_indep" = "true" -a "$ARCH" != "amd64" ]; then
 fi
 
 echo "Building $recipe_name..."
-echo ""
 
 output_dir="output/opensource"
 if [ $commercial = "true" ]; then
@@ -117,6 +116,13 @@ else
     # On others, build only architecture dependent packages.
     BUILD_TYPE=any
 fi
+
+if [ "$commercial" != "true" -a "$ARCH" = "amd64" ]; then
+    echo "Including source packages in the build."
+    # TODO: QA-404 - Disabled until this ticket is done
+    # BUILD_TYPE="source,${BUILD_TYPE}"
+fi
+echo
 
 docker run --rm \
         --volume $(pwd)/recipes:/recipes \
