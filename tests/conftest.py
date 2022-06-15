@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+from distutils.version import LooseVersion
+
 import pytest
 
 from mender_test_containers.container_props import *
@@ -95,7 +97,63 @@ def mender_dist_packages_versions(request):
 
 
 # Required for mender_test_containers/conftest.py::setup_mender_configured, which
-# is only used on addons packages tests. Use version 2.5.0 (dependency)
+# is only used on addons packages tests. Use version 3.2.1 (mender-connect dependency)
 @pytest.fixture(scope="session")
 def mender_deb_version(request):
-    return "2.5.0"
+    return "3.2.1"
+
+
+def min_version_impl(request, marker, min_version):
+    version_mark = request.node.get_closest_marker(marker)
+    if version_mark is not None:
+        try:
+            if LooseVersion(version_mark.args[0]) > LooseVersion(min_version):
+                pytest.skip("Test requires %s %s" % (marker, version_mark.args[0]))
+        except TypeError:
+            # Type error indicates that 'version' is likely a string (master).
+            pass
+
+
+@pytest.fixture(autouse=True)
+def min_mender_client_version(request):
+    min_version_impl(
+        request,
+        "min_mender_client_version",
+        request.config.getoption("--mender-client-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_mender_connect_version(request):
+    min_version_impl(
+        request,
+        "min_mender_connect_version",
+        request.config.getoption("--mender-connect-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_mender_configure_version(request):
+    min_version_impl(
+        request,
+        "min_mender_configure_version",
+        request.config.getoption("--mender-configure-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_mender_monitor_version(request):
+    min_version_impl(
+        request,
+        "min_mender_monitor_version",
+        request.config.getoption("--mender-monitor-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_mender_gateway_version(request):
+    min_version_impl(
+        request,
+        "min_mender_gateway_version",
+        request.config.getoption("--mender-gateway-version"),
+    )

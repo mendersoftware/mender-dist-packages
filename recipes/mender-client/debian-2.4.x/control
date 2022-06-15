@@ -8,6 +8,6 @@ Build-Depends: debhelper (>= 9)
 Package: mender-client
 Conflicts: mender
 Architecture: any
-Depends: libc6 (>= 2.12), libglib2.0-0 (>=2.50), liblzma5 (>= 5.1), libssl1.1 (>= 1.1), libffi6 (>= 3.2)
+Depends: libc6 (>= 2.12), libglib2.0-0 (>=2.50), liblzma5 (>= 5.1), libssl1.1 (>= 1.1)
 Description: Mender client
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.

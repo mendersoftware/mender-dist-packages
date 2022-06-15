@@ -2,21 +2,16 @@ ARG DISTRO=debian
 ARG VERSION=buster
 FROM $DISTRO:$VERSION
 
-# TODO - remove - Temporary workaround for Ubuntu archive being down
-RUN grep 'archive.ubuntu.com' /etc/apt/sources.list && sed -i.bak 's/archive.ubuntu.com/us.archive.ubuntu.com/' /etc/apt/sources.list; \
-        cat /etc/apt/sources.list
-
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
     apt-get install -y \
-    build-essential \
+    build-essential dh-make \
     git wget curl \
     debhelper devscripts
 
 ARG ARCH=amd64
 ARG DISTRO=debian
 ARG VERSION=buster
-
 
 RUN if [ "${DISTRO}" = "ubuntu" -a "${ARCH}" != "amd64" ]; then \
         sed -i 's/^deb/deb [arch=amd64]/' /etc/apt/sources.list && \
@@ -35,7 +30,12 @@ RUN if ! [ "${DISTRO}" = "debian" -a "${ARCH}" = "armhf" ]; then \
         pkg-config \
         liblzma-dev:${ARCH} \
         libssl-dev:${ARCH} \
-        libglib2.0-dev:${ARCH}; \
+        libglib2.0-dev:${ARCH} \
+        libmount-dev:${ARCH} \
+        libc-dev:${ARCH} \
+        libc6-dev:${ARCH} \
+        linux-libc-dev:${ARCH} \
+        ; \
     fi
 
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
@@ -46,16 +46,6 @@ RUN if [ "${DISTRO}" = "debian" -a "${ARCH}" = "armhf" ]; then \
         && tar -xjf armv6-eabihf--glibc--stable-2020.08-1.tar.bz2 \
         && rm armv6-eabihf--glibc--stable-2020.08-1.tar.bz2; \
     fi
-
-# Golang environment, for cross-compiling the Mender client
-ARG GOLANG_VERSION=1.17.6
-RUN wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
-    && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
-ENV GOPATH "/root/go"
-ENV PATH "$PATH:/usr/local/go/bin"
-# Support building mender-client 2.3.x, since it does not have go modules support
-# For newer clients with a go.mod file, this is a no-op however.
-ENV GO111MODULE auto
 
 # Get depdendencies from upstream, manually donwloading deb packages, and fake pkg-config.
 # NOTE: pkg-config is used from go build to obtain cflags and libs required to build C code; however
