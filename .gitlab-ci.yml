@@ -565,7 +565,7 @@ publish:s3:mender-gateway:automatic:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
-    - echo "Publishing "latest" package for ${PUBLISH_PACKAGE_PREFIX} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"
+    - echo "Publishing "latest" package for ${PUBLISH_PACKAGE_PREFIX} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/latest/"
     - if ! is_final_tag "${PUBLISH_PACKAGE_VERSION}"; then
     -   echo "Attempting to publish a "latest" package for a non final tag!"
     -   exit 1
@@ -573,7 +573,7 @@ publish:s3:mender-gateway:automatic:
     - find output/commercial -name "${PUBLISH_PACKAGE_PREFIX}*.deb" | while read -r file; do
     #   Make copy for "latest" to be consumed by get.mender.io script:
     -   copy_filename=$(basename "$file" | sed 's/_[^\+]*/_latest-1/; s/\+builder[^_]*//')
-    -   aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/${copy_filename}
+    -   aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/latest/${copy_filename}
     - done
 
 publish:s3:latest:manual:mender-monitor:
