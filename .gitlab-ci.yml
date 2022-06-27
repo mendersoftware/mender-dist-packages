@@ -301,7 +301,7 @@ test:acceptance:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   stage: test
-  image: docker:19.03-dind
+  image: docker:dind
   tags:
     - mender-qa-slave
   dependencies:
