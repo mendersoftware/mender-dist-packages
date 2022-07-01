@@ -26,10 +26,12 @@ COMMERCIAL_PACKAGES = [
 
 
 # Returns path were to find the package to install
-def packages_path(package):
-    subdir = "opensource"
+def packages_path(package, package_arch="armhf"):
+    if package_arch == "all":
+        package_arch = "amd64"
+    subdir = "opensource/debian-buster-" + package_arch
     if package in COMMERCIAL_PACKAGES:
-        subdir = "commercial"
+        subdir = "commercial/debian-buster-" + package_arch
     return os.path.join(output_path, subdir)
 
 
@@ -45,7 +47,7 @@ def package_filename_path(
     package_version, package_name="mender-client", package_arch="armhf"
 ):
     return os.path.join(
-        packages_path(package_name),
+        packages_path(package_name, package_arch),
         package_filename(package_version, package_name, package_arch),
     )
 
