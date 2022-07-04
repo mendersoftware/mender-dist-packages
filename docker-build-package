@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2020 Northern.tech AS
+# Copyright 2022 Northern.tech AS
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -119,8 +119,7 @@ fi
 
 if [ "$commercial" != "true" -a "$ARCH" = "amd64" ]; then
     echo "Including source packages in the build."
-    # TODO: QA-404 - Disabled until this ticket is done
-    # BUILD_TYPE="source,${BUILD_TYPE}"
+    BUILD_TYPE="source,${BUILD_TYPE}"
 fi
 echo
 
