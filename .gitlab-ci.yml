@@ -400,13 +400,9 @@ test:acceptance:
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
   script:
     # Upload files: first .buildinfo and .deb, then .changes
-    - REFERENCE_ORIG_FILE_PATH=output/opensource/debian-buster-amd64
     - for d in output/opensource/*; do
-    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
+    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
     -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
-    -   done
-    -   find "$d" -name '*.orig.tar.*' | while read -r file; do
-    -     aws s3 cp "${REFERENCE_ORIG_FILE_PATH}/`basename $file`" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
     -   done
     -   find "$d" -name '*.changes' | while read -r file; do
     -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"

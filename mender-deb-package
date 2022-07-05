@@ -174,11 +174,9 @@ build_packages() {
   if [[ $DEB_BUILD_TYPE =~ source ]]; then
     # dh_make needs a name of the user in the env
     export USER=root
-    # we do not need the .git nor debian directory in the orig file
-    tar --exclude .git --exclude debian -czvf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
-    # dh_make returns 1 because debian directory exists,
+    # needed to get the orig file, returns 1 because debian directory exists,
     # hence the || true, without orig file buildpackage command would fail
-    dh_make --file /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
+    dh_make --createorig --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
   fi
 
   case "$ARCH" in
