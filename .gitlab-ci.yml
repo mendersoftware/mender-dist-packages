@@ -254,6 +254,8 @@ build:packages:debian:buster:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:buster:arm64
+    - build:image:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:amd64:
