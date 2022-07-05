@@ -183,7 +183,8 @@ build_packages() {
 # ( cd /tmp && mender_ci_save_tmp_artifact "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz; )
     else
 # ( cd /tmp && mender_ci_load_tmp_artifact "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz; )
-      find / -name '*orig*' -exec cp {} /tmp/ \;
+      find / -name '*orig.tar.gz'
+      find / -name '*orig.tar.gz' -exec cp {} /tmp/ \;
     fi
     # dh_make returns 1 because debian directory exists,
     # hence the || true, without orig file buildpackage command would fail
