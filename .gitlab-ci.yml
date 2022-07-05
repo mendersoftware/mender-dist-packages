@@ -39,6 +39,7 @@ include:
 
 stages:
   - build:images
+  - build:orig
   - build:packages
   - test
   - publish
@@ -151,6 +152,33 @@ build:image:ubuntu:focal:arm64:
     ARCH: "arm64"
   extends: .template:build:image
 
+.template:build:orig:
+  stage: build:orig
+  image: docker:git
+  tags:
+    - mender-qa-slave
+  services:
+    - docker:dind
+  before_script:
+    - apk --update --no-cache add bash curl aws-cli
+    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
+    - mender_ci_load_tmp_artifact builder-$DISTRO-$RELEASE-$ARCH.tar
+    - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
+  script:
+    - apk --update --no-cache add bash
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION $SAVE_ORIG
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION $SAVE_ORIG
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION $SAVE_ORIG
+    - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION $SAVE_ORIG
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION $SAVE_ORIG
+    - fi
+    - find / -name '*.orig.tar.*'
+  artifacts:
+    paths:
+      - output/*
+      - checksums
+
 .template:build:packages:
   stage: build:packages
   image: docker:git
@@ -165,6 +193,7 @@ build:image:ubuntu:focal:arm64:
     - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
   script:
     - apk --update --no-cache add bash
+    - find output
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
@@ -176,13 +205,38 @@ build:image:ubuntu:focal:arm64:
     paths:
       - output/*
 
+build:orig:debian:buster:amd64:
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "amd64"
+    SAVE_ORIG: "true"
+  dependencies:
+    - build:image:debian:buster:amd64
+    - build:image:debian:buster:armhf
+    - build:image:debian:buster:arm64
+    - build:image:debian:bullseye:amd64
+    - build:image:debian:bullseye:armhf
+    - build:image:debian:bullseye:arm64
+    - build:image:ubuntu:bionic:amd64
+    - build:image:ubuntu:bionic:armhf
+    - build:image:ubuntu:bionic:arm64
+    - build:image:ubuntu:focal:amd64
+    - build:image:ubuntu:focal:armhf
+    - build:image:ubuntu:focal:arm64
+  extends: .template:build:orig
+  artifacts:
+    paths:
+      - output/*
+      - checksums
+
 build:packages:debian:buster:amd64:
   variables:
     DISTRO: "debian"
     RELEASE: "buster"
     ARCH: "amd64"
   dependencies:
-    - build:image:debian:buster:amd64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:buster:armhf:
@@ -191,7 +245,7 @@ build:packages:debian:buster:armhf:
     RELEASE: "buster"
     ARCH: "armhf"
   dependencies:
-    - build:image:debian:buster:armhf
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:buster:arm64:
@@ -200,7 +254,7 @@ build:packages:debian:buster:arm64:
     RELEASE: "buster"
     ARCH: "arm64"
   dependencies:
-    - build:image:debian:buster:arm64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:amd64:
@@ -209,7 +263,7 @@ build:packages:debian:bullseye:amd64:
     RELEASE: "bullseye"
     ARCH: "amd64"
   dependencies:
-    - build:image:debian:bullseye:amd64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:armhf:
@@ -218,7 +272,7 @@ build:packages:debian:bullseye:armhf:
     RELEASE: "bullseye"
     ARCH: "armhf"
   dependencies:
-    - build:image:debian:bullseye:armhf
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:arm64:
@@ -227,7 +281,7 @@ build:packages:debian:bullseye:arm64:
     RELEASE: "bullseye"
     ARCH: "arm64"
   dependencies:
-    - build:image:debian:bullseye:arm64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:amd64:
@@ -236,7 +290,7 @@ build:packages:ubuntu:bionic:amd64:
     RELEASE: "bionic"
     ARCH: "amd64"
   dependencies:
-    - build:image:ubuntu:bionic:amd64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:armhf:
@@ -245,7 +299,7 @@ build:packages:ubuntu:bionic:armhf:
     RELEASE: "bionic"
     ARCH: "armhf"
   dependencies:
-    - build:image:ubuntu:bionic:armhf
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:arm64:
@@ -254,7 +308,7 @@ build:packages:ubuntu:bionic:arm64:
     RELEASE: "bionic"
     ARCH: "arm64"
   dependencies:
-    - build:image:ubuntu:bionic:arm64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:amd64:
@@ -263,7 +317,7 @@ build:packages:ubuntu:focal:amd64:
     RELEASE: "focal"
     ARCH: "amd64"
   dependencies:
-    - build:image:ubuntu:focal:amd64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:armhf:
@@ -272,7 +326,7 @@ build:packages:ubuntu:focal:armhf:
     RELEASE: "focal"
     ARCH: "armhf"
   dependencies:
-    - build:image:ubuntu:focal:armhf
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:arm64:
@@ -281,7 +335,7 @@ build:packages:ubuntu:focal:arm64:
     RELEASE: "focal"
     ARCH: "arm64"
   dependencies:
-    - build:image:ubuntu:focal:arm64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 test:check-commits:
@@ -400,13 +454,9 @@ test:acceptance:
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
   script:
     # Upload files: first .buildinfo and .deb, then .changes
-    - REFERENCE_ORIG_FILE_PATH=output/opensource/debian-buster-amd64
     - for d in output/opensource/*; do
-    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
+    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
     -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
-    -   done
-    -   find "$d" -name '*.orig.tar.*' | while read -r file; do
-    -     aws s3 cp "${REFERENCE_ORIG_FILE_PATH}/`basename $file`" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
     -   done
     -   find "$d" -name '*.changes' | while read -r file; do
     -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"

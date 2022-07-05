@@ -22,7 +22,9 @@ verify_output_directory_exists() {
 }
 
 verify_script_arguments() {
-  if [ $# -ne 6 ]; then
+  local expected_min_argc=6
+
+  if [ $# -lt ${expected_min_argc} ]; then
     show_help_and_exit
   fi
   DEB_PACKAGE=$1
@@ -31,6 +33,7 @@ verify_script_arguments() {
   VERSION=$4
   ARCH=$5
   BUILD_ID=$6
+  SAVE_ORIG=$7
 }
 
 # Clean the URL of the login information
@@ -175,7 +178,11 @@ build_packages() {
     # dh_make needs a name of the user in the env
     export USER=root
     # we do not need the .git nor debian directory in the orig file
-    tar --exclude .git --exclude debian -czvf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
+    if [[ "${SAVE_ORIG}" == "true" ]]; then
+      tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --exclude .git --exclude debian -czvf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
+    else
+      find /output/ -name '*orig.tar.gz' -exec cp -v {} /tmp/ \;
+    fi
     # dh_make returns 1 because debian directory exists,
     # hence the || true, without orig file buildpackage command would fail
     dh_make --file /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
@@ -236,12 +243,16 @@ build_packages() {
 }
 
 copy_packages_to_output() {
-  # Copy package files to /output
-  for file in $(find ../ -maxdepth 1 -type f); do
-    cp ${file} /output
-  done
-  # Echo the package version to /output
-  echo ${DEB_VERSION} > /output/${DEB_PACKAGE}-deb-version
+  if [[ "${SAVE_ORIG}" == "true" ]]; then 
+    cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /output
+  else
+    # Copy package files to /output
+    for file in $(find ../ -maxdepth 1 -type f); do
+      cp ${file} /output
+    done
+    # Echo the package version to /output
+    echo ${DEB_VERSION} > /output/${DEB_PACKAGE}-deb-version
+  fi;
 
   # Give packages same owner as the folder.
   chown --reference /output /output/*

@@ -68,6 +68,7 @@ RELEASE="${2}"
 ARCH="${3}"
 RECIPE_NAME="${4}"
 RECIPE_VERSION="${5:-master}"
+SAVE_ORIG="$6"
 
 # Look for the recipe
 recipe_found=0
@@ -104,7 +105,9 @@ output_dir="output/opensource/${DISTRO}-${RELEASE}-${ARCH}"
 if [ $commercial = "true" ]; then
     output_dir="output/commercial/${DISTRO}-${RELEASE}-${ARCH}"
 fi
-mkdir -p ${output_dir}
+mkdir -p "${output_dir}"
+find / -name '*.orig.tar.*'
+[ "`ls output/opensource/debian-buster-amd64/*orig.tar.* 2>/dev/null`" != "" ] && cp -v output/opensource/debian-buster-amd64/*orig.tar.* "${output_dir}/" || true
 
 if [ "$arch_indep" = "true" -a "$ARCH" = "amd64" ]; then
     # On amd64, build architecture independent packages.
@@ -134,6 +137,7 @@ docker run --rm \
         ${src_url} \
         ${RECIPE_VERSION} \
         ${ARCH} \
-        ${CI_PIPELINE_ID:-LOCAL}
+        ${CI_PIPELINE_ID:-LOCAL} \
+        ${SAVE_ORIG}
 
 exit 0
