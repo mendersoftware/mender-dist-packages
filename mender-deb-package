@@ -175,7 +175,12 @@ build_packages() {
     # dh_make needs a name of the user in the env
     export USER=root
     # we do not need the .git nor debian directory in the orig file
-    tar --exclude .git --exclude debian -czvf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
+    if [[ "${SAVE_ORIG}" == "true" ]]; then
+      tar --exclude .git --exclude debian -czvf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
+      ( cd /tmp && mender_ci_save_tmp_artifact "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz; )
+    else
+      ( cd /tmp && mender_ci_load_tmp_artifact "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz; )
+    fi
     # dh_make returns 1 because debian directory exists,
     # hence the || true, without orig file buildpackage command would fail
     dh_make --file /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
