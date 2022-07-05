@@ -166,13 +166,17 @@ build:image:ubuntu:focal:arm64:
     - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
   script:
     - apk --update --no-cache add bash
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION $SAVE_ORIG
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION $SAVE_ORIG
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION $SAVE_ORIG
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION $SAVE_ORIG
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION $SAVE_ORIG
     - fi
+  artifacts:
+    paths:
+      - output/*
+      - checksums
 
 .template:build:packages:
   stage: build:packages
@@ -219,6 +223,10 @@ build:orig:debian:buster:amd64:
     - build:image:ubuntu:focal:armhf
     - build:image:ubuntu:focal:arm64
   extends: .template:build:orig
+  artifacts:
+    paths:
+      - output/*
+      - checksums
 
 build:packages:debian:buster:amd64:
   variables:
@@ -227,6 +235,7 @@ build:packages:debian:buster:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:buster:armhf:
