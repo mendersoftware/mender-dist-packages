@@ -176,7 +176,6 @@ build:image:ubuntu:focal:arm64:
   artifacts:
     paths:
       - output/*
-      - *orig.tar.*
       - checksums
 
 .template:build:packages:
