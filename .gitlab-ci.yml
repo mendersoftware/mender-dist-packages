@@ -231,81 +231,6 @@ build:orig:debian:buster:amd64:
       - output/*
       - checksums
 
-build:orig:ubuntu:bionic:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-    SAVE_ORIG: "true"
-  dependencies:
-    - build:image:debian:buster:amd64
-    - build:image:debian:buster:armhf
-    - build:image:debian:buster:arm64
-    - build:image:debian:bullseye:amd64
-    - build:image:debian:bullseye:armhf
-    - build:image:debian:bullseye:arm64
-    - build:image:ubuntu:bionic:amd64
-    - build:image:ubuntu:bionic:armhf
-    - build:image:ubuntu:bionic:arm64
-    - build:image:ubuntu:focal:amd64
-    - build:image:ubuntu:focal:armhf
-    - build:image:ubuntu:focal:arm64
-  extends: .template:build:orig
-  artifacts:
-    paths:
-      - output/*
-      - checksums
-
-build:orig:ubuntu:focal:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-    SAVE_ORIG: "true"
-  dependencies:
-    - build:image:debian:buster:amd64
-    - build:image:debian:buster:armhf
-    - build:image:debian:buster:arm64
-    - build:image:debian:bullseye:amd64
-    - build:image:debian:bullseye:armhf
-    - build:image:debian:bullseye:arm64
-    - build:image:ubuntu:bionic:amd64
-    - build:image:ubuntu:bionic:armhf
-    - build:image:ubuntu:bionic:arm64
-    - build:image:ubuntu:focal:amd64
-    - build:image:ubuntu:focal:armhf
-    - build:image:ubuntu:focal:arm64
-  extends: .template:build:orig
-  artifacts:
-    paths:
-      - output/*
-      - checksums
-
-build:orig:debian:bullseye:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-    SAVE_ORIG: "true"
-  dependencies:
-    - build:image:debian:buster:amd64
-    - build:image:debian:buster:armhf
-    - build:image:debian:buster:arm64
-    - build:image:debian:bullseye:amd64
-    - build:image:debian:bullseye:armhf
-    - build:image:debian:bullseye:arm64
-    - build:image:ubuntu:bionic:amd64
-    - build:image:ubuntu:bionic:armhf
-    - build:image:ubuntu:bionic:arm64
-    - build:image:ubuntu:focal:amd64
-    - build:image:ubuntu:focal:armhf
-    - build:image:ubuntu:focal:arm64
-  extends: .template:build:orig
-  artifacts:
-    paths:
-      - output/*
-      - checksums
-
 build:packages:debian:buster:amd64:
   variables:
     DISTRO: "debian"
@@ -342,7 +267,7 @@ build:packages:debian:bullseye:amd64:
     RELEASE: "bullseye"
     ARCH: "amd64"
   dependencies:
-    - build:orig:debian:bullseye:amd64
+    - build:orig:debian:buster:amd64
     - build:image:debian:buster:amd64
     - build:image:debian:bullseye:amd64
   extends: .template:build:packages
@@ -371,7 +296,7 @@ build:packages:ubuntu:bionic:amd64:
     RELEASE: "bionic"
     ARCH: "amd64"
   dependencies:
-    - build:orig:ubuntu:bionic:amd64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:armhf:
@@ -398,7 +323,7 @@ build:packages:ubuntu:focal:amd64:
     RELEASE: "focal"
     ARCH: "amd64"
   dependencies:
-    - build:orig:ubuntu:focal:amd64
+    - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:armhf:
