@@ -266,6 +266,7 @@ build:packages:debian:bullseye:amd64:
   dependencies:
     - build:orig:debian:buster:amd64
     - build:image:debian:buster:amd64
+    - build:image:debian:bullseye:amd64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:armhf:
