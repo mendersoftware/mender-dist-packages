@@ -248,6 +248,7 @@ build_packages() {
 copy_packages_to_output() {
   if [[ "${SAVE_ORIG}" == "true" ]]; then 
     cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /output
+    cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /
   else
     # Copy package files to /output
     for file in $(find ../ -maxdepth 1 -type f); do

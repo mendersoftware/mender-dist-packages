@@ -176,6 +176,7 @@ build:image:ubuntu:focal:arm64:
   artifacts:
     paths:
       - output/*
+      - *orig.tar.*
       - checksums
 
 .template:build:packages:
@@ -340,7 +341,6 @@ build:packages:debian:bullseye:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:bullseye:amd64
-    - build:image:debian:buster:amd64
     - build:image:debian:bullseye:amd64
   extends: .template:build:packages
 
