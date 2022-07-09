@@ -194,7 +194,7 @@ build:image:ubuntu:focal:arm64:
     - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
   script:
     - apk --update --no-cache add bash
-    - ( cd output && tar xvf ../orig-debian-buster-amd64.tar; )
+    - ( cd output && pwd && tar xvf ../orig-debian-buster-amd64.tar; )
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION

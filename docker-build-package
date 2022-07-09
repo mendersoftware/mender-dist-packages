@@ -106,6 +106,7 @@ if [ $commercial = "true" ]; then
     output_dir="output/commercial/${DISTRO}-${RELEASE}-${ARCH}"
 fi
 mkdir -p ${output_dir}
+cp -v output/*orig.tar.* "${output_dir}/"
 
 if [ "$arch_indep" = "true" -a "$ARCH" = "amd64" ]; then
     # On amd64, build architecture independent packages.
