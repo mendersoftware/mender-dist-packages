@@ -173,7 +173,7 @@ build:image:ubuntu:focal:arm64:
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION $SAVE_ORIG
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION $SAVE_ORIG
     - fi
-    - ( cd output/opensource/* && tar cvf orig-$DISTRO-$RELEASE-$ARCH.tar *orig.tar.* && mender_ci_save_tmp_artifact orig.tar; )
+    - ( cd output/opensource/* && tar cvf orig-$DISTRO-$RELEASE-$ARCH.tar *orig.tar.* && mender_ci_save_tmp_artifact orig-$DISTRO-$RELEASE-$ARCH.tar; )
   artifacts:
     paths:
       - output/*
