@@ -228,7 +228,7 @@ build:orig:debian:buster:amd64:
       - output/*
       - checksums
 
-build:orig:debian:buster:amd642:
+build:orig:debian:bullseye:amd64:
   variables:
     DISTRO: "debian"
     RELEASE: "buster"
@@ -289,7 +289,7 @@ build:packages:debian:bullseye:amd64:
     RELEASE: "bullseye"
     ARCH: "amd64"
   dependencies:
-    - build:orig:debian:buster:amd642
+    - build:orig:debian:bullseye:amd64
     - build:image:debian:buster:amd64
     - build:image:debian:bullseye:amd64
   extends: .template:build:packages
