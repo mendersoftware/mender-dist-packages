@@ -173,7 +173,7 @@ build:image:ubuntu:focal:arm64:
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION $SAVE_ORIG
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION $SAVE_ORIG
     - fi
-    - ( cd /output && tar cvf orig.tar *orig.tar.* && mender_ci_save_tmp_artifact orig.tar; )
+    - ( cd output/opensource/* && tar cvf orig.tar *orig.tar.* && mender_ci_save_tmp_artifact orig.tar; )
   artifacts:
     paths:
       - output/*
@@ -194,7 +194,7 @@ build:image:ubuntu:focal:arm64:
     - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
   script:
     - apk --update --no-cache add bash
-    - ( cd /output && tar xvf ../orig.tar; )
+    - ( cd output && tar xvf ../orig.tar; )
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
