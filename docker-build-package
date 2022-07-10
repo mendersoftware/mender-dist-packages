@@ -107,7 +107,7 @@ if [ $commercial = "true" ]; then
 fi
 mkdir -p "${output_dir}"
 find output -name '*.orig.tar.*'
-[[ "${SAVE_ORIG}" != "true" ]] && cp -v output/opensource/debian-buster-amd64/*orig.tar.* "${output_dir}/"
+[[ "${SAVE_ORIG}" != "true" && "${DISTRO}-${RELEASE}-${ARCH}" != "debian-buster-amd64" ]] && cp -v output/opensource/debian-buster-amd64/*orig.tar.* "${output_dir}/"
 
 if [ "$arch_indep" = "true" -a "$ARCH" = "amd64" ]; then
     # On amd64, build architecture independent packages.
