@@ -201,6 +201,7 @@ build:image:ubuntu:focal:arm64:
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
     - fi
+    - find output
   artifacts:
     paths:
       - output/*

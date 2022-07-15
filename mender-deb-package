@@ -183,7 +183,7 @@ build_packages() {
     if [[ "${SAVE_ORIG}" == "true" ]]; then
       tar --sort=name --mtime="@${DEFAULT_MTIME}" --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --exclude .git --exclude debian -czvf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
     else
-      find /output/ -name '*orig.tar.gz' -exec cp -v {} /tmp/ \;
+      cp -v /output/*orig.tar.gz /tmp/;
     fi
     # dh_make returns 1 because debian directory exists,
     # hence the || true, without orig file buildpackage command would fail
@@ -246,7 +246,7 @@ build_packages() {
 
 copy_packages_to_output() {
   if [[ "${SAVE_ORIG}" == "true" ]]; then 
-    cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /output
+    cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /output/
   else
     # Copy package files to /output
     for file in $(find ../ -maxdepth 1 -type f); do
