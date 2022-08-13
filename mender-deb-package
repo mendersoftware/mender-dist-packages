@@ -54,7 +54,7 @@ checkout_repo() {
 }
 
 install_go() {
- local GOLANG_VERSION=1.17.6
+ local GOLANG_VERSION=1.17.13
  local golang_version_set
 
  golang_version_set=$(sed -n '/[^ ]*GOLANG_VERSION:[ "0-9]/{s/.*GOLANG_VERSION:[ ]*\(["0-9\.]*\).*/\1/p;q}' .gitlab-ci.yml)
