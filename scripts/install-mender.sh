@@ -407,6 +407,9 @@ check_dist_and_version() {
                 DIST_VERSION="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
             fi
             case "$DIST_VERSION" in
+                jammy)
+                    DIST_VERSION="jammy"
+                ;;
                 focal)
                     DIST_VERSION="focal"
                 ;;
