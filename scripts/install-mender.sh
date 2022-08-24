@@ -333,6 +333,9 @@ do_install_commercial() {
         dpkg --status $c || (echo ERROR: $c could not be installed; exit 1)
     done
 
+    # Remove packages from working dir
+    rm $deb_packages_glob
+
     echo "  Success!"
 }
 
