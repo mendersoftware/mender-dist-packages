@@ -152,6 +152,27 @@ build:image:ubuntu:focal:arm64:
     ARCH: "arm64"
   extends: .template:build:image
 
+build:image:ubuntu:jammy:amd64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "amd64"
+  extends: .template:build:image
+
+build:image:ubuntu:jammy:armhf:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "armhf"
+  extends: .template:build:image
+
+build:image:ubuntu:jammy:arm64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "arm64"
+  extends: .template:build:image
+
 .template:build:orig:
   stage: build:orig
   image: docker:git
@@ -220,6 +241,9 @@ build:orig:debian:buster:amd64:
     - build:image:ubuntu:focal:amd64
     - build:image:ubuntu:focal:armhf
     - build:image:ubuntu:focal:arm64
+    - build:image:ubuntu:jammy:amd64
+    - build:image:ubuntu:jammy:armhf
+    - build:image:ubuntu:jammy:arm64
   extends: .template:build:orig
   artifacts:
     paths:
@@ -334,6 +358,33 @@ build:packages:ubuntu:focal:arm64:
     - build:orig:debian:buster:amd64
   extends: .template:build:packages
 
+build:packages:ubuntu:jammy:amd64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "amd64"
+  dependencies:
+    - build:orig:debian:buster:amd64
+  extends: .template:build:packages
+
+build:packages:ubuntu:jammy:armhf:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "armhf"
+  dependencies:
+    - build:orig:debian:buster:amd64
+  extends: .template:build:packages
+
+build:packages:ubuntu:jammy:arm64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "arm64"
+  dependencies:
+    - build:orig:debian:buster:amd64
+  extends: .template:build:packages
+
 test:check-commits:
   only:
     variables:
@@ -439,6 +490,9 @@ test:acceptance:
     - build:packages:ubuntu:focal:amd64
     - build:packages:ubuntu:focal:armhf
     - build:packages:ubuntu:focal:arm64
+    - build:packages:ubuntu:jammy:amd64
+    - build:packages:ubuntu:jammy:armhf
+    - build:packages:ubuntu:jammy:arm64
   before_script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
@@ -551,6 +605,9 @@ publish:production:s3:scripts:install-mender-sh:
     - build:packages:ubuntu:focal:amd64
     - build:packages:ubuntu:focal:armhf
     - build:packages:ubuntu:focal:arm64
+    - build:packages:ubuntu:jammy:amd64
+    - build:packages:ubuntu:jammy:armhf
+    - build:packages:ubuntu:jammy:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
@@ -614,6 +671,9 @@ publish:s3:mender-gateway:automatic:
     - build:packages:ubuntu:focal:amd64
     - build:packages:ubuntu:focal:armhf
     - build:packages:ubuntu:focal:arm64
+    - build:packages:ubuntu:jammy:amd64
+    - build:packages:ubuntu:jammy:armhf
+    - build:packages:ubuntu:jammy:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
