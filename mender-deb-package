@@ -164,6 +164,11 @@ postprocess_recipe() {
   fi
 }
 
+build_orig() {
+  # we do not need the .git nor debian directory in the orig file
+  tar --sort=name --mtime="@${DEFAULT_MTIME}" --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --exclude .git --exclude debian -czf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
+}
+
 build_packages() {
   # For PRs and other development branches, we don't have GPG key
   sign_flags=""
@@ -179,12 +184,8 @@ build_packages() {
     export USER=root
     # we need to reset the mtim to some fixed date
     DEFAULT_MTIME=1621101293
-    # we do not need the .git nor debian directory in the orig file
-    if [[ "${SAVE_ORIG}" == "true" ]]; then
-      tar --sort=name --mtime="@${DEFAULT_MTIME}" --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --exclude .git --exclude debian -czvf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
-    else
-      cp -v /output/*orig.tar.gz /tmp/;
-    fi
+    # Copy orig tarball to create the source package
+    cp -v /output/*orig.tar.gz /tmp/;
     # dh_make returns 1 because debian directory exists,
     # hence the || true, without orig file buildpackage command would fail
     dh_make --file /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
@@ -271,8 +272,6 @@ verify_script_arguments "$@"
 
 checkout_repo
 
-install_go
-
 get_os_version
 
 get_deb_distribution
@@ -283,6 +282,16 @@ prepare_recipe
 
 postprocess_recipe
 
-build_packages
+if [[ "${SAVE_ORIG}" == "true" ]]; then
+
+  build_orig
+
+else
+
+  install_go
+
+  build_packages
+
+fi
 
 copy_packages_to_output
