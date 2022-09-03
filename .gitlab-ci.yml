@@ -180,7 +180,7 @@ build:orig:debian:buster:amd64:
     - mender-qa-slave
   services:
     - docker:dind
-  dependencies:
+  needs:
     - build:image:debian:buster:amd64
   variables:
     DISTRO: "debian"
