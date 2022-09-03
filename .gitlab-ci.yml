@@ -173,13 +173,19 @@ build:image:ubuntu:jammy:arm64:
     ARCH: "arm64"
   extends: .template:build:image
 
-.template:build:orig:
+build:orig:debian:buster:amd64:
   stage: build:orig
   image: docker:git
   tags:
     - mender-qa-slave
   services:
     - docker:dind
+  dependencies:
+    - build:image:debian:buster:amd64
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "amd64"
   before_script:
     - apk --update --no-cache add bash curl aws-cli
     - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
@@ -187,9 +193,9 @@ build:image:ubuntu:jammy:arm64:
     - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
   script:
     - apk --update --no-cache add bash
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION $SAVE_ORIG
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION $SAVE_ORIG
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION $SAVE_ORIG
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
     - find / -name '*.orig.tar.*'
   artifacts:
     paths:
@@ -217,19 +223,6 @@ build:image:ubuntu:jammy:arm64:
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
     - fi
     - find output
-  artifacts:
-    paths:
-      - output/*
-
-build:orig:debian:buster:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-    SAVE_ORIG: "true"
-  dependencies:
-    - build:image:debian:buster:amd64
-  extends: .template:build:orig
   artifacts:
     paths:
       - output/*
