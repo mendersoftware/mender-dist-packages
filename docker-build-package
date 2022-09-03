@@ -83,7 +83,7 @@ for recipe in "${packages[@]}"; do
     fi
 done
 if [ $recipe_found -eq 0 ]; then
-    echo "unrecognized package $RECIPE_NAME, supported are: ${!packages[@]}"
+    echo "unrecognized package $RECIPE_NAME, supported are: $(for recipe in "${packages[@]}"; do echo -n "$(eval echo \${$recipe[recipe_name]}) "; done)"
     exit 1
 fi
 
