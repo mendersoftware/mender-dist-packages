@@ -34,7 +34,7 @@ class PackageMenderClientChecker:
     ]
     expected_indentity_files = ["mender-device-identity"]
 
-    expected_copyright_md5sum = "7fd64609fe1bce47db0e8f6e3cc6a11d"
+    expected_copyright_from_l2_md5sum = "39a30292da940b7ce011150e8c8d5e4f"
 
     def check_mender_client_version(self, ssh_connection, mender_version):
         if mender_version != "master":
@@ -73,8 +73,10 @@ class PackageMenderClientChecker:
 
         # Northern.tech copyright file
         ssh_connection.run("test -f /usr/share/doc/mender-client/copyright")
-        result = ssh_connection.run("md5sum /usr/share/doc/mender-client/copyright")
-        assert result.stdout.split(" ")[0] == self.expected_copyright_md5sum
+        result = ssh_connection.run(
+            "tail -n +2 /usr/share/doc/mender-client/copyright | md5sum"
+        )
+        assert result.stdout.split(" ")[0] == self.expected_copyright_from_l2_md5sum
 
     def check_systemd_start_full_cycle(self, ssh_connection):
         """
