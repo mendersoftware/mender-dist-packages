@@ -194,7 +194,6 @@ build:image:ubuntu:jammy:arm64:
   artifacts:
     paths:
       - output/*
-      - checksums
 
 .template:build:packages:
   stage: build:packages
@@ -230,25 +229,10 @@ build:orig:debian:buster:amd64:
     SAVE_ORIG: "true"
   dependencies:
     - build:image:debian:buster:amd64
-    - build:image:debian:buster:armhf
-    - build:image:debian:buster:arm64
-    - build:image:debian:bullseye:amd64
-    - build:image:debian:bullseye:armhf
-    - build:image:debian:bullseye:arm64
-    - build:image:ubuntu:bionic:amd64
-    - build:image:ubuntu:bionic:armhf
-    - build:image:ubuntu:bionic:arm64
-    - build:image:ubuntu:focal:amd64
-    - build:image:ubuntu:focal:armhf
-    - build:image:ubuntu:focal:arm64
-    - build:image:ubuntu:jammy:amd64
-    - build:image:ubuntu:jammy:armhf
-    - build:image:ubuntu:jammy:arm64
   extends: .template:build:orig
   artifacts:
     paths:
       - output/*
-      - checksums
 
 build:packages:debian:buster:amd64:
   variables:
@@ -257,6 +241,7 @@ build:packages:debian:buster:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:buster:armhf:
@@ -266,6 +251,7 @@ build:packages:debian:buster:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:buster:armhf
   extends: .template:build:packages
 
 build:packages:debian:buster:arm64:
@@ -275,6 +261,7 @@ build:packages:debian:buster:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:buster:arm64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:amd64:
@@ -284,6 +271,7 @@ build:packages:debian:bullseye:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:bullseye:amd64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:armhf:
@@ -293,6 +281,7 @@ build:packages:debian:bullseye:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:bullseye:armhf
   extends: .template:build:packages
 
 build:packages:debian:bullseye:arm64:
@@ -302,6 +291,7 @@ build:packages:debian:bullseye:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:bullseye:arm64
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:amd64:
@@ -311,6 +301,7 @@ build:packages:ubuntu:bionic:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:bionic:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:armhf:
@@ -320,6 +311,7 @@ build:packages:ubuntu:bionic:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:bionic:armhf
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:arm64:
@@ -329,6 +321,7 @@ build:packages:ubuntu:bionic:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:bionic:arm64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:amd64:
@@ -338,6 +331,7 @@ build:packages:ubuntu:focal:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:focal:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:armhf:
@@ -347,6 +341,7 @@ build:packages:ubuntu:focal:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:focal:armhf
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:arm64:
@@ -356,6 +351,7 @@ build:packages:ubuntu:focal:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:focal:arm64
   extends: .template:build:packages
 
 build:packages:ubuntu:jammy:amd64:
@@ -365,6 +361,7 @@ build:packages:ubuntu:jammy:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:jammy:armhf:
@@ -374,6 +371,7 @@ build:packages:ubuntu:jammy:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:armhf
   extends: .template:build:packages
 
 build:packages:ubuntu:jammy:arm64:
@@ -383,6 +381,7 @@ build:packages:ubuntu:jammy:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:arm64
   extends: .template:build:packages
 
 test:check-commits:
