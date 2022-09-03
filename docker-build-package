@@ -94,7 +94,7 @@ if [ $commercial = "true" -a -z "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
 fi
 
 if [ "$arch_indep" = "true" -a "$ARCH" != "amd64" ]; then
-    # Architecture independent pacakges are built only on amd64 build host
+    # Architecture independent packages are built only on amd64 build host
     echo "Not building arch independent package $recipe_name on architecture $ARCH"
     exit 0
 fi
@@ -108,7 +108,7 @@ elif [ "${SAVE_ORIG}" == "true" ]; then
     output_dir="output/opensource/orig"
 fi
 mkdir -p "${output_dir}"
-find output -name '*.orig.tar.*'
+
 [[ "${SAVE_ORIG}" != "true" ]] && cp -v output/opensource/orig/*orig.tar.* "${output_dir}/"
 
 if [ "$arch_indep" = "true" -a "$ARCH" = "amd64" ]; then
