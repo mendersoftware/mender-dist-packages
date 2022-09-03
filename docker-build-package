@@ -36,6 +36,12 @@ declare -A mender_configure_props=(
     [arch_indep]="true"
     [commercial]="false"
 )
+declare -A mender_artifact_props=(
+    [recipe_name]="mender-artifact"
+    [src_url]="https://github.com/mendersoftware/mender-artifact"
+    [arch_indep]="false"
+    [commercial]="false"
+)
 declare -A mender_monitor_props=(
     [recipe_name]="mender-monitor"
     [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/monitor-client"
@@ -54,6 +60,7 @@ declare -a packages=(
     mender_client_props
     mender_connect_props
     mender_configure_props
+    mender_artifact_props
     mender_gateway_props
     mender_monitor_props
 )
