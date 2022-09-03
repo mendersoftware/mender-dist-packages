@@ -32,7 +32,7 @@ class TestPackageGateway:
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
+            "sudo dpkg -i"
             + package_filename(
                 mender_dist_packages_versions["mender-gateway"], "mender-gateway",
             )
