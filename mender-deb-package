@@ -54,18 +54,18 @@ checkout_repo() {
 }
 
 install_go() {
- local GOLANG_VERSION=1.17.13
- local golang_version_set
+  local GOLANG_VERSION=1.17.13
+  local golang_version_set
 
- golang_version_set=$(sed -n '/[^ ]*GOLANG_VERSION:[ "0-9]/{s/.*GOLANG_VERSION:[ ]*\(["0-9\.]*\).*/\1/p;q}' .gitlab-ci.yml)
- golang_version_set=${golang_version_set//\"/}
- GOLANG_VERSION=${golang_version_set:-${GOLANG_VERSION}}
+  golang_version_set=$(sed -n '/[^ ]*GOLANG_VERSION:[ "0-9]/{s/.*GOLANG_VERSION:[ ]*\(["0-9\.]*\).*/\1/p;q}' .gitlab-ci.yml)
+  golang_version_set=${golang_version_set//\"/}
+  GOLANG_VERSION=${golang_version_set:-${GOLANG_VERSION}}
 
- wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
-    && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
- export GOPATH="/root/go"
- export PATH="$PATH:/usr/local/go/bin"
- rm -vf "go$GOLANG_VERSION.linux-amd64.tar.gz"
+  wget -q https://dl.google.com/go/go$GOLANG_VERSION.linux-amd64.tar.gz \
+     && tar -C /usr/local -xzf go$GOLANG_VERSION.linux-amd64.tar.gz
+  export GOPATH="/root/go"
+  export PATH="$PATH:/usr/local/go/bin"
+  rm -vf "go$GOLANG_VERSION.linux-amd64.tar.gz"
 }
 
 get_os_version() {
