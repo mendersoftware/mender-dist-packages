@@ -18,41 +18,37 @@ import pytest
 from helpers import package_filename, upload_deb_package
 
 
-class TestPackageGateway:
-    @pytest.mark.commercial
-    def test_mender_gateway(
+class TestPackageArtifact:
+    def test_mender_artifact(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
         # Upload
         upload_deb_package(
             setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-gateway"],
-            "mender-gateway",
+            mender_dist_packages_versions["mender-artifact"],
+            "mender-artifact",
         )
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg -i"
+            "sudo dpkg -i "
             + package_filename(
-                mender_dist_packages_versions["mender-gateway"], "mender-gateway",
+                mender_dist_packages_versions["mender-artifact"], "mender-artifact",
             )
         )
         assert (
-            "Unpacking mender-gateway ("
-            + mender_dist_packages_versions["mender-gateway"]
+            "Unpacking mender-artifact ("
+            + mender_dist_packages_versions["mender-artifact"]
             + ")"
             in result.stdout
         )
         assert (
-            "Setting up mender-gateway ("
-            + mender_dist_packages_versions["mender-gateway"]
+            "Setting up mender-artifact ("
+            + mender_dist_packages_versions["mender-artifact"]
             + ")"
             in result.stdout
         )
 
-        # Check mender-gateway files
-        setup_tester_ssh_connection.run("test -x /usr/bin/mender-gateway")
-        setup_tester_ssh_connection.run("test -f /etc/mender/mender-gateway.conf")
-        setup_tester_ssh_connection.run(
-            "test -f /lib/systemd/system/mender-gateway.service"
-        )
+        # Check mender-artifact files
+        setup_tester_ssh_connection.run("test -x /usr/bin/mender-artifact")
+        setup_tester_ssh_connection.run("mender-artifact --version")

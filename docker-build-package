@@ -36,6 +36,12 @@ declare -A mender_configure_props=(
     [arch_indep]="true"
     [commercial]="false"
 )
+declare -A mender_artifact_props=(
+    [recipe_name]="mender-artifact"
+    [src_url]="https://github.com/mendersoftware/mender-artifact"
+    [arch_indep]="false"
+    [commercial]="false"
+)
 declare -A mender_monitor_props=(
     [recipe_name]="mender-monitor"
     [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/monitor-client"
@@ -54,6 +60,7 @@ declare -a packages=(
     mender_client_props
     mender_connect_props
     mender_configure_props
+    mender_artifact_props
     mender_gateway_props
     mender_monitor_props
 )
@@ -83,7 +90,7 @@ for recipe in "${packages[@]}"; do
     fi
 done
 if [ $recipe_found -eq 0 ]; then
-    echo "unrecognized package $RECIPE_NAME, supported are: ${!packages[@]}"
+    echo "unrecognized package $RECIPE_NAME, supported are: $(for recipe in "${packages[@]}"; do echo -n "$(eval echo \${$recipe[recipe_name]}) "; done)"
     exit 1
 fi
 
@@ -94,7 +101,7 @@ if [ $commercial = "true" -a -z "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
 fi
 
 if [ "$arch_indep" = "true" -a "$ARCH" != "amd64" ]; then
-    # Architecture independent pacakges are built only on amd64 build host
+    # Architecture independent packages are built only on amd64 build host
     echo "Not building arch independent package $recipe_name on architecture $ARCH"
     exit 0
 fi
@@ -108,7 +115,7 @@ elif [ "${SAVE_ORIG}" == "true" ]; then
     output_dir="output/opensource/orig"
 fi
 mkdir -p "${output_dir}"
-find output -name '*.orig.tar.*'
+
 [[ "${SAVE_ORIG}" != "true" ]] && cp -v output/opensource/orig/*orig.tar.* "${output_dir}/"
 
 if [ "$arch_indep" = "true" -a "$ARCH" = "amd64" ]; then

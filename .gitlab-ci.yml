@@ -3,6 +3,7 @@ variables:
   MENDER_VERSION: "master"
   MENDER_CONNECT_VERSION: "master"
   MENDER_CONFIGURE_VERSION: "master"
+  MENDER_ARTIFACT_VERSION: "master"
   MENDER_GATEWAY_VERSION: "master"
   MENDER_MONITOR_VERSION: "master"
   # Bucket name
@@ -173,13 +174,19 @@ build:image:ubuntu:jammy:arm64:
     ARCH: "arm64"
   extends: .template:build:image
 
-.template:build:orig:
+build:orig:debian:buster:amd64:
   stage: build:orig
   image: docker:git
   tags:
     - mender-qa-slave
   services:
     - docker:dind
+  needs:
+    - build:image:debian:buster:amd64
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "amd64"
   before_script:
     - apk --update --no-cache add bash curl aws-cli
     - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
@@ -187,14 +194,14 @@ build:image:ubuntu:jammy:arm64:
     - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
   script:
     - apk --update --no-cache add bash
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION $SAVE_ORIG
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION $SAVE_ORIG
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION $SAVE_ORIG
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
     - find / -name '*.orig.tar.*'
   artifacts:
     paths:
       - output/*
-      - checksums
 
 .template:build:packages:
   stage: build:packages
@@ -213,6 +220,7 @@ build:image:ubuntu:jammy:arm64:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
@@ -222,34 +230,6 @@ build:image:ubuntu:jammy:arm64:
     paths:
       - output/*
 
-build:orig:debian:buster:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-    SAVE_ORIG: "true"
-  dependencies:
-    - build:image:debian:buster:amd64
-    - build:image:debian:buster:armhf
-    - build:image:debian:buster:arm64
-    - build:image:debian:bullseye:amd64
-    - build:image:debian:bullseye:armhf
-    - build:image:debian:bullseye:arm64
-    - build:image:ubuntu:bionic:amd64
-    - build:image:ubuntu:bionic:armhf
-    - build:image:ubuntu:bionic:arm64
-    - build:image:ubuntu:focal:amd64
-    - build:image:ubuntu:focal:armhf
-    - build:image:ubuntu:focal:arm64
-    - build:image:ubuntu:jammy:amd64
-    - build:image:ubuntu:jammy:armhf
-    - build:image:ubuntu:jammy:arm64
-  extends: .template:build:orig
-  artifacts:
-    paths:
-      - output/*
-      - checksums
-
 build:packages:debian:buster:amd64:
   variables:
     DISTRO: "debian"
@@ -257,6 +237,7 @@ build:packages:debian:buster:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:buster:amd64
   extends: .template:build:packages
 
 build:packages:debian:buster:armhf:
@@ -266,6 +247,7 @@ build:packages:debian:buster:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:buster:armhf
   extends: .template:build:packages
 
 build:packages:debian:buster:arm64:
@@ -275,6 +257,7 @@ build:packages:debian:buster:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:buster:arm64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:amd64:
@@ -284,6 +267,7 @@ build:packages:debian:bullseye:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:bullseye:amd64
   extends: .template:build:packages
 
 build:packages:debian:bullseye:armhf:
@@ -293,6 +277,7 @@ build:packages:debian:bullseye:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:bullseye:armhf
   extends: .template:build:packages
 
 build:packages:debian:bullseye:arm64:
@@ -302,6 +287,7 @@ build:packages:debian:bullseye:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:debian:bullseye:arm64
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:amd64:
@@ -311,6 +297,7 @@ build:packages:ubuntu:bionic:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:bionic:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:armhf:
@@ -320,6 +307,7 @@ build:packages:ubuntu:bionic:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:bionic:armhf
   extends: .template:build:packages
 
 build:packages:ubuntu:bionic:arm64:
@@ -329,6 +317,7 @@ build:packages:ubuntu:bionic:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:bionic:arm64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:amd64:
@@ -338,6 +327,7 @@ build:packages:ubuntu:focal:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:focal:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:armhf:
@@ -347,6 +337,7 @@ build:packages:ubuntu:focal:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:focal:armhf
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:arm64:
@@ -356,6 +347,7 @@ build:packages:ubuntu:focal:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:focal:arm64
   extends: .template:build:packages
 
 build:packages:ubuntu:jammy:amd64:
@@ -365,6 +357,7 @@ build:packages:ubuntu:jammy:amd64:
     ARCH: "amd64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:amd64
   extends: .template:build:packages
 
 build:packages:ubuntu:jammy:armhf:
@@ -374,6 +367,7 @@ build:packages:ubuntu:jammy:armhf:
     ARCH: "armhf"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:armhf
   extends: .template:build:packages
 
 build:packages:ubuntu:jammy:arm64:
@@ -383,6 +377,7 @@ build:packages:ubuntu:jammy:arm64:
     ARCH: "arm64"
   dependencies:
     - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:arm64
   extends: .template:build:packages
 
 test:check-commits:
@@ -445,6 +440,8 @@ test:acceptance:
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
+      --mender-artifact-version $MENDER_ARTIFACT_VERSION
+      --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
     - |-
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] && \
            [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
@@ -455,6 +452,8 @@ test:acceptance:
             --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version) \
             --mender-configure-version $MENDER_CONFIGURE_VERSION \
             --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version) \
+            --mender-artifact-version $MENDER_ARTIFACT_VERSION \
+            --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version) \
             --mender-gateway-version $MENDER_GATEWAY_VERSION \
             --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version) \
             --mender-monitor-version $MENDER_MONITOR_VERSION \

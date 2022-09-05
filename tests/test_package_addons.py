@@ -37,7 +37,7 @@ class TestPackageAddons:
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
+            "sudo dpkg -i "
             + package_filename(
                 mender_dist_packages_versions["mender-connect"], "mender-connect"
             )
@@ -88,7 +88,7 @@ class TestPackageAddons:
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
+            "sudo dpkg -i "
             + package_filename(
                 mender_dist_packages_versions["mender-configure"],
                 "mender-configure",
@@ -130,14 +130,14 @@ class TestPackageAddons:
 
         # Install the lmdb-utils
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive apt-get install -f -y " + "lmdb-utils"
+            "sudo apt-get install -f -y " + "lmdb-utils"
         )
 
         assert result.exited == 0
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
+            "sudo dpkg -i "
             + package_filename(
                 mender_dist_packages_versions["mender-monitor"],
                 "mender-monitor",
