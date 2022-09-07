@@ -168,7 +168,7 @@ build_orig() {
   # we need to reset the mtim to some fixed date
   DEFAULT_MTIME=1621101293
   # we do not need the .git nor debian directory in the orig file
-  tar --sort=name --mtime="@${DEFAULT_MTIME}" --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --exclude .git --exclude debian -czf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
+  GZIP=-n tar --sort=name --mtime="@${DEFAULT_MTIME}" --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --exclude .git --exclude debian -czf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
 }
 
 build_packages() {
