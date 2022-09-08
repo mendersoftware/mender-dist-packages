@@ -397,8 +397,9 @@ do_install_commercial() {
     done
 
     # Install all of them at once and fallback to install missing dependencies
-    local deb_packages_glob=$(echo $selected_components_commercial | sed -e 's/ /*.deb /g; s/$/*.deb/')
-    dpkg --install $deb_packages_glob || apt-get -f -y install
+    local -r deb_packages_glob=$(echo $selected_components_commercial | sed -e 's/ /*.deb /g; s/$/*.deb/')
+    local -r deb_packages_expanded=$(echo $deb_packages_glob | tr ' ' '\n' | sort | uniq )
+    dpkg --install $deb_packages_expanded || apt-get -f -y install
 
     # Check individually each package
     for c in $selected_components_commercial; do
@@ -406,7 +407,7 @@ do_install_commercial() {
     done
 
     # Remove packages from working dir
-    rm $deb_packages_glob
+    rm $deb_packages_expanded
 
     echo "  Success!"
 }
