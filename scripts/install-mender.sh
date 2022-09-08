@@ -403,7 +403,7 @@ do_install_commercial() {
 
     # Check individually each package
     for c in $selected_components_commercial; do
-        dpkg --status $c || (echo ERROR: $c could not be installed; exit 1)
+        dpkg --status $c || { echo ERROR: $c could not be installed; exit 1; }
     done
 
     # Remove packages from working dir
