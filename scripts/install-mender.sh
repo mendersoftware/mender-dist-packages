@@ -218,6 +218,74 @@ print_components() {
     done
 }
 
+
+#
+# $1 - component
+# $2 - mender-release
+#
+# Note, requires jq and curl
+function get_version_of() {
+    which jq 2>&1 >/dev/null || { echo >&2 "'jq' needs to be installed"; exit 1; }
+    [[ $# -ne 2 ]] && { echo >&2 "get_version_of requires two arguments. Got  $#"; exit 1; }
+    local -r component_name="$1"
+    local -r mender_release="$2"
+    local -r major_minor="$(echo -e ${mender_release} | cut --delimiter=. --fields=1,2)"
+    local -r versions_json="$(curl --fail https://docs.mender.io/releases/versions.json)"
+    echo "$versions_json" | jq --raw-output "$(cat <<EOF
+.releases |
+."${major_minor}" |
+."${mender_release}" |
+.repos |
+.[] |
+ select(.name == "${component_name}") |
+.version
+EOF
+)"
+}
+
+#
+# Returns the latest Mender LTS release version
+# from `docs.mender.io/`
+#
+# Note, requires jq and curl
+function get_latest_mender_lts_release() {
+    [[ $# -ne 0 ]] && { echo >&2 "get_latest_mender_lts_release takes no arguments"; exit 1; }
+    local -r versions_json="$(curl --fail https://docs.mender.io/releases/versions.json)"
+    local -r lts="$(echo "${versions_json}" | jq '.lts[0]')"
+    local -r latest_lts="$(echo "${versions_json}" | jq --raw-output "$(cat <<EOF
+.releases[] |
+ to_entries[].key |
+ select(startswith($lts))
+EOF
+)" |
+head --lines=1
+)"
+    echo ${latest_lts}
+}
+
+#
+# $1 - The package to install
+#
+function get_latest_version_of_commercial_component() {
+    [[ $# -ne 1 ]] && { echo >&2 "get_latest_version_of_commercial_component requires one argument"; exit 1; }
+    local component_name="$1"
+    case "${component_name}" in
+        mender-monitor|mender-monitor-demo)
+            local -r version_of="$(get_version_of "monitor-client" "$(get_latest_mender_lts_release)")"
+            ;;
+        *)
+            local -r version_of="$(get_version_of "${component_name}" "$(get_latest_mender_lts_release)")"
+            ;;
+    esac
+    if [[ -z "${version_of}" ]]; then
+        echo >&2 "get_latest_of ${component_name} returned empty unexpectedly"
+        echo >&2 "most likely there is something wrong with the version lookup in "
+        echo >&2 "the versions.json file"
+        exit 1
+    fi
+    echo "${version_of}"
+}
+
 init() {
     REPO_URL=https://downloads.mender.io/repos/debian
 
@@ -236,7 +304,8 @@ init() {
     else
         VERSION="latest"
     fi
-    echo "  Installing commercial components from source:"
+
+    echo " Installing commercial components from source:"
     printf "\t%s\n" "$VERSION"
 }
 
@@ -246,7 +315,8 @@ get_deps() {
         apt-transport-https \
         ca-certificates \
         curl \
-        gnupg
+        gnupg \
+        jq
 }
 
 add_repo() {
@@ -317,7 +387,9 @@ do_install_commercial() {
     # Download deb packages
     local url
     for c in $selected_components_commercial; do
-        url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $VERSION $VERSION $LSB_DIST $DIST_VERSION)"
+        local component_version="$(get_latest_version_of_commercial_component ${c})"
+        echo "Installing ${c} (${component_version})"
+        url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $component_version $component_version $LSB_DIST $DIST_VERSION)"
         if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
             echo "ERROR: Cannot get $c from $url"
             exit 1
@@ -325,16 +397,17 @@ do_install_commercial() {
     done
 
     # Install all of them at once and fallback to install missing dependencies
-    local deb_packages_glob=$(echo $selected_components_commercial | sed -e 's/ /*.deb /g; s/$/*.deb/')
-    dpkg --install $deb_packages_glob || apt-get -f -y install
+    local -r deb_packages_glob=$(echo $selected_components_commercial | sed -e 's/ /*.deb /g; s/$/*.deb/')
+    local -r deb_packages_expanded=$(echo $deb_packages_glob | tr ' ' '\n' | sort | uniq )
+    dpkg --install $deb_packages_expanded || apt-get -f -y install
 
     # Check individually each package
     for c in $selected_components_commercial; do
-        dpkg --status $c || (echo ERROR: $c could not be installed; exit 1)
+        dpkg --status $c || { echo ERROR: $c could not be installed; exit 1; }
     done
 
     # Remove packages from working dir
-    rm $deb_packages_glob
+    rm $deb_packages_expanded
 
     echo "  Success!"
 }
@@ -376,12 +449,13 @@ EOF
     if [[ "$SELECTED_COMPONENTS" == *"mender-gateway"* ]]; then
         if [ "$DEMO" -eq 1 ]; then
             echo "  Setting up mender-gateway with demo configuration, certificates and key"
-            local url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${MENDER_GATEWAY_EXAMPLES_URL_PATH_F} $VERSION $VERSION)"
+            local gateway_version=$(get_latest_version_of_commercial_component mender-gateway)
+            local url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${MENDER_GATEWAY_EXAMPLES_URL_PATH_F} $gateway_version $gateway_version)"
             if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
                 echo "ERROR: Cannot get mender-gateway-examples from $url"
                 exit 1
             fi
-            tar -C / --strip-components=2 -xvf mender-gateway-examples-${VERSION}.tar
+            tar -C / --strip-components=2 -xvf mender-gateway-examples-${gateway_version}.tar
 
             pidof systemd && systemctl restart mender-gateway
             echo "  Success!"
