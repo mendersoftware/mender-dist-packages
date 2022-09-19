@@ -1,5 +1,7 @@
 variables:
   # Packages versions
+  # NOTE: when adding variables here update also trigger from mender-qa:
+  # https://github.com/mendersoftware/mender-qa/blob/master/gitlab-pipeline/stage/trigger-packages.yml
   MENDER_VERSION: "master"
   MENDER_CONNECT_VERSION: "master"
   MENDER_CONFIGURE_VERSION: "master"
