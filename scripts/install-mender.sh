@@ -458,6 +458,10 @@ EOF
             tar -C / --strip-components=2 -xvf mender-gateway-examples-${gateway_version}.tar
 
             pidof systemd && systemctl restart mender-gateway
+
+            # Remove examples package from working dir
+            rm mender-gateway-examples-${gateway_version}.tar
+
             echo "  Success!"
         fi
     fi
