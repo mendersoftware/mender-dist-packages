@@ -319,8 +319,20 @@ get_deps() {
         jq
 }
 
+maybe_remove_existing_gpg_key() {
+    # In the past we installed the Mender APT GPG key using "apt-key add" which is now deprecated.
+    # This function checks if a Mender key is already installed and, if so, removes it so that we
+    # can add it "the right way".
+    apt-key list >/dev/null 2>/dev/null || return 0
+    mender_key=$(apt-key list 2>/dev/null | grep -B1 "Mender Team <mender@northern.tech>" | head -n1)
+    if [[ -n "${mender_key}" ]]; then
+        apt-key 2>/dev/null del "${mender_key}"
+    fi
+}
+
 add_repo() {
-    curl -fsSL $REPO_URL/gpg | apt-key add -
+    maybe_remove_existing_gpg_key
+    curl -fsSL $REPO_URL/gpg | tee /etc/apt/trusted.gpg.d/mender.asc
 
     local repo_deprecated="deb [arch=$ARCH] $REPO_URL $CHANNEL main"
     if grep -F "$repo_deprecated" /etc/apt/sources.list >/dev/null; then
