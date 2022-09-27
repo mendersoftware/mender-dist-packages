@@ -35,6 +35,7 @@ def test_versions(
     mender_version,
     mender_connect_version,
     mender_configure_version,
+    mender_artifact_version,
     mender_dist_packages_versions,
 ):
     verify_package_version(
@@ -45,4 +46,7 @@ def test_versions(
     )
     verify_package_version(
         mender_configure_version, mender_dist_packages_versions["mender-configure"]
+    )
+    verify_package_version(
+        mender_artifact_version, mender_dist_packages_versions["mender-artifact"]
     )

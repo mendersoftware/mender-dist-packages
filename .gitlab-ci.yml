@@ -1,8 +1,11 @@
 variables:
   # Packages versions
+  # NOTE: when adding variables here update also trigger from mender-qa:
+  # https://github.com/mendersoftware/mender-qa/blob/master/gitlab-pipeline/stage/trigger-packages.yml
   MENDER_VERSION: "master"
   MENDER_CONNECT_VERSION: "master"
   MENDER_CONFIGURE_VERSION: "master"
+  MENDER_ARTIFACT_VERSION: "master"
   MENDER_GATEWAY_VERSION: "master"
   MENDER_MONITOR_VERSION: "master"
   # Bucket name
@@ -39,6 +42,7 @@ include:
 
 stages:
   - build:images
+  - build:orig
   - build:packages
   - test
   - publish
@@ -151,6 +155,56 @@ build:image:ubuntu:focal:arm64:
     ARCH: "arm64"
   extends: .template:build:image
 
+build:image:ubuntu:jammy:amd64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "amd64"
+  extends: .template:build:image
+
+build:image:ubuntu:jammy:armhf:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "armhf"
+  extends: .template:build:image
+
+build:image:ubuntu:jammy:arm64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "arm64"
+  extends: .template:build:image
+
+build:orig:debian:buster:amd64:
+  stage: build:orig
+  image: docker:git
+  tags:
+    - mender-qa-slave
+  services:
+    - docker:dind
+  needs:
+    - build:image:debian:buster:amd64
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "amd64"
+  before_script:
+    - apk --update --no-cache add bash curl aws-cli
+    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
+    - mender_ci_load_tmp_artifact builder-$DISTRO-$RELEASE-$ARCH.tar
+    - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
+  script:
+    - apk --update --no-cache add bash
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
+    - find / -name '*.orig.tar.*'
+  artifacts:
+    paths:
+      - output/*
+
 .template:build:packages:
   stage: build:packages
   image: docker:git
@@ -168,10 +222,12 @@ build:image:ubuntu:focal:arm64:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
     - fi
+    - find output
   artifacts:
     paths:
       - output/*
@@ -182,6 +238,7 @@ build:packages:debian:buster:amd64:
     RELEASE: "buster"
     ARCH: "amd64"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:debian:buster:amd64
   extends: .template:build:packages
 
@@ -191,6 +248,7 @@ build:packages:debian:buster:armhf:
     RELEASE: "buster"
     ARCH: "armhf"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:debian:buster:armhf
   extends: .template:build:packages
 
@@ -200,6 +258,7 @@ build:packages:debian:buster:arm64:
     RELEASE: "buster"
     ARCH: "arm64"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:debian:buster:arm64
   extends: .template:build:packages
 
@@ -209,6 +268,7 @@ build:packages:debian:bullseye:amd64:
     RELEASE: "bullseye"
     ARCH: "amd64"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:debian:bullseye:amd64
   extends: .template:build:packages
 
@@ -218,6 +278,7 @@ build:packages:debian:bullseye:armhf:
     RELEASE: "bullseye"
     ARCH: "armhf"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:debian:bullseye:armhf
   extends: .template:build:packages
 
@@ -227,6 +288,7 @@ build:packages:debian:bullseye:arm64:
     RELEASE: "bullseye"
     ARCH: "arm64"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:debian:bullseye:arm64
   extends: .template:build:packages
 
@@ -236,6 +298,7 @@ build:packages:ubuntu:bionic:amd64:
     RELEASE: "bionic"
     ARCH: "amd64"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:ubuntu:bionic:amd64
   extends: .template:build:packages
 
@@ -245,6 +308,7 @@ build:packages:ubuntu:bionic:armhf:
     RELEASE: "bionic"
     ARCH: "armhf"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:ubuntu:bionic:armhf
   extends: .template:build:packages
 
@@ -254,6 +318,7 @@ build:packages:ubuntu:bionic:arm64:
     RELEASE: "bionic"
     ARCH: "arm64"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:ubuntu:bionic:arm64
   extends: .template:build:packages
 
@@ -263,6 +328,7 @@ build:packages:ubuntu:focal:amd64:
     RELEASE: "focal"
     ARCH: "amd64"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:ubuntu:focal:amd64
   extends: .template:build:packages
 
@@ -272,6 +338,7 @@ build:packages:ubuntu:focal:armhf:
     RELEASE: "focal"
     ARCH: "armhf"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:ubuntu:focal:armhf
   extends: .template:build:packages
 
@@ -281,7 +348,38 @@ build:packages:ubuntu:focal:arm64:
     RELEASE: "focal"
     ARCH: "arm64"
   dependencies:
+    - build:orig:debian:buster:amd64
     - build:image:ubuntu:focal:arm64
+  extends: .template:build:packages
+
+build:packages:ubuntu:jammy:amd64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "amd64"
+  dependencies:
+    - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:amd64
+  extends: .template:build:packages
+
+build:packages:ubuntu:jammy:armhf:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "armhf"
+  dependencies:
+    - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:armhf
+  extends: .template:build:packages
+
+build:packages:ubuntu:jammy:arm64:
+  variables:
+    DISTRO: "ubuntu"
+    RELEASE: "jammy"
+    ARCH: "arm64"
+  dependencies:
+    - build:orig:debian:buster:amd64
+    - build:image:ubuntu:jammy:arm64
   extends: .template:build:packages
 
 test:check-commits:
@@ -301,7 +399,7 @@ test:acceptance:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   stage: test
-  image: docker:19.03-dind
+  image: docker:dind
   tags:
     - mender-qa-slave
   dependencies:
@@ -332,31 +430,36 @@ test:acceptance:
     - git submodule sync --recursive
     - git submodule update --init --recursive
   script:
-    - apk --update --no-cache add python3 py3-pip gcc openssh make openssl-dev
+    - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
       libffi-dev libc-dev python3-dev bash musl-dev rust cargo
     - cd tests
     - pip3 install -r requirements.txt
+    - REFERENCE_DIST=debian-buster-amd64
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version)
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
-      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version)
+      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
-      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version)
+      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
+      --mender-artifact-version $MENDER_ARTIFACT_VERSION
+      --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
     - |-
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version ] && \
-           [ -f ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version ]; then
+        if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] && \
+           [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
           python3 -m pytest -v \
             --mender-client-version $MENDER_VERSION \
-            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-client-deb-version) \
+            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client-deb-version) \
             --mender-connect-version $MENDER_CONNECT_VERSION \
-            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-connect-deb-version) \
+            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version) \
             --mender-configure-version $MENDER_CONFIGURE_VERSION \
-            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/mender-configure-deb-version) \
+            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version) \
+            --mender-artifact-version $MENDER_ARTIFACT_VERSION \
+            --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version) \
             --mender-gateway-version $MENDER_GATEWAY_VERSION \
-            --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-gateway-deb-version) \
+            --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version) \
             --mender-monitor-version $MENDER_MONITOR_VERSION \
-            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/mender-monitor-deb-version) \
+            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version) \
             --commercial-tests
         fi
 
@@ -388,6 +491,9 @@ test:acceptance:
     - build:packages:ubuntu:focal:amd64
     - build:packages:ubuntu:focal:armhf
     - build:packages:ubuntu:focal:arm64
+    - build:packages:ubuntu:jammy:amd64
+    - build:packages:ubuntu:jammy:armhf
+    - build:packages:ubuntu:jammy:arm64
   before_script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
@@ -399,11 +505,13 @@ test:acceptance:
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
   script:
     # Upload files: first .buildinfo and .deb, then .changes
-    - find output/opensource -name '*.buildinfo' -o -name '*.deb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
-    -   aws s3 cp "$file" s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
-    - done
-    - find output/opensource -name '*.changes' | while read -r file; do
-    -   aws s3 cp "$file" s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/
+    - for d in output/opensource/*; do
+    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
+    -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
+    -   done
+    -   find "$d" -name '*.changes' | while read -r file; do
+    -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
+    -   done
     - done
   after_script:
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
@@ -427,17 +535,17 @@ publish:s3:apt-repo:automatic:
     - build:packages:debian:buster:arm64
   before_script:
     - apt update && apt install -yyq awscli
-    - deb_version=$(cat output/opensource/mender-client-deb-version)
+    - deb_version=$(cat output/opensource/debian-buster-amd64/mender-client-deb-version)
   script:
     - echo "Publishing ${MENDER_VERSION} packages to S3"
     # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
     - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
+        aws s3 cp output/opensource/debian-buster-${arch}/mender-client_${deb_version}_${arch}.deb
           s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
           --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
         if [ "${MENDER_VERSION}" == "master" ]; then
-          aws s3 cp output/opensource/mender-client_${deb_version}_${arch}.deb
+          aws s3 cp output/opensource/debian-buster-${arch}/mender-client_${deb_version}_${arch}.deb
             s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1+debian+buster_${arch}.deb;
           aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
             --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1+debian+buster_${arch}.deb;
@@ -498,6 +606,9 @@ publish:production:s3:scripts:install-mender-sh:
     - build:packages:ubuntu:focal:amd64
     - build:packages:ubuntu:focal:armhf
     - build:packages:ubuntu:focal:arm64
+    - build:packages:ubuntu:jammy:amd64
+    - build:packages:ubuntu:jammy:armhf
+    - build:packages:ubuntu:jammy:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
@@ -561,11 +672,14 @@ publish:s3:mender-gateway:automatic:
     - build:packages:ubuntu:focal:amd64
     - build:packages:ubuntu:focal:armhf
     - build:packages:ubuntu:focal:arm64
+    - build:packages:ubuntu:jammy:amd64
+    - build:packages:ubuntu:jammy:armhf
+    - build:packages:ubuntu:jammy:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
-    - echo "Publishing "latest" package for ${PUBLISH_PACKAGE_PREFIX} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"
+    - echo "Publishing "latest" package for ${PUBLISH_PACKAGE_PREFIX} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/latest/"
     - if ! is_final_tag "${PUBLISH_PACKAGE_VERSION}"; then
     -   echo "Attempting to publish a "latest" package for a non final tag!"
     -   exit 1
@@ -573,7 +687,7 @@ publish:s3:mender-gateway:automatic:
     - find output/commercial -name "${PUBLISH_PACKAGE_PREFIX}*.deb" | while read -r file; do
     #   Make copy for "latest" to be consumed by get.mender.io script:
     -   copy_filename=$(basename "$file" | sed 's/_[^\+]*/_latest-1/; s/\+builder[^_]*//')
-    -   aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/${copy_filename}
+    -   aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/latest/${copy_filename}
     - done
 
 publish:s3:latest:manual:mender-monitor:
