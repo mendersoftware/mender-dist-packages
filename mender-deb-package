@@ -246,11 +246,14 @@ build_packages() {
 }
 
 copy_packages_to_output() {
+  local binary_only_filter=""
+
+  [[ $DEB_BUILD_TYPE =~ source ]] || binary_only_filter=" -and -not -name *.orig.* "
   if [[ "${SAVE_ORIG}" == "true" ]]; then 
     [[ -f /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz ]] && cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /output/
   else
     # Copy package files to /output
-    for file in $(find ../ -maxdepth 1 -type f); do
+    for file in $(find ../ -maxdepth 1 -type f $binary_only_filter); do
       cp ${file} /output
     done
     # Echo the package version to /output
