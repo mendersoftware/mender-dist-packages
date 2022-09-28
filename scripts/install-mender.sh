@@ -244,23 +244,23 @@ EOF
 }
 
 #
-# Returns the latest Mender LTS release version
+# Returns the latest Mender release version
 # from `docs.mender.io/`
 #
 # Note, requires jq and curl
-function get_latest_mender_lts_release() {
-    [[ $# -ne 0 ]] && { echo >&2 "get_latest_mender_lts_release takes no arguments"; exit 1; }
+function get_latest_mender_release() {
+    [[ $# -ne 0 ]] && { echo >&2 "get_latest_mender_release takes no arguments"; exit 1; }
     local -r versions_json="$(curl --fail https://docs.mender.io/releases/versions.json)"
-    local -r lts="$(echo "${versions_json}" | jq '.lts[0]')"
-    local -r latest_lts="$(echo "${versions_json}" | jq --raw-output "$(cat <<EOF
+    local -r release_series="$(echo "${versions_json}" | jq '.releases | keys | max')"
+    local -r latest_release="$(echo "${versions_json}" | jq --raw-output "$(cat <<EOF
 .releases[] |
  to_entries[].key |
- select(startswith($lts))
+ select(startswith($release_series))
 EOF
 )" |
 head --lines=1
 )"
-    echo ${latest_lts}
+    echo ${latest_release}
 }
 
 #
@@ -271,10 +271,10 @@ function get_latest_version_of_commercial_component() {
     local component_name="$1"
     case "${component_name}" in
         mender-monitor|mender-monitor-demo)
-            local -r version_of="$(get_version_of "monitor-client" "$(get_latest_mender_lts_release)")"
+            local -r version_of="$(get_version_of "monitor-client" "$(get_latest_mender_release)")"
             ;;
         *)
-            local -r version_of="$(get_version_of "${component_name}" "$(get_latest_mender_lts_release)")"
+            local -r version_of="$(get_version_of "${component_name}" "$(get_latest_mender_release)")"
             ;;
     esac
     if [[ -z "${version_of}" ]]; then
