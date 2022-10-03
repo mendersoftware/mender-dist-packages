@@ -249,7 +249,7 @@ copy_packages_to_output() {
   local binary_only_filter=""
 
   # we do not need the orig files for non-source builds
-  [[ $DEB_BUILD_TYPE =~ source ]] || binary_only_filter=" -and -not -name *.orig.* "
+  [[ $DEB_BUILD_TYPE =~ source ]] || echo binary_only_filter=" -and -not -name *.orig.* "
   if [[ "${SAVE_ORIG}" == "true" ]]; then 
     [[ -f /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz ]] && cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /output/
   else
