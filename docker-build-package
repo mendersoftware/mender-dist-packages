@@ -116,7 +116,12 @@ elif [ "${SAVE_ORIG}" == "true" ]; then
 fi
 mkdir -p "${output_dir}"
 
-[[ "${SAVE_ORIG}" != "true" ]] && cp -v output/opensource/orig/*orig.tar.* "${output_dir}/"
+# we build source packages only for amd64 and for non-commercial
+# (non source closed) components. there is no need to copy the orig
+# file if we do not need it, since later, during publication to the apt-repo
+# we clean them from incoming based on changes file, which refers to orig files
+# only for source builds. See MEN-5879.
+[[ "${SAVE_ORIG}" != "true" && "$commercial" != "true" && "$ARCH" == "amd64" ]] && mv -v output/opensource/orig/${recipe_name}*orig.tar.* "${output_dir}/"
 
 if [ "$arch_indep" = "true" -a "$ARCH" = "amd64" ]; then
     # On amd64, build architecture independent packages.

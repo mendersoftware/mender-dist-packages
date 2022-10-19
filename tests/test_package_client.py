@@ -55,7 +55,6 @@ class PackageMenderClientChecker:
             identity_path = os.path.join("/usr/share/mender/identity", identity)
             ssh_connection.run("test -x {ident}".format(ident=identity_path))
         ssh_connection.run("test -d /etc/mender")
-        ssh_connection.run("test -f /etc/mender/artifact_info")
         ssh_connection.run("test -f /etc/mender/mender.conf")
         ssh_connection.run("test -f /etc/mender/scripts/version")
         result = ssh_connection.run("cat /etc/mender/scripts/version")
@@ -154,13 +153,11 @@ class PackageMenderClientChecker:
         if purge:
             ssh_connection.run("test ! -f /etc/mender/mender.conf")
             ssh_connection.run("test ! -f /var/lib/mender/device_type")
-            ssh_connection.run("test ! -f /etc/mender/artifact_info")
             ssh_connection.run("test ! -f /etc/mender/scripts/version")
             ssh_connection.run("test ! -d /etc/mender")
         else:
             ssh_connection.run("test -f /etc/mender/mender.conf")
             ssh_connection.run("test -f /var/lib/mender/device_type")
-            ssh_connection.run("test -f /etc/mender/artifact_info")
             ssh_connection.run("test -f /etc/mender/scripts/version")
             ssh_connection.run("test -d /etc/mender")
 

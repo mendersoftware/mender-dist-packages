@@ -248,7 +248,6 @@ build:packages:debian:buster:armhf:
     RELEASE: "buster"
     ARCH: "armhf"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:debian:buster:armhf
   extends: .template:build:packages
 
@@ -258,7 +257,6 @@ build:packages:debian:buster:arm64:
     RELEASE: "buster"
     ARCH: "arm64"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:debian:buster:arm64
   extends: .template:build:packages
 
@@ -278,7 +276,6 @@ build:packages:debian:bullseye:armhf:
     RELEASE: "bullseye"
     ARCH: "armhf"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:debian:bullseye:armhf
   extends: .template:build:packages
 
@@ -288,7 +285,6 @@ build:packages:debian:bullseye:arm64:
     RELEASE: "bullseye"
     ARCH: "arm64"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:debian:bullseye:arm64
   extends: .template:build:packages
 
@@ -308,7 +304,6 @@ build:packages:ubuntu:bionic:armhf:
     RELEASE: "bionic"
     ARCH: "armhf"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:ubuntu:bionic:armhf
   extends: .template:build:packages
 
@@ -318,7 +313,6 @@ build:packages:ubuntu:bionic:arm64:
     RELEASE: "bionic"
     ARCH: "arm64"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:ubuntu:bionic:arm64
   extends: .template:build:packages
 
@@ -338,7 +332,6 @@ build:packages:ubuntu:focal:armhf:
     RELEASE: "focal"
     ARCH: "armhf"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:ubuntu:focal:armhf
   extends: .template:build:packages
 
@@ -348,7 +341,6 @@ build:packages:ubuntu:focal:arm64:
     RELEASE: "focal"
     ARCH: "arm64"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:ubuntu:focal:arm64
   extends: .template:build:packages
 
@@ -368,7 +360,6 @@ build:packages:ubuntu:jammy:armhf:
     RELEASE: "jammy"
     ARCH: "armhf"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:ubuntu:jammy:armhf
   extends: .template:build:packages
 
@@ -378,7 +369,6 @@ build:packages:ubuntu:jammy:arm64:
     RELEASE: "jammy"
     ARCH: "arm64"
   dependencies:
-    - build:orig:debian:buster:amd64
     - build:image:ubuntu:jammy:arm64
   extends: .template:build:packages
 

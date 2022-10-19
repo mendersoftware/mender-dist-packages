@@ -246,7 +246,7 @@ build_packages() {
 }
 
 copy_packages_to_output() {
-  if [[ "${SAVE_ORIG}" == "true" ]]; then 
+  if [[ "${SAVE_ORIG}" == "true" ]]; then
     [[ -f /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz ]] && cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /output/
   else
     # Copy package files to /output
