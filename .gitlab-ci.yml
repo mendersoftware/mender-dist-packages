@@ -515,42 +515,6 @@ publish:s3:apt-repo:automatic:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
   extends: .template:publish:s3:apt-repo
 
-.template:publish:s3:docs-link:mender-client:
-  stage: publish
-  image: debian:buster
-  dependencies:
-    # Note that we are using the packages from Debian buster
-    - build:packages:debian:buster:amd64
-    - build:packages:debian:buster:armhf
-    - build:packages:debian:buster:arm64
-  before_script:
-    - apt update && apt install -yyq awscli
-    - deb_version=$(cat output/opensource/debian-buster-amd64/mender-client-deb-version)
-  script:
-    - echo "Publishing ${MENDER_VERSION} packages to S3"
-    # For master packages, the Debian version is "0.0~git[iso-date].[git-hash]-1" and we make a copy named "master" for GUI to use
-    - for arch in amd64 arm64 armhf; do
-        aws s3 cp output/opensource/debian-buster-${arch}/mender-client_${deb_version}_${arch}.deb
-          s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
-        aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-          --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_${deb_version}_${arch}.deb;
-        if [ "${MENDER_VERSION}" == "master" ]; then
-          aws s3 cp output/opensource/debian-buster-${arch}/mender-client_${deb_version}_${arch}.deb
-            s3://${S3_BUCKET_NAME}/${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1+debian+buster_${arch}.deb;
-          aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME}
-            --key ${MENDER_VERSION}/${S3_BUCKET_SUBPATH}/${arch}/mender-client_master-1+debian+buster_${arch}.deb;
-        fi;
-      done
-
-publish:s3:docs-link:mender-client:manual:
-  when: manual
-  extends: .template:publish:s3:docs-link:mender-client
-
-publish:s3:docs-link:mender-client:automatic:
-  rules:
-    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
-  extends: .template:publish:s3:docs-link:mender-client
-
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
   image: debian:buster
