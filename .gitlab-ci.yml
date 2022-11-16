@@ -49,7 +49,7 @@ stages:
   stage: build:images
   image: docker:git
   tags:
-    - mender-qa-slave
+    - mender-qa-worker-generic
   services:
     - docker:dind
   before_script:
@@ -178,7 +178,7 @@ build:orig:debian:buster:amd64:
   stage: build:orig
   image: docker:git
   tags:
-    - mender-qa-slave
+    - mender-qa-worker-generic
   services:
     - docker:dind
   needs:
@@ -207,7 +207,7 @@ build:orig:debian:buster:amd64:
   stage: build:packages
   image: docker:git
   tags:
-    - mender-qa-slave
+    - mender-qa-worker-generic
   services:
     - docker:dind
   before_script:
@@ -389,7 +389,7 @@ test:acceptance:
   stage: test
   image: docker:dind
   tags:
-    - mender-qa-slave
+    - mender-qa-worker-generic
   dependencies:
     # Note that we are only testing packages from Debian buster
     - build:packages:debian:buster:amd64
@@ -398,7 +398,7 @@ test:acceptance:
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
-    # DinD setup in mender-qa-slave
+    # DinD setup in Mender CI runners
     - unset DOCKER_HOST
     - unset DOCKER_TLS_VERIFY
     - unset DOCKER_CERT_PATH
