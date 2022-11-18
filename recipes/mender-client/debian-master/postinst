@@ -2,7 +2,7 @@
 
 set -e
 
-# If the file exists, we understand that meder setup was already run or
+# If the file exists, we understand that mender setup was already run or
 # the device was manually configured at some point. Do nothing.
 if [ ! -f /etc/mender/mender.conf ]; then
 
