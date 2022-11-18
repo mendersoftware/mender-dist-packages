@@ -7,8 +7,9 @@ override_dh_auto_build:
 	make CGO_CFLAGS="${CGO_CFLAGS}" CGO_LDFLAGS="${CGO_LDFLAGS}" CC="${CC}" \
 	GOOS=linux CGO_ENABLED=1 build
 
-# All install targets except install-systemd
-install_targets = $(shell egrep ^install\-.*: Makefile | grep -v install-systemd | cut -d: -f1)
+install_targets_exclude=install-systemd install-modules-gen
+install_targets_all=$(shell grep -E '^install\-.*:' Makefile | cut -d: -f1)
+install_targets=$(filter-out $(install_targets_exclude),$(install_targets_all))
 override_dh_auto_install:
 	DESTDIR=debian/mender-client make $(install_targets)
 

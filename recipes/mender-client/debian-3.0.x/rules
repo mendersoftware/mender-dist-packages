@@ -11,11 +11,15 @@ install_targets_exclude=install-systemd
 install_targets_all=$(shell grep -E '^install\-.*:' Makefile | cut -d: -f1)
 install_targets=$(filter-out $(install_targets_exclude),$(install_targets_all))
 override_dh_auto_install:
-	DESTDIR=debian/mender-gateway make $(install_targets)
+	DESTDIR=debian/mender-client make $(install_targets)
+
+	# Install scripts/version file
+	install -d -m 755 debian/mender-client/etc/mender/scripts/
+	echo -n "3" > debian/mender-client/etc/mender/scripts/version
 
 override_dh_auto_test:
 	true
 
 override_dh_strip:
 	${CROSS_COMPILE}-strip --remove-section=.comment --remove-section=.note \
-	debian/mender-gateway/usr/bin/mender-gateway
+	debian/mender-client/usr/bin/mender
