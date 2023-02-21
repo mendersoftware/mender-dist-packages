@@ -399,7 +399,8 @@ do_install_commercial() {
     # Download deb packages
     local url
     for c in $selected_components_commercial; do
-        local component_version="$(get_latest_version_of_commercial_component ${c})"
+        local component_version="$VERSION"
+        [ "$component_version" = "latest" ] && component_version="$(get_latest_version_of_commercial_component ${c})"
         echo "Installing ${c} (${component_version})"
         url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $component_version $component_version $LSB_DIST $DIST_VERSION)"
         if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
@@ -461,7 +462,8 @@ EOF
     if [[ "$SELECTED_COMPONENTS" == *"mender-gateway"* ]]; then
         if [ "$DEMO" -eq 1 ]; then
             echo "  Setting up mender-gateway with demo configuration, certificates and key"
-            local gateway_version=$(get_latest_version_of_commercial_component mender-gateway)
+            local gateway_version="$VERSION"
+            [ "$gateway_version" = "latest" ] && gateway_version="$(get_latest_version_of_commercial_component mender-gateway)"
             local url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${MENDER_GATEWAY_EXAMPLES_URL_PATH_F} $gateway_version $gateway_version)"
             if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
                 echo "ERROR: Cannot get mender-gateway-examples from $url"
