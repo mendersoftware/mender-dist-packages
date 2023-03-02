@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 set -e
 
-IMAGE_NAME_PREFIX=mendersoftware/mender-dist-packages:builder
+IMAGE_NAME_PREFIX=registry.gitlab.com/northern.tech/mender/mender-test-containers:mender-dist-packages-builder
 
 declare -A mender_client_props=(
     [recipe_name]="mender-client"
@@ -143,9 +143,11 @@ echo
 docker run --rm \
         --volume $(pwd)/recipes:/recipes \
         --volume $(pwd)/${output_dir}:/output \
+        --volume $(pwd)/mender-deb-package:/script \
         -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
         -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
-        ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH} \
+        ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-master \
+        /script \
         ${recipe_name} \
         ${BUILD_TYPE} \
         ${src_url} \
