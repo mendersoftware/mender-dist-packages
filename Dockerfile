@@ -39,7 +39,7 @@ RUN if ! [ "${DISTRO}" = "debian" -a "${ARCH}" = "armhf" ]; then \
     fi
 
 # To provide support for Raspberry Pi Zero W a toolchain tuned for ARMv6 architecture must be used.
-# https://tracker.mender.io/browse/MEN-2399
+# https://northerntech.atlassian.net/browse/MEN-2399
 ENV ARMV6_TOOLCHAIN_ROOT="/armv6-eabihf--glibc--stable-2020.08-1"
 RUN if [ "${DISTRO}" = "debian" -a "${ARCH}" = "armhf" ]; then \
         wget -nc -q https://toolchains.bootlin.com/downloads/releases/toolchains/armv6-eabihf/tarballs/armv6-eabihf--glibc--stable-2020.08-1.tar.bz2 \
