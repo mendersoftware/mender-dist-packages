@@ -55,9 +55,8 @@ checkout_repo_clean_local_path() {
 
 checkout_repo() {
   local -r repo_path=$(checkout_repo_clean_local_path "${REPO_URL}")
-  git clone ${REPO_URL} ${repo_path}
+  git clone --recurse-submodules --branch ${VERSION} ${REPO_URL} ${repo_path}
   cd ${repo_path}
-  git checkout $VERSION
 }
 
 install_go() {
@@ -135,6 +134,9 @@ prepare_recipe() {
     if [ "${debian_recipe}" = "debian-2.1.x" ]; then
       # Skip for 2.1.x, special handling in debian/rules
       true
+    elif [ "${debian_recipe}" = "debian-master" ]; then
+      # skip
+      true
     else
       cp support/mender-client.service debian/mender-client.service ||
       cp support/mender.service debian/mender-client.service
@@ -196,56 +198,107 @@ build_packages() {
     dh_make --file /orig/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
   fi
 
+  dpkg_build_ignore_flag="--diff-ignore=(.git|vendor)"
+
+  skip_patches_flag="--source-option=--skip-patches"
+  if [ "$OS_DISTRO" = "debian" -a "$OS_CODENAME" = "buster" ]; then
+    echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/buster-backports_deps.list
+    cat <<EOF> /etc/apt/preferences.d/prefer_backports.pref
+Package: cmake*
+Pin: release a=buster-backports
+Pin-Priority: 999
+EOF
+    apt update
+    # We want the patches applied for Debian Buster
+    rm -f debian/source/local-options
+    skip_patches_flag=
+  else
+    # Skip applying the patches
+    rm -f debian/patches/series
+  fi
+
+  # Install the builder architecture independent dependencies from the debian/control file
+  mk-build-deps --install --build-indep --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' debian/control
+
+
+  if ! [ "$OS_DISTRO" = "debian" -a "ARCH" = "armhf" ]; then
+
+    mk-build-deps --install \
+                  --build-dep \
+                  --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
+                  --host-arch ${ARCH} \
+                  debian/control
+  fi
+
   case "$ARCH" in
     amd64)
       # Native build (amd64)
       dpkg-buildpackage \
         ${sign_flags} \
+        "${dpkg_build_ignore_flag}" \
         --build=$DEB_BUILD_TYPE
       ;;
 
     armhf)
       if [ "$OS_DISTRO" = "debian" ]; then
         # Custom toolchain to support ARMv6
-        CROSS_COMPILE="arm-buildroot-linux-gnueabihf" \
-                    CC="$CROSS_COMPILE-gcc" \
-                    PATH="$PATH:${ARMV6_TOOLCHAIN_ROOT}/bin" \
-                    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${ARMV6_TOOLCHAIN_ROOT}/lib:${ARMV6_TOOLCHAIN_ROOT}/usr/lib" \
-                    CGO_CFLAGS="-I${ARMV6_TOOLCHAIN_ROOT}/usr/include \
-                                -I${ARMV6_TOOLCHAIN_ROOT}/usr/include/arm-linux-gnueabihf \
-                                -pthread \
-                                -I${ARMV6_TOOLCHAIN_ROOT}/usr/include/glib-2.0 \
-                                -I${ARMV6_TOOLCHAIN_ROOT}/usr/lib/arm-linux-gnueabihf/glib-2.0/include/" \
-                    CGO_LDFLAGS="-L${ARMV6_TOOLCHAIN_ROOT}/usr/lib/arm-linux-gnueabihf \
-                                -lssl -lcrypto \
-                                -lz -lgmodule-2.0 -lffi -lmount -lselinux -lpcre2-8 -lblkid -luuid \
-                                -lglib-2.0 -lpcre -lresolv -lgio-2.0 -lgobject-2.0 -lgmodule-2.0" \
-                    GOARCH=arm \
-                    GOARM=6 \
-                    dpkg-buildpackage -aarmhf \
-                    ${sign_flags} \
-                    --build=$DEB_BUILD_TYPE
+        # NOTE: Due to GCC abi incompatibilities:
+        # we set -W no-psabi
+        # https://gcc.gnu.org/gcc-7/changes.html
+        if [ "${OS_CODENAME}" = "buster" ]; then
+          PATH="/opt/cross-pi-gcc-8.3.0-0/bin:$PATH" \
+              CROSS_COMPILE="arm-linux-gnueabihf" \
+              CC="$CROSS_COMPILE-gcc" \
+              CXX=${CROSS_COMPILE}-g++ \
+              CXXFLAGS=" -Wno-psabi" \
+              GOARCH=arm \
+              GOARM=6 \
+              dpkg-buildpackage -aarmhf \
+              ${sign_flags} \
+              "${dpkg_build_ignore_flag}" \
+              ${skip_patches_flag} \
+              --build=$DEB_BUILD_TYPE
+        fi
+        if [ "${OS_CODENAME}" = "bullseye" ]; then
+          # For some reason CMake find_package does not like it when this dir is missing
+          mkdir /opt/cross-pi-gcc-10.3.0-0/arm-linux-gnueabihf/libc/include
+          PATH="/opt/cross-pi-gcc-10.3.0-0/bin:$PATH" \
+              CROSS_COMPILE="arm-linux-gnueabihf" \
+              CC="$CROSS_COMPILE-gcc" \
+              CXX=${CROSS_COMPILE}-g++ \
+              GOARCH=arm \
+              GOARM=6 \
+              dpkg-buildpackage -aarmhf \
+              ${sign_flags} \
+              "${dpkg_build_ignore_flag}" \
+              ${skip_patches_flag} \
+              --build=$DEB_BUILD_TYPE
+        fi
       else
         # Debian ARM 32bit toolchain
         CROSS_COMPILE="arm-linux-gnueabihf" \
-                    CC="$CROSS_COMPILE-gcc" \
-                    PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig/" \
-                    GOARCH=arm \
-                    dpkg-buildpackage -aarmhf \
-                    ${sign_flags} \
-                    --build=$DEB_BUILD_TYPE
+                     CC="$CROSS_COMPILE-gcc" \
+                     PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig/" \
+                     GOARCH=arm \
+                     dpkg-buildpackage -aarmhf \
+                     ${sign_flags} \
+                     "${dpkg_build_ignore_flag}" \
+                     ${skip_patches_flag} \
+                     --build=$DEB_BUILD_TYPE
       fi
       ;;
 
     arm64)
       # Debian ARM 64bit toolchain
       CROSS_COMPILE="aarch64-linux-gnu" \
-                  CC="$CROSS_COMPILE-gcc" \
-                  PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig/" \
-                  GOARCH=arm64 \
-                  dpkg-buildpackage -aarm64 \
-                  ${sign_flags} \
-                  --build=$DEB_BUILD_TYPE
+                   CC="$CROSS_COMPILE-gcc" \
+                   PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig/" \
+                   GOARCH=arm64 \
+                   dpkg-buildpackage -aarm64 \
+                   ${sign_flags} \
+                   "${dpkg_build_ignore_flag}" \
+                   ${skip_patches_flag} \
+                   --build=$DEB_BUILD_TYPE
       ;;
   esac
 }
