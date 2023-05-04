@@ -1,0 +1,2 @@
+/lib/systemd/system/mender-authd.service
+/usr/bin/mender-auth

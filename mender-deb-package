@@ -48,9 +48,10 @@ checkout_repo_clean_local_path() {
 
 checkout_repo() {
   local -r repo_path=$(checkout_repo_clean_local_path "${REPO_URL}")
-  git clone ${REPO_URL} ${repo_path}
+  git clone --branch ${VERSION} ${REPO_URL} ${repo_path}
   cd ${repo_path}
-  git checkout $VERSION
+  # git checkout $VERSION
+  git submodule update --init --recursive
 }
 
 install_go() {
@@ -128,6 +129,9 @@ prepare_recipe() {
     if [ "${debian_recipe}" = "debian-2.1.x" ]; then
       # Skip for 2.1.x, special handling in debian/rules
       true
+    elif [ "${debian_recipe}" = "debian-master" ]; then
+      # skip
+      true
     else
       cp support/mender-client.service debian/mender-client.service ||
       cp support/mender.service debian/mender-client.service
@@ -189,13 +193,50 @@ build_packages() {
     # dh_make returns 1 because debian directory exists,
     # hence the || true, without orig file buildpackage command would fail
     dh_make --file /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
+
   fi
+
+  dpkg_build_ignore_flag="--diff-ignore=(.git|vendor)"
+
+
+  skip_patches_flag="--source-option=--skip-patches"
+  if [ "$OS_DISTRO" = "debian" -a "$OS_CODENAME" = "buster" ]; then
+    echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/buster-backports_deps.list
+    cat <<EOF> /etc/apt/preferences.d/prefer_backports.pref
+Package: cmake*
+Pin: release a=buster-backports
+Pin-Priority: 999
+EOF
+    apt update
+    # We want the patches applied for Debian Buster
+    rm -f debian/source/local-options
+    skip_patches_flag=
+  else
+    # Skip applying the patches
+    rm -f debian/patches/series
+  fi
+
+  # Install the builder architecture independent dependencies from the debian/control file
+  mk-build-deps --install --build-indep --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' debian/control
+
+  # HOST - the machine arch we are building _for_
+  HOST_ARCH=${ARCH}
+
+  dpkg --add-architecture ${ARCH}
+  apt update
+
+  mk-build-deps --install \
+                --build-dep \
+                --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
+                --host-arch ${HOST_ARCH} \
+                debian/control
 
   case "$ARCH" in
     amd64)
       # Native build (amd64)
       dpkg-buildpackage \
         ${sign_flags} \
+        "${dpkg_build_ignore_flag}" \
         --build=$DEB_BUILD_TYPE
       ;;
 
@@ -219,16 +260,20 @@ build_packages() {
                     GOARM=6 \
                     dpkg-buildpackage -aarmhf \
                     ${sign_flags} \
+                    "${dpkg_build_ignore_flag}" \
+                    ${skip_patches_flag} \
                     --build=$DEB_BUILD_TYPE
       else
         # Debian ARM 32bit toolchain
         CROSS_COMPILE="arm-linux-gnueabihf" \
-                    CC="$CROSS_COMPILE-gcc" \
-                    PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig/" \
-                    GOARCH=arm \
-                    dpkg-buildpackage -aarmhf \
-                    ${sign_flags} \
-                    --build=$DEB_BUILD_TYPE
+        CC="$CROSS_COMPILE-gcc" \
+        PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig/" \
+        GOARCH=arm \
+        dpkg-buildpackage -aarmhf \
+        ${sign_flags} \
+        "${dpkg_build_ignore_flag}" \
+        ${skip_patches_flag} \
+        --build=$DEB_BUILD_TYPE
       fi
       ;;
 
@@ -240,6 +285,8 @@ build_packages() {
                   GOARCH=arm64 \
                   dpkg-buildpackage -aarm64 \
                   ${sign_flags} \
+                  "${dpkg_build_ignore_flag}" \
+                  ${skip_patches_flag} \
                   --build=$DEB_BUILD_TYPE
       ;;
   esac

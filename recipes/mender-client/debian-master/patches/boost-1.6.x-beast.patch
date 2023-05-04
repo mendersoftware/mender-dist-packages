@@ -1,0 +1,132 @@
+Description: Patch the common/http implementation to go with Boost Beast 1.6.x
+Author: ole.orhagen@northern.tech
+Origin: other, <URL, required except if Author is present>
+Last-Update: 2023-05-11
+---
+This patch header follows DEP-3: http://dep.debian.net/deps/dep3/
+Index: mender/common/http.hpp
+===================================================================
+--- mender.orig/common/http.hpp
++++ mender/common/http.hpp
+@@ -25,7 +25,7 @@
+ #ifdef MENDER_USE_BOOST_BEAST
+ #include <boost/asio.hpp>
+ #include <boost/beast.hpp>
+-#include <boost/beast/ssl.hpp>
++#include <boost/asio/ip/tcp.hpp>
+ #include <boost/asio/ssl/error.hpp>
+ #include <boost/asio/ssl/stream.hpp>
+ #endif // MENDER_USE_BOOST_BEAST
+@@ -48,6 +48,7 @@ namespace asio = boost::asio;
+ namespace beast = boost::beast;
+ namespace http = beast::http;
+ namespace ssl = asio::ssl;
++using tcp = boost::asio::ip::tcp; // from <boost/asio/ip/tcp.hpp>
+ #endif // MENDER_USE_BOOST_BEAST
+ 
+ namespace error = mender::common::error;
+@@ -314,7 +315,7 @@ private:
+ 
+ #ifdef MENDER_USE_BOOST_BEAST
+ 	boost::asio::ip::tcp::resolver resolver_;
+-	beast::ssl_stream<beast::tcp_stream> stream_;
++	ssl::stream<tcp::socket> stream_;
+ 
+ 	// This shared pointer is used as a workaround, points to ourselves, and has some peculiar
+ 	// properties. First the reason for the workaround: When calling `cancel()` on TCP streams,
+Index: mender/common/http/platform/beast/http.cpp
+===================================================================
+--- mender.orig/common/http/platform/beast/http.cpp
++++ mender/common/http/platform/beast/http.cpp
+@@ -14,7 +14,7 @@
+ 
+ #include <boost/asio/ip/tcp.hpp>
+ #include <boost/asio/ssl/verify_mode.hpp>
+-#include <boost/beast/core/stream_traits.hpp>
++#include <boost/beast/core/type_traits.hpp>
+ #include <boost/asio.hpp>
+ #include <common/http.hpp>
+ 
+@@ -94,7 +94,6 @@ Client::Client(ClientConfig &client, eve
+ 	resolver_(GetAsioIoContext(event_loop)),
+ 	stream_(GetAsioIoContext(event_loop), client.ctx_),
+ 	body_buffer_(HTTP_BEAST_BUFFER_SIZE) {
+-	response_buffer_.reserve(body_buffer_.size());
+ 
+ 	// Don't enforce limits. Since we stream everything, limits don't generally apply, and
+ 	// if they do, they should be handled higher up in the application logic.
+@@ -188,8 +187,8 @@ void Client::ResolveHandler(
+ 
+ 	weak_ptr<Client> weak_client(stream_active_);
+ 
+-	beast::get_lowest_layer(this->stream_)
+-		.async_connect(
++	boost::asio::async_connect(
++			this->stream_.next_layer(),
+ 			resolver_results_,
+ 			[weak_client](const error_code &err, const asio::ip::tcp::endpoint &endpoint) {
+ 				auto client = weak_client.lock();
+@@ -266,7 +265,7 @@ void Client::ConnectHandler(const error_
+ 			});
+ 	} else {
+ 		http::async_write_header(
+-			beast::get_lowest_layer(stream_),
++			stream_.next_layer(),
+ 			*http_request_serializer_,
+ 			[weak_client](const error_code &err, size_t num_written) {
+ 				auto client = weak_client.lock();
+@@ -373,7 +372,7 @@ void Client::WriteBody() {
+ 			});
+ 	} else {
+ 		http::async_write_some(
+-			beast::get_lowest_layer(stream_),
++			stream_.next_layer(),
+ 			*http_request_serializer_,
+ 			[weak_client](const error_code &err, size_t num_written) {
+ 				auto client = weak_client.lock();
+@@ -403,7 +402,7 @@ void Client::ReadHeader() {
+ 			});
+ 	} else {
+ 		http::async_read_some(
+-			beast::get_lowest_layer(stream_),
++			stream_.next_layer(),
+ 			response_buffer_,
+ 			http_response_parser_,
+ 			[weak_client](const error_code &err, size_t num_read) {
+@@ -486,7 +485,7 @@ void Client::ReadHeaderHandler(const err
+ 			});
+ 	} else {
+ 		http::async_read_some(
+-			beast::get_lowest_layer(stream_),
++			stream_.next_layer(),
+ 			response_buffer_,
+ 			http_response_parser_,
+ 			[weak_client](const error_code &err, size_t num_read) {
+@@ -542,7 +541,7 @@ void Client::ReadBodyHandler(const error
+ 			});
+ 	} else {
+ 		http::async_read_some(
+-			beast::get_lowest_layer(stream_),
++			stream_.next_layer(),
+ 			response_buffer_,
+ 			http_response_parser_,
+ 			[weak_client](const error_code &err, size_t num_read) {
+@@ -556,8 +555,8 @@ void Client::ReadBodyHandler(const error
+ 
+ void Client::Cancel() {
+ 	resolver_.cancel();
+-	beast::get_lowest_layer(stream_).cancel();
+-	beast::get_lowest_layer(stream_).close();
++	stream_.next_layer().cancel();
++	stream_.next_layer().close();
+ 	stream_active_.reset();
+ 
+ 	request_.reset();
+@@ -601,7 +600,6 @@ Stream::Stream(Server &server) :
+ 	logger_("http"),
+ 	socket_(server_.GetAsioIoContext(server_.event_loop_)),
+ 	body_buffer_(HTTP_BEAST_BUFFER_SIZE) {
+-	request_buffer_.reserve(body_buffer_.size());
+ 
+ 	// Don't enforce limits. Since we stream everything, limits don't generally apply, and if
+ 	// they do, they should be handled higher up in the application logic.

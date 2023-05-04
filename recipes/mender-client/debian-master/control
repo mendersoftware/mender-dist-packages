@@ -1,17 +1,26 @@
 Source: mender-client
-Maintainer: Mender Team <mender@northern.tech>
+Maintainer: The Mender Team <mender@northern.tech>
 Section: admin
 Priority: optional
-Standards-Version: 3.9.2
-Build-Depends: debhelper (>= 9)
+Standards-Version: 4.0.0
+Build-Depends-Indep: cmake, debhelper (>= 10)
+Build-Depends: liblmdb-dev (>= 0.9.7), libc6-dev (>= 2.14), libboost-dev (>= 1.67.0), libboost-filesystem-dev (>= 1.67.0), libboost-log-dev (>= 1.67.0), libboost-regex-dev (>= 1.67.0), libboost-chrono-dev (>= 1.67.0), libboost-thread-dev (>= 1.67.0), libboost-atomic-dev (>= 1.67.0),  libssl-dev (>= 1.1.1), libarchive-dev (>= 3.2.2)
+Homepage: https://mender.io
 
-Package: mender-client
+Package: mender-update
 Conflicts: mender
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-# debian bullseye Depends: libc6 (>= 2.14), libglib2.0-0 (>= 2.26.0), liblzma5 (>= 5.1.1alpha+20120614), libssl1.1 (>= 1.1.1)
-# debian buster Depends: libc6 (>= 2.14), libglib2.0-0 (>= 2.26.0), liblzma5 (>= 5.1.1alpha+20120614), libssl1.1 (>= 1.1.1)
-Description: Mender client
+# debian bullseye Depends: libarchive13 (>= 3.3.3), libboost-filesystem1.74.0 (>= 1.74.0), libboost-log1.74.0 (>= 1.74.0), libboost-thread1.74.0 (>= 1.74.0), libc6 (>= 2.14), libgcc-s1 (>= 3.0), liblmdb0 (>= 0.9.7), libstdc++6 (>= 9)
+Description: Mender update
+ Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
+
+Package: mender-auth
+Conflicts: mender
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+# debian bullseye Depends: libboost-filesystem1.74.0 (>= 1.74.0), libboost-log1.74.0 (>= 1.74.0), libboost-thread1.74.0 (>= 1.74.0), libc6 (>= 2.14), libgcc-s1 (>= 3.0), libstdc++6 (>= 9)
+Description: Mender auth
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
 
 Package: mender-client-dev

@@ -5,9 +5,15 @@ FROM $DISTRO:$VERSION
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
     apt-get install -y \
-    build-essential dh-make \
-    git wget curl \
-    debhelper devscripts
+    build-essential \
+    crossbuild-essential-armhf  \
+    dh-make \
+    git \
+    wget \
+    curl \
+    debhelper \
+    devscripts \
+    equivs
 
 ARG ARCH=amd64
 ARG DISTRO=debian

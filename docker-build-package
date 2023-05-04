@@ -18,9 +18,10 @@ set -e
 
 IMAGE_NAME_PREFIX=mendersoftware/mender-dist-packages:builder
 
+# TODO (MEN-6395) - hardcoded to oleorhagen whilst this is a feature branch
 declare -A mender_client_props=(
     [recipe_name]="mender-client"
-    [src_url]="https://github.com/mendersoftware/mender"
+    [src_url]="https://github.com/oleorhagen/mender"
     [arch_indep]="false"
     [commercial]="false"
 )
