@@ -111,27 +111,6 @@ build:image:debian:bullseye:arm64:
     ARCH: "arm64"
   extends: .template:build:image
 
-build:image:ubuntu:bionic:amd64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "amd64"
-  extends: .template:build:image
-
-build:image:ubuntu:bionic:armhf:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "armhf"
-  extends: .template:build:image
-
-build:image:ubuntu:bionic:arm64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "arm64"
-  extends: .template:build:image
-
 build:image:ubuntu:focal:amd64:
   variables:
     DISTRO: "ubuntu"
@@ -284,34 +263,6 @@ build:packages:debian:bullseye:arm64:
     ARCH: "arm64"
   dependencies:
     - build:image:debian:bullseye:arm64
-  extends: .template:build:packages
-
-build:packages:ubuntu:bionic:amd64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "amd64"
-  dependencies:
-    - build:orig:debian:buster:amd64
-    - build:image:ubuntu:bionic:amd64
-  extends: .template:build:packages
-
-build:packages:ubuntu:bionic:armhf:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "armhf"
-  dependencies:
-    - build:image:ubuntu:bionic:armhf
-  extends: .template:build:packages
-
-build:packages:ubuntu:bionic:arm64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "arm64"
-  dependencies:
-    - build:image:ubuntu:bionic:arm64
   extends: .template:build:packages
 
 build:packages:ubuntu:focal:amd64:
@@ -473,9 +424,6 @@ test:acceptance:
     - build:packages:debian:bullseye:amd64
     - build:packages:debian:bullseye:armhf
     - build:packages:debian:bullseye:arm64
-    - build:packages:ubuntu:bionic:amd64
-    - build:packages:ubuntu:bionic:armhf
-    - build:packages:ubuntu:bionic:arm64
     - build:packages:ubuntu:focal:amd64
     - build:packages:ubuntu:focal:armhf
     - build:packages:ubuntu:focal:arm64
@@ -552,9 +500,6 @@ publish:production:s3:scripts:install-mender-sh:
     - build:packages:debian:bullseye:amd64
     - build:packages:debian:bullseye:armhf
     - build:packages:debian:bullseye:arm64
-    - build:packages:ubuntu:bionic:amd64
-    - build:packages:ubuntu:bionic:armhf
-    - build:packages:ubuntu:bionic:arm64
     - build:packages:ubuntu:focal:amd64
     - build:packages:ubuntu:focal:armhf
     - build:packages:ubuntu:focal:arm64
