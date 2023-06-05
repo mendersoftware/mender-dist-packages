@@ -334,7 +334,7 @@ test:check-python3-formatting:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
-test:acceptance:
+.test:acceptance:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   stage: test
@@ -383,6 +383,7 @@ test:acceptance:
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
       --mender-artifact-version $MENDER_ARTIFACT_VERSION
       --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
+      -m "${PYTEST_FILTER}"
     - |-
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] && \
            [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
@@ -400,7 +401,18 @@ test:acceptance:
             --mender-monitor-version $MENDER_MONITOR_VERSION \
             --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version) \
             --commercial-tests
+            -m "${PYTEST_FILTER}"
         fi
+
+test:acceptance:golang:
+  extends: .test:acceptance
+  variables:
+    PYTEST_FILTER: "not cppclient"
+
+test:acceptance:cpp:
+  extends: .test:acceptance
+  variables:
+    PYTEST_FILTER: "not golangclient"
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag

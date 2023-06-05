@@ -22,6 +22,7 @@ from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
 
 
+@pytest.mark.golangclient
 class PackageMenderClientChecker:
 
     expected_update_modules = ["deb", "directory", "rpm", "script", "single-file"]
@@ -166,6 +167,7 @@ class PackageMenderClientChecker:
         assert "Stopped Mender OTA update service." in result.stdout
 
 
+@pytest.mark.golangclient
 class TestPackageMenderClientDefaults(PackageMenderClientChecker):
     """Tests instalation, setup, start, removal and purge of mender-client deb package with
     in non-interactive method (i.e. default configuration).
@@ -264,6 +266,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         self.check_removed_files(setup_tester_ssh_connection, purge=True)
 
 
+@pytest.mark.golangclient
 class TestPackageMenderClientInteractive(PackageMenderClientChecker):
     """Tests instalation, setup, start, removal and purge of mender-client deb package with
     in interactive method (i.e. user navigates wizard via stdin).
