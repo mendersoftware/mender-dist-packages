@@ -111,17 +111,11 @@ echo "Building $recipe_name..."
 output_dir="output/opensource/${DISTRO}-${RELEASE}-${ARCH}"
 if [ $commercial = "true" ]; then
     output_dir="output/commercial/${DISTRO}-${RELEASE}-${ARCH}"
-elif [ "${SAVE_ORIG}" == "true" ]; then
-    output_dir="output/opensource/orig"
 fi
-mkdir -p "${output_dir}"
 
-# we build source packages only for amd64 and for non-commercial
-# (non source closed) components. there is no need to copy the orig
-# file if we do not need it, since later, during publication to the apt-repo
-# we clean them from incoming based on changes file, which refers to orig files
-# only for source builds. See MEN-5879.
-[[ "${SAVE_ORIG}" != "true" && "$commercial" != "true" && "$ARCH" == "amd64" ]] && mv -v output/opensource/orig/${recipe_name}*orig.tar.* "${output_dir}/"
+orig_dir="output/orig"
+
+mkdir -p "${output_dir}" "${orig_dir}"
 
 if [ "$arch_indep" = "true" -a "$ARCH" = "amd64" ]; then
     # On amd64, build architecture independent packages.
@@ -143,6 +137,7 @@ echo
 docker run --rm \
         --volume $(pwd)/recipes:/recipes \
         --volume $(pwd)/${output_dir}:/output \
+        --volume $(pwd)/${orig_dir}:/orig \
         --volume $(pwd)/mender-deb-package:/script \
         -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
         -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \

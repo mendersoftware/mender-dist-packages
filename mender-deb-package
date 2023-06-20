@@ -191,11 +191,9 @@ build_packages() {
   if [[ $DEB_BUILD_TYPE =~ source ]]; then
     # dh_make needs a name of the user in the env
     export USER=root
-    # Copy orig tarball to create the source package
-    cp -v /output/*orig.tar.gz /tmp/;
     # dh_make returns 1 because debian directory exists,
     # hence the || true, without orig file buildpackage command would fail
-    dh_make --file /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
+    dh_make --file /orig/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz --packagename "${DEB_PACKAGE}_${DEB_VERSION_NO_REV}" -s -y || true
   fi
 
   case "$ARCH" in
@@ -252,18 +250,20 @@ build_packages() {
   esac
 }
 
-copy_packages_to_output() {
-  if [[ "${SAVE_ORIG}" == "true" ]]; then
-    [[ -f /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz ]] && cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /output/
-  else
-    # Copy package files to /output
-    for file in $(find ../ -maxdepth 1 -type f); do
-      cp ${file} /output
-    done
-    # Echo the package version to /output
-    echo ${DEB_VERSION} > /output/${DEB_PACKAGE}-deb-version
-  fi;
+copy_orig_packages() {
+  if [ -f /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz ]; then
+    cp /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz /orig/
+  fi
+  # Give packages same owner as the folder.
+  chown --reference /orig /orig/*
+}
 
+copy_deb_packages() {
+  for file in $(find ../ -maxdepth 1 -type f); do
+    cp ${file} /output
+  done
+  # Echo the package version to /output
+  echo ${DEB_VERSION} > /output/${DEB_PACKAGE}-deb-version
   # Give packages same owner as the folder.
   chown --reference /output /output/*
 }
@@ -295,12 +295,14 @@ if [[ "${SAVE_ORIG}" == "true" ]]; then
 
   build_orig
 
+  copy_orig_packages
+
 else
 
   install_go
 
   build_packages
 
-fi
+  copy_deb_packages
 
-copy_packages_to_output
+fi
