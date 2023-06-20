@@ -245,6 +245,7 @@ EOF
         # Custom toolchain to support ARMv6
         CROSS_COMPILE="arm-buildroot-linux-gnueabihf" \
                     CC="$CROSS_COMPILE-gcc" \
+                    CXX="$CROSS_COMPILE-g++" \
                     PATH="$PATH:${ARMV6_TOOLCHAIN_ROOT}/bin" \
                     LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${ARMV6_TOOLCHAIN_ROOT}/lib:${ARMV6_TOOLCHAIN_ROOT}/usr/lib" \
                     CGO_CFLAGS="-I${ARMV6_TOOLCHAIN_ROOT}/usr/include \
