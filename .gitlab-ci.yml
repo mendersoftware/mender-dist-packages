@@ -66,6 +66,8 @@ build:orig:debian:buster:amd64:
     DISTRO: "debian"
     RELEASE: "buster"
     ARCH: "amd64"
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - apk --update --no-cache add bash
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
@@ -84,6 +86,8 @@ build:packages:
     - mender-qa-worker-generic
   services:
     - docker:dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - apk --update --no-cache add bash
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
