@@ -36,7 +36,7 @@ variables:
         RELEASE: [buster, bullseye]
         ARCH: [amd64, armhf, arm64]
       - DISTRO: ubuntu
-        RELEASE: [bionic, focal, jammy]
+        RELEASE: [focal, jammy]
         ARCH: [amd64, armhf, arm64]
 
 include:
