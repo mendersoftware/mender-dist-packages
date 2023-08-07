@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -507,9 +507,6 @@ check_dist_and_version() {
                 ;;
                 focal)
                     DIST_VERSION="focal"
-                ;;
-                bionic)
-                    DIST_VERSION="bionic"
                 ;;
                 *)
                     echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
