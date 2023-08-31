@@ -27,6 +27,8 @@ variables:
   PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC: "false"
   # Workaround for GitLab intermittent networking
   FF_NETWORK_PER_BUILD: 1
+  # Builder image version
+  IMAGE_VERSION: "master"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix:

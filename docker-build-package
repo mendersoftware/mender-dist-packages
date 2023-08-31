@@ -143,7 +143,7 @@ docker run --rm \
         -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
         -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
         -e MENDER_PRIVATE_GPG_KEY_BUILD="${MENDER_PRIVATE_GPG_KEY_BUILD}" \
-        ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-master \
+        ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \
         ${BUILD_TYPE} \
