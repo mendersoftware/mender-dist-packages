@@ -248,19 +248,20 @@ EOF
         # we set -W no-psabi
         # https://gcc.gnu.org/gcc-7/changes.html
         if [ "${OS_CODENAME}" = "buster" ]; then
-          PATH="/opt/cross-pi-gcc-8.3.0-0/bin:$PATH" \
-              PKG_CONFIG_PATH="/opt/cross-pi-gcc-8.3.0-0/arm-linux-gnueabihf/libc/usr/lib/pkgconfig/" \
-              PKG_CONFIG_SYSROOT_DIR="/opt/cross-pi-gcc-8.3.0-0/arm-linux-gnueabihf/libc/" \
-              CROSS_COMPILE="arm-linux-gnueabihf" \
-              CC="$CROSS_COMPILE-gcc" \
-              CXX=${CROSS_COMPILE}-g++ \
-              CXXFLAGS=" -Wno-psabi" \
-              GOARCH=arm \
-              GOARM=6 \
-              dpkg-buildpackage -aarmhf \
-              ${sign_flags} \
-              "${dpkg_build_ignore_flag}" \
-              ${skip_patches_flag} \
+          SYSROOT="/opt/cross-pi-gcc-8.3.0-0/arm-linux-gnueabihf/libc/"
+          PATH="/opt/cross-pi-gcc-8.3.0-0/bin:$PATH"         \
+              PKG_CONFIG_PATH="${SYSROOT}usr/lib/pkgconfig/" \
+              PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"            \
+              CROSS_COMPILE="arm-linux-gnueabihf"            \
+              CC="$CROSS_COMPILE-gcc"                        \
+              CXX=${CROSS_COMPILE}-g++                       \
+              CXXFLAGS=" -Wno-psabi"                         \
+              GOARCH=arm                                     \
+              GOARM=6                                        \
+              dpkg-buildpackage -aarmhf                      \
+              ${sign_flags}                                  \
+              "${dpkg_build_ignore_flag}"                    \
+              ${skip_patches_flag}                           \
               --build=$DEB_BUILD_TYPE
         fi
         if [ "${OS_CODENAME}" = "bullseye" ]; then
