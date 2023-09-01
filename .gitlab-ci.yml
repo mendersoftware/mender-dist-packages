@@ -191,11 +191,16 @@ test:check-python3-formatting:
         fi
 
 test:acceptance:golang:
+  rules:
+    - if: $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/
   extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not cppclient"
 
 test:acceptance:cpp:
+  rules:
+    - if: $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/
+    - if: $MENDER_VERSION == "master"
   extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not golangclient"
