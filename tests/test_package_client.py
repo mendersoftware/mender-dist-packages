@@ -169,7 +169,7 @@ class PackageMenderClientChecker:
 
 @pytest.mark.golangclient
 class TestPackageMenderClientDefaults(PackageMenderClientChecker):
-    """Tests instalation, setup, start, removal and purge of mender-client deb package with
+    """Tests installation, setup, start, removal and purge of mender-client deb package with
     in non-interactive method (i.e. default configuration).
     """
 
