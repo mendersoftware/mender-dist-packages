@@ -27,6 +27,8 @@ variables:
   PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC: "false"
   # Workaround for GitLab intermittent networking
   FF_NETWORK_PER_BUILD: 1
+  # Builder image version
+  IMAGE_VERSION: "master"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix:
@@ -71,9 +73,9 @@ build:orig:debian:buster:amd64:
   script:
     - apk --update --no-cache add bash
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
-    # - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
-    # - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
-    # - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -91,13 +93,13 @@ build:packages:
   script:
     - apk --update --no-cache add bash
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
-    # - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
-    # - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    # - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
-    # - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    # -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
-    # -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
-    # - fi
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
+    - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
+    - fi
     - find output -type f
   artifacts:
     paths:
@@ -189,11 +191,16 @@ test:check-python3-formatting:
         fi
 
 test:acceptance:golang:
+  rules:
+    - if: $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/
   extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not cppclient"
 
 test:acceptance:cpp:
+  rules:
+    - if: $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/
+    - if: $MENDER_VERSION == "master"
   extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not golangclient"
