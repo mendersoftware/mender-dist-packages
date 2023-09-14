@@ -56,6 +56,13 @@ declare -A mender_gateway_props=(
     [commercial]="true"
 )
 
+declare -A mender_app_update_module_props=(
+    [recipe_name]="mender-app-update-module"
+    [src_url]="https://github.com/mendersoftware/app-update-module"
+    [arch_indep]="true"
+    [commercial]="false"
+)
+
 declare -a packages=(
     mender_client_props
     mender_connect_props
@@ -63,6 +70,7 @@ declare -a packages=(
     mender_artifact_props
     mender_gateway_props
     mender_monitor_props
+    mender_app_update_module_props
 )
 
 # Parse args
@@ -106,7 +114,7 @@ if [ "$arch_indep" = "true" -a "$ARCH" != "amd64" ]; then
     exit 0
 fi
 
-echo "Building $recipe_name..."
+echo "Building $recipe_name... $*"
 
 output_dir="output/opensource/${DISTRO}-${RELEASE}-${ARCH}"
 if [ $commercial = "true" ]; then

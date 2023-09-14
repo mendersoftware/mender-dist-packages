@@ -1,0 +1,15 @@
+Source: mender-app-update-module
+Maintainer: Mender Team <mender@northern.tech>
+Section: admin
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: mender-app-update-module
+Architecture: all
+Depends: ${misc:Depends}
+Suggests: mender-client
+Description: Mender Application Update Modules
+ Mender provides application updates via modules. They provide
+ a way to update and manage container-based deployments.
+ 
