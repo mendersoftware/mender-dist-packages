@@ -114,7 +114,7 @@ if [ "$arch_indep" = "true" -a "$ARCH" != "amd64" ]; then
     exit 0
 fi
 
-echo "Building $recipe_name... $*"
+echo "Building $recipe_name with arguments: $*"
 
 output_dir="output/opensource/${DISTRO}-${RELEASE}-${ARCH}"
 if [ $commercial = "true" ]; then

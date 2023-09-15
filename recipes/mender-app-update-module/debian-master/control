@@ -7,8 +7,7 @@ Build-Depends: debhelper (>= 9)
 
 Package: mender-app-update-module
 Architecture: all
-Depends: ${misc:Depends}
-Suggests: mender-client
+Depends: mender-client (>3.2.0), ${misc:Depends}
 Description: Mender Application Update Modules
  Mender provides application updates via modules. They provide
  a way to update and manage container-based deployments.
