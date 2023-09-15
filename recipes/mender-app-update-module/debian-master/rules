@@ -3,14 +3,6 @@
 %:
 	dh $@
 
-override_dh_auto_build:
-	true
-
 override_dh_auto_install:
 	DESTDIR=debian/mender-app-update-module make install
 
-override_dh_auto_test:
-	true
-
-override_dh_strip:
-	true
