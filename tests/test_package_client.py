@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -167,7 +167,7 @@ class PackageMenderClientChecker:
 
 
 class TestPackageMenderClientDefaults(PackageMenderClientChecker):
-    """Tests instalation, setup, start, removal and purge of mender-client deb package with
+    """Tests installation, setup, start, removal and purge of mender-client deb package with
     in non-interactive method (i.e. default configuration).
     """
 
@@ -265,7 +265,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
 
 class TestPackageMenderClientInteractive(PackageMenderClientChecker):
-    """Tests instalation, setup, start, removal and purge of mender-client deb package with
+    """Tests installation, setup, start, removal and purge of mender-client deb package with
     in interactive method (i.e. user navigates wizard via stdin).
     """
 

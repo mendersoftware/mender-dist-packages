@@ -47,7 +47,7 @@ class PackageMenderAppUpdateModuleChecker:
 
 
 class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
-    """Tests instalation, setup, start, removal and purge of mender-app-update-module deb package with
+    """Tests installation, setup, and removal of mender-app-update-module deb package with
     in non-interactive method (i.e. default configuration).
     """
 
