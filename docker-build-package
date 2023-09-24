@@ -63,6 +63,20 @@ declare -A mender_app_update_module_props=(
     [commercial]="false"
 )
 
+declare -A mender_setup_props=(
+    [recipe_name]="mender-setup"
+    [src_url]="https://github.com/mendersoftware/mender-setup"
+    [arch_indep]="false"
+    [commercial]="false"
+)
+
+declare -A mender_snapshot_props=(
+    [recipe_name]="mender-snapshot"
+    [src_url]="https://github.com/mendersoftware/mender-snapshot"
+    [arch_indep]="false"
+    [commercial]="false"
+)
+
 declare -a packages=(
     mender_client_props
     mender_connect_props
@@ -71,6 +85,8 @@ declare -a packages=(
     mender_gateway_props
     mender_monitor_props
     mender_app_update_module_props
+    mender_setup_props
+    mender_snapshot_props
 )
 
 # Parse args
