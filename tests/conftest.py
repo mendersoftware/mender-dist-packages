@@ -29,24 +29,20 @@ def setup_test_container_props(request):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--mender-client-version", required=True)
-    parser.addoption("--mender-client-deb-version", required=True)
-    parser.addoption("--mender-connect-version", required=True)
-    parser.addoption("--mender-connect-deb-version", required=True)
-    parser.addoption("--mender-configure-version", required=True)
-    parser.addoption("--mender-configure-deb-version", required=True)
-    parser.addoption("--mender-artifact-version", required=True)
-    parser.addoption("--mender-artifact-deb-version", required=True)
-    parser.addoption(
-        "--mender-app-update-module-version", required=False, default="none"
-    )
-    parser.addoption(
-        "--mender-app-update-module-deb-version", required=False, default="none"
-    )
-    parser.addoption("--mender-gateway-version", required=False, default="none")
-    parser.addoption("--mender-gateway-deb-version", required=False, default="none")
-    parser.addoption("--mender-monitor-version", required=False, default="none")
-    parser.addoption("--mender-monitor-deb-version", required=False, default="none")
+    parser.addoption("--mender-client-version", required=False)
+    parser.addoption("--mender-client-deb-version", required=False)
+    parser.addoption("--mender-connect-version", required=False)
+    parser.addoption("--mender-connect-deb-version", required=False)
+    parser.addoption("--mender-configure-version", required=False)
+    parser.addoption("--mender-configure-deb-version", required=False)
+    parser.addoption("--mender-artifact-version", required=False)
+    parser.addoption("--mender-artifact-deb-version", required=False)
+    parser.addoption("--mender-app-update-module-version", required=False)
+    parser.addoption("--mender-app-update-module-deb-version", required=False)
+    parser.addoption("--mender-gateway-version", required=False)
+    parser.addoption("--mender-gateway-deb-version", required=False)
+    parser.addoption("--mender-monitor-version", required=False)
+    parser.addoption("--mender-monitor-deb-version", required=False)
     parser.addoption(
         "--commercial-tests", action="store_true", required=False, default=False
     )
