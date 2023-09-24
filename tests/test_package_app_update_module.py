@@ -14,9 +14,7 @@
 #    limitations under the License.
 
 import pytest
-import time
 import os.path
-import re
 
 from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
@@ -27,7 +25,7 @@ class PackageMenderAppUpdateModuleChecker:
     expected_update_modules = ["app"]
     expected_update_app_modules = ["k8s", "docker-compose"]
 
-    def check_installed_files(self, ssh_connection, device_type="unknown"):
+    def check_installed_files(self, ssh_connection):
         ssh_connection.run("test -d /usr/share/mender/modules/v3")
         ssh_connection.run("test -d /usr/share/mender/app-modules/v1")
         for module in self.expected_update_modules:
@@ -37,7 +35,7 @@ class PackageMenderAppUpdateModuleChecker:
             module_path = os.path.join("/usr/share/mender/app-modules/v1", module)
             ssh_connection.run("test -x {mod}".format(mod=module_path))
 
-    def check_removed_files(self, ssh_connection, purge):
+    def check_removed_files(self, ssh_connection):
         for module in self.expected_update_modules:
             module_path = os.path.join("/usr/share/mender/modules/v3", module)
             ssh_connection.run("test ! -x {mod}".format(mod=module_path))
@@ -47,14 +45,11 @@ class PackageMenderAppUpdateModuleChecker:
 
 
 class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
-    """Tests installation, setup, and removal of mender-app-update-module deb package with
-    in non-interactive method (i.e. default configuration).
+    """Tests installation, and removal of mender-app-update-module deb package.
     """
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_install(
-        self, setup_tester_ssh_connection, mender_dist_packages_versions, mender_version
-    ):
+    def test_install(self, setup_tester_ssh_connection, mender_dist_packages_versions):
         result = setup_tester_ssh_connection.run("uname -a")
         assert "raspberrypi" in result.stdout
 
@@ -77,7 +72,7 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
         )
 
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
+            "sudo dpkg -i "
             + package_filename(
                 mender_dist_packages_versions["mender-app-update-module"],
                 package_name="mender-app-update-module",
@@ -97,7 +92,7 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
             in result.stdout
         )
 
-        self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
+        self.check_installed_files(setup_tester_ssh_connection)
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_remove(self, setup_tester_ssh_connection, mender_dist_packages_versions):
@@ -111,4 +106,4 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
             in result.stdout
         )
 
-        self.check_removed_files(setup_tester_ssh_connection, purge=False)
+        self.check_removed_files(setup_tester_ssh_connection)
