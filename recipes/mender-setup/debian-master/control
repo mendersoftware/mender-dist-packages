@@ -1,0 +1,12 @@
+Source: mender-setup
+Maintainer: Mender Team <mender@northern.tech>
+Section: admin
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: mender-setup
+Architecture: all
+Depends: ${misc:Depends}
+Description: Mender Setup is a tool to configure the Mender client. It writes the
+ configuration in the Mender client configuration file `/etc/mender/mender.conf`.
