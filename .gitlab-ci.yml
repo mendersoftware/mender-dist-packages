@@ -7,6 +7,8 @@ variables:
   MENDER_CONFIGURE_VERSION: "master"
   MENDER_ARTIFACT_VERSION: "master"
   MENDER_APP_UPDATE_MODULE_VERSION: "master"
+  MENDER_SETUP_VERSION: "master"
+  MENDER_SNAPSHOT_VERSION: "master"
   MENDER_GATEWAY_VERSION: "master"
   MENDER_MONITOR_VERSION: "master"
   # Bucket name
@@ -76,6 +78,8 @@ build:orig:debian:buster:amd64:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -97,6 +101,8 @@ build:packages:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
@@ -172,20 +178,14 @@ test:acceptance:
       --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
       --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION
       --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)
+      --mender-setup-version $MENDER_SETUP_VERSION
+      --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)
+      --mender-snapshot-version $MENDER_SNAPSHOT_VERSION
+      --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
     - |-
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] && \
            [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
           python3 -m pytest -v \
-            --mender-client-version $MENDER_VERSION \
-            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client-deb-version) \
-            --mender-connect-version $MENDER_CONNECT_VERSION \
-            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version) \
-            --mender-configure-version $MENDER_CONFIGURE_VERSION \
-            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version) \
-            --mender-artifact-version $MENDER_ARTIFACT_VERSION \
-            --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version) \
-            --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION \
-            --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version) \
             --mender-gateway-version $MENDER_GATEWAY_VERSION \
             --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version) \
             --mender-monitor-version $MENDER_MONITOR_VERSION \

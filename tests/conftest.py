@@ -29,24 +29,24 @@ def setup_test_container_props(request):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--mender-client-version", required=True)
-    parser.addoption("--mender-client-deb-version", required=True)
-    parser.addoption("--mender-connect-version", required=True)
-    parser.addoption("--mender-connect-deb-version", required=True)
-    parser.addoption("--mender-configure-version", required=True)
-    parser.addoption("--mender-configure-deb-version", required=True)
-    parser.addoption("--mender-artifact-version", required=True)
-    parser.addoption("--mender-artifact-deb-version", required=True)
-    parser.addoption(
-        "--mender-app-update-module-version", required=False, default="none"
-    )
-    parser.addoption(
-        "--mender-app-update-module-deb-version", required=False, default="none"
-    )
-    parser.addoption("--mender-gateway-version", required=False, default="none")
-    parser.addoption("--mender-gateway-deb-version", required=False, default="none")
-    parser.addoption("--mender-monitor-version", required=False, default="none")
-    parser.addoption("--mender-monitor-deb-version", required=False, default="none")
+    parser.addoption("--mender-client-version", required=False)
+    parser.addoption("--mender-client-deb-version", required=False)
+    parser.addoption("--mender-connect-version", required=False)
+    parser.addoption("--mender-connect-deb-version", required=False)
+    parser.addoption("--mender-configure-version", required=False)
+    parser.addoption("--mender-configure-deb-version", required=False)
+    parser.addoption("--mender-artifact-version", required=False)
+    parser.addoption("--mender-artifact-deb-version", required=False)
+    parser.addoption("--mender-app-update-module-version", required=False)
+    parser.addoption("--mender-app-update-module-deb-version", required=False)
+    parser.addoption("--mender-setup-version", required=False)
+    parser.addoption("--mender-setup-deb-version", required=False)
+    parser.addoption("--mender-snapshot-version", required=False)
+    parser.addoption("--mender-snapshot-deb-version", required=False)
+    parser.addoption("--mender-gateway-version", required=False)
+    parser.addoption("--mender-gateway-deb-version", required=False)
+    parser.addoption("--mender-monitor-version", required=False)
+    parser.addoption("--mender-monitor-deb-version", required=False)
     parser.addoption(
         "--commercial-tests", action="store_true", required=False, default=False
     )
@@ -75,6 +75,16 @@ def mender_artifact_version(request):
 @pytest.fixture(scope="session")
 def mender_app_update_module_version(request):
     return request.config.getoption("--mender-app-update-module-version")
+
+
+@pytest.fixture(scope="session")
+def mender_setup_version(request):
+    return request.config.getoption("--mender-setup-version")
+
+
+@pytest.fixture(scope="session")
+def mender_snapshot_version(request):
+    return request.config.getoption("--mender-snapshot-version")
 
 
 @pytest.fixture(scope="session")
@@ -113,6 +123,8 @@ def mender_dist_packages_versions(request):
         "mender-app-update-module": request.config.getoption(
             "--mender-app-update-module-deb-version"
         ),
+        "mender-setup": request.config.getoption("--mender-setup-deb-version"),
+        "mender-snapshot": request.config.getoption("--mender-snapshot-deb-version"),
         "mender-gateway": request.config.getoption("--mender-gateway-deb-version"),
         "mender-monitor": request.config.getoption("--mender-monitor-deb-version"),
     }
@@ -178,6 +190,24 @@ def min_mender_app_update_module_version(request):
         request,
         "min_mender_app_update_module_version",
         request.config.getoption("--mender-app-update-module-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_setup_version(request):
+    min_version_impl(
+        request,
+        "min_setup_version",
+        request.config.getoption("--mender-setup-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_snapshot_version(request):
+    min_version_impl(
+        request,
+        "min_snapshot_version",
+        request.config.getoption("--mender-snapshot-version"),
     )
 
 
