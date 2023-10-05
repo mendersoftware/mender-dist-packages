@@ -212,10 +212,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         self.check_systemd_start_full_cycle(setup_tester_ssh_connection)
 
     def test_service_starts_after_reboot(
-        self,
-        setup_test_container,
-        setup_tester_ssh_connection,
-        mender_dist_packages_versions,
+        self, setup_test_container, setup_tester_ssh_connection,
     ):
         # Reboot in the background, so that SSH can exit properly
         setup_tester_ssh_connection.run("sleep 1 && sudo reboot &")
