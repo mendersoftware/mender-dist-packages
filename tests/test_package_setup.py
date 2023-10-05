@@ -35,7 +35,7 @@ class TestPackageSetup:
         )
 
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg -i "
+            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
             + package_filename(
                 mender_dist_packages_versions["mender-setup"],
                 package_name="mender-setup",
@@ -53,5 +53,66 @@ class TestPackageSetup:
             + ")"
             in result.stdout
         )
-
         setup_tester_ssh_connection.run("test -x /usr/bin/mender-setup")
+        setup_tester_ssh_connection.run("test -f /etc/mender/mender.conf")
+        setup_tester_ssh_connection.run("test -f /var/lib/mender/device_type")
+
+        # Default setup expects ServerURL hosted.mender.io
+        result = setup_tester_ssh_connection.sudo("cat /etc/mender/mender.conf")
+        assert '"ServerURL": "https://hosted.mender.io"' in result.stdout
+
+        # Device type
+        setup_tester_ssh_connection.run("test -f /var/lib/mender/device_type")
+        result = setup_tester_ssh_connection.run("cat /var/lib/mender/device_type")
+        assert "device_type=raspberrypi" in result.stdout
+
+        result = setup_tester_ssh_connection.run("sudo dpkg --remove mender-setup")
+        assert (
+            "Removing mender-setup ("
+            + mender_dist_packages_versions["mender-setup"]
+            + ")"
+            in result.stdout
+        )
+        setup_tester_ssh_connection.run("test ! -x /usr/bin/mender-setup")
+        setup_tester_ssh_connection.run("test -f /etc/mender/mender.conf")
+        setup_tester_ssh_connection.run("test -f /var/lib/mender/device_type")
+
+        # Purging mender-setup does not remove the configuration
+        setup_tester_ssh_connection.run("sudo dpkg --purge mender-setup")
+        setup_tester_ssh_connection.run("test -f /etc/mender/mender.conf")
+        setup_tester_ssh_connection.run("test -f /var/lib/mender/device_type")
+
+        # Re-install the package using the following flow for the setup wizard:
+        # ...
+        # Enter a name for the device type (e.g. raspberrypi3): [raspberrypi] raspberrytest
+        # Are you connecting this device to hosted.mender.io? [Y/n] n
+        # Do you want to run the client in demo mode? [Y/n] y
+        # Set the IP of the Mender Server: [127.0.0.1] 1.2.3.4
+        # Mender setup successfully.
+        # ...
+        setup_tester_ssh_connection.run("sudo rm /etc/mender/mender.conf")
+        setup_tester_ssh_connection.run("sudo rm /var/lib/mender/device_type")
+        setup_tester_ssh_connection.run(
+            "sudo dpkg -i "
+            + package_filename(
+                mender_dist_packages_versions["mender-setup"], "mender-setup"
+            )
+            + """ <<STDIN
+raspberrytest
+n
+y
+1.2.3.4
+y
+STDIN"""
+        )
+
+        result = setup_tester_ssh_connection.run("cat /var/lib/mender/device_type")
+        assert "device_type=raspberrytest" in result.stdout
+        # Demo setup expects ServerURL docker.mender.io with IP address in /etc/hosts
+        result = setup_tester_ssh_connection.sudo("cat /etc/mender/mender.conf")
+        assert '"ServerURL": "https://docker.mender.io"' in result.stdout
+        result = setup_tester_ssh_connection.run("cat /etc/hosts")
+        assert (
+            re.match(r".*1\.2\.3\.4\s*docker\.mender\.io.*", result.stdout, re.DOTALL)
+            is not None
+        )

@@ -2,7 +2,7 @@
 
 set -e
 
-# If the file exists, we understand that mender setup was already run or
+# If the file exists, we understand that mender-setup was already run or
 # the device was manually configured at some point. Do nothing.
 if [ ! -f /etc/mender/mender.conf ]; then
 
@@ -10,7 +10,7 @@ if [ ! -f /etc/mender/mender.conf ]; then
     # configuration with a dummy device type and tenant token.
     DEVICE_TYPE=${DEVICE_TYPE:=$(cat /etc/hostname)}
     if [ "$DEBIAN_FRONTEND" == "noninteractive" ]; then
-        mender setup \
+        mender-setup \
             --quiet \
             --device-type "${DEVICE_TYPE}" \
             --demo=false \
@@ -22,7 +22,7 @@ if [ ! -f /etc/mender/mender.conf ]; then
 
     # Run the interactive setup wizard
     else
-        mender setup
+        mender-setup
     fi
 
 fi

@@ -41,7 +41,7 @@ class PackageMenderClientChecker:
             result = ssh_connection.run("mender -version")
             assert mender_version in result.stdout
 
-    def check_installed_files(self, ssh_connection, device_type="unknown"):
+    def check_installed_files(self, ssh_connection):
         ssh_connection.run("test -x /usr/bin/mender")
         ssh_connection.run("test -d /usr/share/mender/modules/v3")
         for module in self.expected_update_modules:
@@ -55,7 +55,6 @@ class PackageMenderClientChecker:
             identity_path = os.path.join("/usr/share/mender/identity", identity)
             ssh_connection.run("test -x {ident}".format(ident=identity_path))
         ssh_connection.run("test -d /etc/mender")
-        ssh_connection.run("test -f /etc/mender/mender.conf")
         ssh_connection.run("test -f /etc/mender/scripts/version")
         result = ssh_connection.run("cat /etc/mender/scripts/version")
         assert "3" == result.stdout
@@ -65,17 +64,47 @@ class PackageMenderClientChecker:
         )
         ssh_connection.run("test -f /usr/share/doc/mender-client/examples/demo.crt")
 
-        # Device type
-        ssh_connection.run("test -f /var/lib/mender/device_type")
-        result = ssh_connection.run("cat /var/lib/mender/device_type")
-        assert "device_type={}".format(device_type) in result.stdout
-
         # Northern.tech copyright file
         ssh_connection.run("test -f /usr/share/doc/mender-client/copyright")
         result = ssh_connection.run(
             "tail -n +2 /usr/share/doc/mender-client/copyright | md5sum"
         )
         assert result.stdout.split(" ")[0] == self.expected_copyright_from_l2_md5sum
+
+    def configure_mender_client(self, ssh_connection):
+        """
+        Manually configures the mender-client for the rest of the test. Before mender-client 4.0
+        this was done by mender setup command and now it is handled by the mender-setup tool.
+        """
+
+        default_configuration = """
+{
+    "HttpsClient": {},
+    "Security": {},
+    "Connectivity": {},
+    "DeviceTypeFile": "/var/lib/mender/device_type",
+    "DBus": {
+        "Enabled": true
+    },
+    "UpdatePollIntervalSeconds": 1800,
+    "InventoryPollIntervalSeconds": 28800,
+    "RetryPollIntervalSeconds": 300,
+    "TenantToken": "Paste your Hosted Mender token here",
+    "Servers": [
+        {
+            "ServerURL": "https://hosted.mender.io"
+        }
+    ]
+}
+"""
+        ssh_connection.run(
+            "echo '" + default_configuration + "' | sudo tee /etc/mender/mender.conf"
+        )
+        ssh_connection.run("sudo mkdir -p /var/lib/mender/")
+        ssh_connection.run(
+            "echo device_type=raspberrypi | sudo tee /var/lib/mender/device_type"
+        )
+        ssh_connection.run("sudo systemctl restart mender-client")
 
     def check_systemd_start_full_cycle(self, ssh_connection):
         """
@@ -151,15 +180,12 @@ class PackageMenderClientChecker:
         ssh_connection.run("test ! -f /usr/share/doc/mender-client/examples/demo.crt")
         ssh_connection.run("test -d /var/lib/mender/")
         if purge:
-            ssh_connection.run("test ! -f /etc/mender/mender.conf")
-            ssh_connection.run("test ! -f /var/lib/mender/device_type")
             ssh_connection.run("test ! -f /etc/mender/scripts/version")
-            ssh_connection.run("test ! -d /etc/mender")
         else:
+            ssh_connection.run("test -f /etc/mender/scripts/version")
+            # Purging mender-client removes the configuration, even if it was created externally
             ssh_connection.run("test -f /etc/mender/mender.conf")
             ssh_connection.run("test -f /var/lib/mender/device_type")
-            ssh_connection.run("test -f /etc/mender/scripts/version")
-            ssh_connection.run("test -d /etc/mender")
 
         result = ssh_connection.run("sudo journalctl -u mender-client --no-pager")
         assert "Stopping Mender OTA update service..." in result.stdout
@@ -203,11 +229,9 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
-        self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
+        self.check_installed_files(setup_tester_ssh_connection)
 
-        # Default setup expects ServerURL hosted.mender.io
-        result = setup_tester_ssh_connection.sudo("cat /etc/mender/mender.conf")
-        assert '"ServerURL": "https://hosted.mender.io"' in result.stdout
+        self.configure_mender_client(setup_tester_ssh_connection)
 
         self.check_systemd_start_full_cycle(setup_tester_ssh_connection)
 
@@ -259,68 +283,3 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         )
 
         self.check_removed_files(setup_tester_ssh_connection, purge=True)
-
-
-class TestPackageMenderClientInteractive(PackageMenderClientChecker):
-    """Tests installation, setup, start, removal and purge of mender-client deb package with
-    in interactive method (i.e. user navigates wizard via stdin).
-    """
-
-    @pytest.mark.usefixtures("setup_test_container")
-    def test_install_configure_start(
-        self, setup_tester_ssh_connection, mender_dist_packages_versions, mender_version
-    ):
-        result = setup_tester_ssh_connection.run("uname -a")
-        assert "raspberrypi" in result.stdout
-
-        upload_deb_package(
-            setup_tester_ssh_connection, mender_dist_packages_versions["mender-client"]
-        )
-
-        # Install the package using the following flow for "mender setup":
-        # ...
-        # Enter a name for the device type (e.g. raspberrypi3): [raspberrypi] raspberrytest
-        # Are you connecting this device to hosted.mender.io? [Y/n] n
-        # Do you want to run the client in demo mode? [Y/n] y
-        # Set the IP of the Mender Server: [127.0.0.1] 1.2.3.4
-        # Mender setup successfully.
-        # ...
-        result = setup_tester_ssh_connection.run(
-            "sudo dpkg -i "
-            + package_filename(mender_dist_packages_versions["mender-client"])
-            + """ <<STDIN
-raspberrytest
-n
-y
-1.2.3.4
-y
-STDIN"""
-        )
-
-        assert (
-            "Unpacking mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-
-        self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
-
-        self.check_installed_files(setup_tester_ssh_connection, "raspberrytest")
-
-        # Demo setup expects ServerURL docker.mender.io with IP address in /etc/hosts
-        result = setup_tester_ssh_connection.sudo("cat /etc/mender/mender.conf")
-        assert '"ServerURL": "https://docker.mender.io"' in result.stdout
-        result = setup_tester_ssh_connection.run("cat /etc/hosts")
-        assert (
-            re.match(r".*1\.2\.3\.4\s*docker\.mender\.io.*", result.stdout, re.DOTALL)
-            is not None
-        )
-
-        self.check_systemd_start_full_cycle(setup_tester_ssh_connection)
