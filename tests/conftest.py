@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-from distutils.version import LooseVersion
+import packaging.version
 
 import pytest
 
@@ -141,10 +141,12 @@ def min_version_impl(request, marker, min_version):
     version_mark = request.node.get_closest_marker(marker)
     if version_mark is not None:
         try:
-            if LooseVersion(version_mark.args[0]) > LooseVersion(min_version):
+            if packaging.version.Version(
+                version_mark.args[0]
+            ) > packaging.version.Version(min_version):
                 pytest.skip("Test requires %s %s" % (marker, version_mark.args[0]))
-        except TypeError:
-            # Type error indicates that 'version' is likely a string (master).
+        except packaging.version.InvalidVersion:
+            # Indicates that 'version' is likely a string (master).
             pass
 
 
