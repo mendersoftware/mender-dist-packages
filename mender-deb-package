@@ -208,7 +208,6 @@ Package: cmake*
 Pin: release a=buster-backports
 Pin-Priority: 999
 EOF
-    apt update
     # We want the patches applied for Debian Buster
     rm -f debian/source/local-options
     skip_patches_flag=
@@ -216,6 +215,8 @@ EOF
     # Skip applying the patches
     rm -f debian/patches/series
   fi
+
+  apt-get update
 
   # Install the builder architecture independent dependencies from the debian/control file
   mk-build-deps --install \
