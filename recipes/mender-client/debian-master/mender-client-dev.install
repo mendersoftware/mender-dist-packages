@@ -1,2 +1,1 @@
-/usr/share/dbus-1/interfaces/io.mender.Authentication1.xml
-/usr/share/dbus-1/interfaces/io.mender.Update1.xml
+Documentation/io.mender.*.xml /usr/share/dbus-1/interfaces/
