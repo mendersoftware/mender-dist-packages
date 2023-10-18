@@ -182,7 +182,7 @@ build_orig() {
 
 build_packages() {
   # For PRs and other development branches, we don't have GPG key
-  sign_flags=""
+  sign_flags=
   if [ "$(gpg --list-secret-keys)" == "" ]; then
     sign_flags="--unsigned-source --unsigned-changes"
   else
@@ -238,7 +238,7 @@ EOF
       # Native build (amd64)
       dpkg-buildpackage \
         ${sign_flags} \
-        "${dpkg_build_ignore_flag}" \
+        ${dpkg_build_ignore_flag} \
         --build=$DEB_BUILD_TYPE
       ;;
 
@@ -256,13 +256,13 @@ EOF
               PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"            \
               CROSS_COMPILE="arm-linux-gnueabihf"            \
               CC="$CROSS_COMPILE-gcc"                        \
-              CXX=${CROSS_COMPILE}-g++                       \
+              CXX="${CROSS_COMPILE}-g++"                     \
               CXXFLAGS=" -Wno-psabi"                         \
               GOARCH=arm                                     \
               GOARM=6                                        \
               dpkg-buildpackage -aarmhf                      \
               ${sign_flags}                                  \
-              "${dpkg_build_ignore_flag}"                    \
+              ${dpkg_build_ignore_flag}                      \
               ${skip_patches_flag}                           \
               --build=$DEB_BUILD_TYPE
         fi
@@ -275,12 +275,12 @@ EOF
               PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"            \
               CROSS_COMPILE="arm-linux-gnueabihf"            \
               CC="$CROSS_COMPILE-gcc"                        \
-              CXX=${CROSS_COMPILE}-g++                       \
+              CXX="${CROSS_COMPILE}-g++"                     \
               GOARCH=arm                                     \
               GOARM=6                                        \
               dpkg-buildpackage -aarmhf                      \
               ${sign_flags}                                  \
-              "${dpkg_build_ignore_flag}"                    \
+              ${dpkg_build_ignore_flag}                      \
               ${skip_patches_flag}                           \
               --build=$DEB_BUILD_TYPE
         fi
@@ -292,7 +292,7 @@ EOF
                      GOARCH=arm \
                      dpkg-buildpackage -aarmhf \
                      ${sign_flags} \
-                     "${dpkg_build_ignore_flag}" \
+                     ${dpkg_build_ignore_flag} \
                      ${skip_patches_flag} \
                      --build=$DEB_BUILD_TYPE
       fi
@@ -306,7 +306,7 @@ EOF
                    GOARCH=arm64 \
                    dpkg-buildpackage -aarm64 \
                    ${sign_flags} \
-                   "${dpkg_build_ignore_flag}" \
+                   ${dpkg_build_ignore_flag} \
                    ${skip_patches_flag} \
                    --build=$DEB_BUILD_TYPE
       ;;
