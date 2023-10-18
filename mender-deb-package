@@ -260,7 +260,8 @@ EOF
               CXXFLAGS=" -Wno-psabi"                         \
               GOARCH=arm                                     \
               GOARM=6                                        \
-              dpkg-buildpackage -aarmhf                      \
+              dpkg-buildpackage                              \
+              --target-arch armhf                            \
               ${sign_flags}                                  \
               ${dpkg_build_ignore_flag}                      \
               ${skip_patches_flag}                           \
@@ -278,7 +279,8 @@ EOF
               CXX="${CROSS_COMPILE}-g++"                     \
               GOARCH=arm                                     \
               GOARM=6                                        \
-              dpkg-buildpackage -aarmhf                      \
+              dpkg-buildpackage                              \
+              --target-arch armhf                            \
               ${sign_flags}                                  \
               ${dpkg_build_ignore_flag}                      \
               ${skip_patches_flag}                           \
@@ -290,7 +292,8 @@ EOF
                      CC="$CROSS_COMPILE-gcc" \
                      PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig/" \
                      GOARCH=arm \
-                     dpkg-buildpackage -aarmhf \
+                     dpkg-buildpackage \
+                     --target-arch armhf \
                      ${sign_flags} \
                      ${dpkg_build_ignore_flag} \
                      ${skip_patches_flag} \
@@ -304,7 +307,8 @@ EOF
                    CC="$CROSS_COMPILE-gcc" \
                    PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig/" \
                    GOARCH=arm64 \
-                   dpkg-buildpackage -aarm64 \
+                   dpkg-buildpackage \
+                   --target-arch arm64 \
                    ${sign_flags} \
                    ${dpkg_build_ignore_flag} \
                    ${skip_patches_flag} \
