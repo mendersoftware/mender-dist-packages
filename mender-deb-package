@@ -224,14 +224,19 @@ EOF
                 --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
                 debian/control
 
-
-  if ! [ "$OS_DISTRO" = "debian" -a "ARCH" = "armhf" ]; then
-    mk-build-deps --install \
-                  --build-dep \
-                  --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
-                  --host-arch ${ARCH} \
-                  debian/control
-  fi
+  # See MEN-6794 for more details.
+  # Install also the builder architecture dependencies for dh_shlibdeps to work correctly.
+  # This was originally intended to _not_ be installed for the Raspberry Pi Os build, but there was
+  # a bug in the if logic(*) that made the script always install them.
+  # While they are not used for the build step (iow, the binaries use the rpi headers and libs), the
+  # metadata is used by dh_shlibdeps to fill up the Dependencies in the resulting package.
+  #
+  # (*) https://github.com/mendersoftware/mender-dist-packages/commit/5f3ebd14#diff-a1c0857e31235a7e1f61a609fa8125f3fd2f1a12f04e1dbbba78931e89969a87R224
+  mk-build-deps --install \
+                --build-dep \
+                --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
+                --host-arch ${ARCH} \
+                debian/control
 
   case "$ARCH" in
     amd64)
