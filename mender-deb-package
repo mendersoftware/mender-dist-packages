@@ -299,7 +299,9 @@ if [[ "${SAVE_ORIG}" == "true" ]]; then
 
 else
 
-  install_go
+  if [[ -f "go.mod" ]]; then
+    install_go
+  fi
 
   build_packages
 
