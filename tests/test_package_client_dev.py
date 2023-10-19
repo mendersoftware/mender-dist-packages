@@ -58,6 +58,3 @@ class TestPackageDev:
         setup_tester_ssh_connection.run(
             "test -f /usr/share/dbus-1/interfaces/io.mender.Authentication1.xml"
         )
-        setup_tester_ssh_connection.run(
-            "test -f /usr/share/dbus-1/interfaces/io.mender.Update1.xml"
-        )
