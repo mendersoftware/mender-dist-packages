@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	DESTDIR=debian/mender-snapshot make install
+
+override_dh_auto_test:
+	true
+
+override_dh_strip:
+	${CROSS_COMPILE}-strip --remove-section=.comment --remove-section=.note \
+	debian/mender-snapshot/usr/bin/mender-snapshot
