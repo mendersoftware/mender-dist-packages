@@ -31,7 +31,7 @@ class TestPackageArtifact:
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg -i "
+            "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-artifact"], "mender-artifact",
             )

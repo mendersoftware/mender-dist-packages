@@ -37,7 +37,7 @@ class TestPackageAddons:
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg -i "
+            "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-connect"], "mender-connect"
             )
@@ -88,7 +88,7 @@ class TestPackageAddons:
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg -i "
+            "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-configure"],
                 "mender-configure",
@@ -137,7 +137,7 @@ class TestPackageAddons:
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg -i "
+            "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-monitor"],
                 "mender-monitor",

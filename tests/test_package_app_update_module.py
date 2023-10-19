@@ -61,7 +61,7 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
         )
 
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg --ignore-depends=mender-client -i "
+            "sudo dpkg --ignore-depends=mender-client --install "
             + package_filename(
                 mender_dist_packages_versions["mender-app-update-module"],
                 package_name="mender-app-update-module",
