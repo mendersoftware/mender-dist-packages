@@ -19,7 +19,7 @@ from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
 
 
-class TestPackageSetup:
+class TestPackageSnapshot:
     """Tests installation of mender-snapshot deb package.
     """
 
