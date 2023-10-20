@@ -54,17 +54,6 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
         assert "raspberrypi" in result.stdout
 
         upload_deb_package(
-            setup_tester_ssh_connection, mender_dist_packages_versions["mender-client"]
-        )
-
-        # Install the deb package. On failure, install the missing dependencies.
-        result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
-            + package_filename(mender_dist_packages_versions["mender-client"])
-            + "|| sudo apt-get -f -y install"
-        )
-
-        upload_deb_package(
             setup_tester_ssh_connection,
             mender_dist_packages_versions["mender-app-update-module"],
             package_name="mender-app-update-module",
@@ -72,7 +61,7 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
         )
 
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg -i "
+            "sudo dpkg --ignore-depends=mender-client -i "
             + package_filename(
                 mender_dist_packages_versions["mender-app-update-module"],
                 package_name="mender-app-update-module",
