@@ -57,6 +57,27 @@ declare -A mender_gateway_props=(
     [commercial]="true"
 )
 
+declare -A mender_app_update_module_props=(
+    [recipe_name]="mender-app-update-module"
+    [src_url]="https://github.com/mendersoftware/app-update-module"
+    [arch_indep]="true"
+    [commercial]="false"
+)
+
+declare -A mender_setup_props=(
+    [recipe_name]="mender-setup"
+    [src_url]="https://github.com/mendersoftware/mender-setup"
+    [arch_indep]="false"
+    [commercial]="false"
+)
+
+declare -A mender_snapshot_props=(
+    [recipe_name]="mender-snapshot"
+    [src_url]="https://github.com/mendersoftware/mender-snapshot"
+    [arch_indep]="false"
+    [commercial]="false"
+)
+
 declare -a packages=(
     mender_client_props
     mender_connect_props
@@ -64,6 +85,9 @@ declare -a packages=(
     mender_artifact_props
     mender_gateway_props
     mender_monitor_props
+    mender_app_update_module_props
+    mender_setup_props
+    mender_snapshot_props
 )
 
 # Parse args
@@ -107,7 +131,7 @@ if [ "$arch_indep" = "true" -a "$ARCH" != "amd64" ]; then
     exit 0
 fi
 
-echo "Building $recipe_name..."
+echo "Building $recipe_name with arguments: $*"
 
 output_dir="output/opensource/${DISTRO}-${RELEASE}-${ARCH}"
 if [ $commercial = "true" ]; then
@@ -140,7 +164,6 @@ docker run --rm \
         --volume $(pwd)/${output_dir}:/output \
         --volume $(pwd)/${orig_dir}:/orig \
         --volume $(pwd)/mender-deb-package:/script \
-        -e MENDER_PRIVATE_REPO_ACCESS_TOKEN="${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" \
         -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
         -e MENDER_PRIVATE_GPG_KEY_BUILD="${MENDER_PRIVATE_GPG_KEY_BUILD}" \
         ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \

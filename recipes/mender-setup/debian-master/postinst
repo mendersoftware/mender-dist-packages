@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+
+# If the file exists, we understand that mender-setup was already run or
+# the device was manually configured at some point. Do nothing.
+if [ ! -f /etc/mender/mender.conf ]; then
+
+    # For non interactive installs, reproduce the default production
+    # configuration with a dummy device type and tenant token.
+    DEVICE_TYPE=${DEVICE_TYPE:=$(cat /etc/hostname)}
+    if [ "$DEBIAN_FRONTEND" == "noninteractive" ]; then
+        mender-setup \
+            --quiet \
+            --device-type "${DEVICE_TYPE}" \
+            --demo=false \
+            --hosted-mender \
+            --tenant-token "Paste your Hosted Mender token here" \
+            --update-poll 1800 \
+            --inventory-poll 28800 \
+            --retry-poll 300
+
+    # Run the interactive setup wizard
+    else
+        mender-setup
+    fi
+
+fi
+
+#DEBHELPER#
