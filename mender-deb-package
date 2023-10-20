@@ -182,7 +182,7 @@ build_orig() {
 
 build_packages() {
   # For PRs and other development branches, we don't have GPG key
-  sign_flags=""
+  sign_flags=
   if [ "$(gpg --list-secret-keys)" == "" ]; then
     sign_flags="--unsigned-source --unsigned-changes"
   else
@@ -224,21 +224,26 @@ EOF
                 --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
                 debian/control
 
-
-  if ! [ "$OS_DISTRO" = "debian" -a "ARCH" = "armhf" ]; then
-    mk-build-deps --install \
-                  --build-dep \
-                  --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
-                  --host-arch ${ARCH} \
-                  debian/control
-  fi
+  # See MEN-6794 for more details.
+  # Install also the builder architecture dependencies for dh_shlibdeps to work correctly.
+  # This was originally intended to _not_ be installed for the Raspberry Pi Os build, but there was
+  # a bug in the if logic(*) that made the script always install them.
+  # While they are not used for the build step (iow, the binaries use the rpi headers and libs), the
+  # metadata is used by dh_shlibdeps to fill up the Dependencies in the resulting package.
+  #
+  # (*) https://github.com/mendersoftware/mender-dist-packages/commit/5f3ebd14#diff-a1c0857e31235a7e1f61a609fa8125f3fd2f1a12f04e1dbbba78931e89969a87R224
+  mk-build-deps --install \
+                --build-dep \
+                --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
+                --host-arch ${ARCH} \
+                debian/control
 
   case "$ARCH" in
     amd64)
       # Native build (amd64)
       dpkg-buildpackage \
         ${sign_flags} \
-        "${dpkg_build_ignore_flag}" \
+        ${dpkg_build_ignore_flag} \
         --build=$DEB_BUILD_TYPE
       ;;
 
@@ -256,32 +261,34 @@ EOF
               PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"            \
               CROSS_COMPILE="arm-linux-gnueabihf"            \
               CC="$CROSS_COMPILE-gcc"                        \
-              CXX=${CROSS_COMPILE}-g++                       \
+              CXX="${CROSS_COMPILE}-g++"                     \
               CXXFLAGS=" -Wno-psabi"                         \
               GOARCH=arm                                     \
               GOARM=6                                        \
-              dpkg-buildpackage -aarmhf                      \
+              dpkg-buildpackage                              \
+              --target-arch armhf                            \
               ${sign_flags}                                  \
-              "${dpkg_build_ignore_flag}"                    \
+              ${dpkg_build_ignore_flag}                      \
               ${skip_patches_flag}                           \
               --build=$DEB_BUILD_TYPE
         fi
         if [ "${OS_CODENAME}" = "bullseye" ]; then
-            # For some reason CMake find_package does not like it when this dir is missing
-            SYSROOT="/opt/cross-pi-gcc-10.3.0-0/arm-linux-gnueabihf/libc/"
-            mkdir --parents "${SYSROOT}/include"
-            PATH="/opt/cross-pi-gcc-10.3.0-0/bin:$PATH"        \
-                PKG_CONFIG_PATH="${SYSROOT}usr/lib/pkgconfig/" \
-                PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"            \
-                CROSS_COMPILE="arm-linux-gnueabihf"            \
-                CC="$CROSS_COMPILE-gcc"                        \
-                CXX=${CROSS_COMPILE}-g++                       \
-                GOARCH=arm                                     \
-                GOARM=6                                        \
-              dpkg-buildpackage -aarmhf                        \
-              ${sign_flags}                                    \
-              "${dpkg_build_ignore_flag}"                      \
-              ${skip_patches_flag}                             \
+          # For some reason CMake find_package does not like it when this dir is missing
+          SYSROOT="/opt/cross-pi-gcc-10.3.0-0/arm-linux-gnueabihf/libc/"
+          mkdir --parents "${SYSROOT}/include"
+          PATH="/opt/cross-pi-gcc-10.3.0-0/bin:$PATH"        \
+              PKG_CONFIG_PATH="${SYSROOT}usr/lib/pkgconfig/" \
+              PKG_CONFIG_SYSROOT_DIR="${SYSROOT}"            \
+              CROSS_COMPILE="arm-linux-gnueabihf"            \
+              CC="$CROSS_COMPILE-gcc"                        \
+              CXX="${CROSS_COMPILE}-g++"                     \
+              GOARCH=arm                                     \
+              GOARM=6                                        \
+              dpkg-buildpackage                              \
+              --target-arch armhf                            \
+              ${sign_flags}                                  \
+              ${dpkg_build_ignore_flag}                      \
+              ${skip_patches_flag}                           \
               --build=$DEB_BUILD_TYPE
         fi
       else
@@ -290,9 +297,10 @@ EOF
                      CC="$CROSS_COMPILE-gcc" \
                      PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig/" \
                      GOARCH=arm \
-                     dpkg-buildpackage -aarmhf \
+                     dpkg-buildpackage \
+                     --target-arch armhf \
                      ${sign_flags} \
-                     "${dpkg_build_ignore_flag}" \
+                     ${dpkg_build_ignore_flag} \
                      ${skip_patches_flag} \
                      --build=$DEB_BUILD_TYPE
       fi
@@ -304,9 +312,10 @@ EOF
                    CC="$CROSS_COMPILE-gcc" \
                    PKG_CONFIG_PATH="/usr/lib/aarch64-linux-gnu/pkgconfig/" \
                    GOARCH=arm64 \
-                   dpkg-buildpackage -aarm64 \
+                   dpkg-buildpackage \
+                   --target-arch arm64 \
                    ${sign_flags} \
-                   "${dpkg_build_ignore_flag}" \
+                   ${dpkg_build_ignore_flag} \
                    ${skip_patches_flag} \
                    --build=$DEB_BUILD_TYPE
       ;;
