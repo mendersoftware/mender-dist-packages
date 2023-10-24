@@ -9,6 +9,7 @@ variables:
   MENDER_APP_UPDATE_MODULE_VERSION: "master"
   MENDER_SETUP_VERSION: "master"
   MENDER_SNAPSHOT_VERSION: "master"
+  MENDER_FLASH_VERSION: "master"
   MENDER_GATEWAY_VERSION: "master"
   MENDER_MONITOR_VERSION: "master"
   # Bucket name
@@ -82,6 +83,7 @@ build:orig:debian:buster:amd64:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -105,6 +107,7 @@ build:packages:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
@@ -184,6 +187,8 @@ test:check-python3-formatting:
       --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)
       --mender-snapshot-version $MENDER_SNAPSHOT_VERSION
       --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
+      --mender-flash-version $MENDER_FLASH_VERSION
+      --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
       -m "${PYTEST_FILTER}"
     - |-
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] && \

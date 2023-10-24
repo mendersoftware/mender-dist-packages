@@ -43,6 +43,8 @@ def pytest_addoption(parser):
     parser.addoption("--mender-setup-deb-version", required=False)
     parser.addoption("--mender-snapshot-version", required=False)
     parser.addoption("--mender-snapshot-deb-version", required=False)
+    parser.addoption("--mender-flash-version", required=False)
+    parser.addoption("--mender-flash-deb-version", required=False)
     parser.addoption("--mender-gateway-version", required=False)
     parser.addoption("--mender-gateway-deb-version", required=False)
     parser.addoption("--mender-monitor-version", required=False)
@@ -88,6 +90,11 @@ def mender_snapshot_version(request):
 
 
 @pytest.fixture(scope="session")
+def mender_flash_version(request):
+    return request.config.getoption("--mender-flash-version")
+
+
+@pytest.fixture(scope="session")
 def mender_gateway_version(request):
     return request.config.getoption("--mender-gateway-version")
 
@@ -125,6 +132,7 @@ def mender_dist_packages_versions(request):
         ),
         "mender-setup": request.config.getoption("--mender-setup-deb-version"),
         "mender-snapshot": request.config.getoption("--mender-snapshot-deb-version"),
+        "mender-flash": request.config.getoption("--mender-flash-deb-version"),
         "mender-gateway": request.config.getoption("--mender-gateway-deb-version"),
         "mender-monitor": request.config.getoption("--mender-monitor-deb-version"),
     }
@@ -210,6 +218,15 @@ def min_snapshot_version(request):
         request,
         "min_snapshot_version",
         request.config.getoption("--mender-snapshot-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_flash_version(request):
+    min_version_impl(
+        request,
+        "min_flash_version",
+        request.config.getoption("--mender-flash-version"),
     )
 
 

@@ -43,6 +43,12 @@ declare -A mender_artifact_props=(
     [arch_indep]="false"
     [commercial]="false"
 )
+declare -A mender_flash_props=(
+    [recipe_name]="mender-flash"
+    [src_url]="https://github.com/mendersoftware/mender-flash"
+    [arch_indep]="false"
+    [commercial]="false"
+)
 declare -A mender_monitor_props=(
     [recipe_name]="mender-monitor"
     [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/monitor-client"
@@ -83,6 +89,7 @@ declare -a packages=(
     mender_connect_props
     mender_configure_props
     mender_artifact_props
+    mender_flash_props
     mender_gateway_props
     mender_monitor_props
     mender_app_update_module_props

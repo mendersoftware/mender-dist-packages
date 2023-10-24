@@ -183,7 +183,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         # Install the deb packages. On failure, install the missing dependencies.
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive apt install --yes ./"
+            "sudo apt install --yes ./"
             + package_filename(mender_dist_packages_versions["mender-client"]).replace(
                 "client", "update"
             )
@@ -202,7 +202,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         )
 
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive apt install --yes ./"
+            "sudo apt install --yes ./"
             + package_filename(mender_dist_packages_versions["mender-client"]).replace(
                 "client", "auth"
             )
@@ -222,7 +222,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         # Install the client meta-package also
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive apt install --yes ./"
+            "sudo apt install --yes ./"
             + package_filename(mender_dist_packages_versions["mender-client"])
         )
 

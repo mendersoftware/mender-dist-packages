@@ -34,7 +34,7 @@ class TestPackageDev:
 
         # Install
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg --ignore-depends=mender-client -i "
+            "sudo dpkg --ignore-depends=mender-client --install "
             + package_filename(
                 mender_dist_packages_versions["mender-client"],
                 "mender-client-dev",
