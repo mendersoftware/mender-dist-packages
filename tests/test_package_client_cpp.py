@@ -48,27 +48,44 @@ all_files = [
     # Inventory scripts symlinked to /etc/ as conf files
     #
     {"name": "/usr/share/mender/inventory", "type": "directory",},
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-bootloader-integration",
+        "type": "file",
+    },
     {"name": "/usr/share/mender/inventory/mender-inventory-hostinfo", "type": "file",},
     {"name": "/usr/share/mender/inventory/mender-inventory-network", "type": "file",},
     {"name": "/usr/share/mender/inventory/mender-inventory-os", "type": "file",},
+    {"name": "/usr/share/mender/inventory/mender-inventory-provides", "type": "file",},
     {
         "name": "/usr/share/mender/inventory/mender-inventory-rootfs-type",
         "type": "file",
     },
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-update-modules",
+        "type": "file",
+    },
     {"name": "/etc/mender/inventory", "type": "directory",},
+    {
+        "name": "/etc/mender/inventory/mender-inventory-bootloader-integration",
+        "type": "file",
+    },
     {"name": "/etc/mender/inventory/mender-inventory-hostinfo", "type": "executable",},
     {"name": "/etc/mender/inventory/mender-inventory-network", "type": "executable",},
     {"name": "/etc/mender/inventory/mender-inventory-os", "type": "executable",},
+    {"name": "/etc/mender/inventory/mender-inventory-provides", "type": "file",},
     {
         "name": "/etc/mender/inventory/mender-inventory-rootfs-type",
         "type": "executable",
     },
+    {"name": "/etc/mender/inventory/mender-inventory-update-modules", "type": "file",},
     #
     # Update modules
     #
     {"name": "/usr/share/mender/modules/v3/", "type": "directory",},
     {"name": "/usr/share/mender/modules/v3/deb", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/directory", "type": "executable",},
+    {"name": "/usr/share/mender/modules/v3/docker", "type": "executable",},
+    {"name": "/usr/share/mender/modules/v3/rootfs-image", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/rpm", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/script", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/single-file", "type": "executable",},
@@ -98,15 +115,15 @@ all_files = [
     # Systemd services
     #
     {"name": "/lib/systemd/system/mender-updated.service", "type": "file",},
-    # {
-    #     "name": "/etc/systemd/multi-user.target.wants/mender-updated.service",
-    #     "type": "file",
-    # },
+    {
+        "name": "/etc/systemd/multi-user.target.wants/mender-updated.service",
+        "type": "file",
+    },
     {"name": "/lib/systemd/system/mender-authd.service", "type": "file",},
-    # {
-    #     "name": "/etc/systemd/multi-user.target.wants/mender-authd.service",
-    #     "type": "file",
-    # },
+    {
+        "name": "/etc/systemd/multi-user.target.wants/mender-authd.service",
+        "type": "file",
+    },
     #
     # Demo certificate
     #
