@@ -82,8 +82,8 @@ all_files = [
     },
     #
     # Configuration files
+    # Installed by mender-setup
     #
-    # TODO - Not installed until mender-setup is available
     # {
     #     "name": "/etc/mender/",
     #     "type": "directory",
@@ -116,6 +116,7 @@ all_files = [
     # },
     #
     # Device type file
+    # Installed by mender-setup
     #
     # {
     #     "name": "/var/lib/mender/device_type",
@@ -229,11 +230,6 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
 
         self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
-
-        # Default setup expects ServerURL hosted.mender.io
-        # TODO - No mender-setup yet
-        # result = setup_tester_ssh_connection.sudo("cat /etc/mender/mender.conf")
-        # assert '"ServerURL": "https://hosted.mender.io"' in result.stdout
 
     # @pytest.mark.usefixtures("setup_test_container")
     # def test_remove_stop(
