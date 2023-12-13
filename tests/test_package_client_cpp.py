@@ -231,19 +231,32 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
-    # @pytest.mark.usefixtures("setup_test_container")
-    # def test_remove_stop(
-    #     self, setup_tester_ssh_connection, mender_dist_packages_versions
-    # ):
-    #     result = setup_tester_ssh_connection.run("sudo apt remove mender-client")
-    #     assert (
-    #         "Removing mender-client ("
-    #         + mender_dist_packages_versions["mender-client"]
-    #         + ")"
-    #         in result.stdout
-    #     )
+    @pytest.mark.usefixtures("setup_test_container")
+    def test_remove_stop(
+        self, setup_tester_ssh_connection, mender_dist_packages_versions
+    ):
+        result = setup_tester_ssh_connection.run("sudo dpkg --remove mender-client")
+        assert (
+            "Removing mender-client ("
+            + mender_dist_packages_versions["mender-client"]
+            + ")"
+            in result.stdout
+        )
 
-    # @pytest.mark.usefixtures("setup_test_container")
-    # def test_purge(self, setup_tester_ssh_connection, mender_dist_packages_versions):
-    #     result = setup_tester_ssh_connection.run("sudo dpkg --purge mender-client")
-    #     assert result.return_code == 0
+    @pytest.mark.usefixtures("setup_test_container")
+    def test_purge(self, setup_tester_ssh_connection):
+        # Dummy configuration
+        setup_tester_ssh_connection.run("sudo mkdir --parents /etc/mender/")
+        setup_tester_ssh_connection.run(
+            "echo 'config' | sudo tee /etc/mender/mender.conf"
+        )
+        setup_tester_ssh_connection.run("sudo mkdir --parents /var/lib/mender/")
+        setup_tester_ssh_connection.run(
+            "echo 'device' | sudo tee /var/lib/mender/device_type"
+        )
+
+        # Purging mender-client removes the configuration
+        result = setup_tester_ssh_connection.run("sudo dpkg --purge mender-client")
+        assert result.return_code == 0
+        setup_tester_ssh_connection.run("test ! -f /etc/mender/mender.conf")
+        setup_tester_ssh_connection.run("test ! -f /var/lib/mender/device_type")
