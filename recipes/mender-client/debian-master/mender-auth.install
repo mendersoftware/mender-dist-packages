@@ -1,3 +1,4 @@
 /lib/systemd/system/mender-authd.service
 /usr/bin/mender-auth
 /usr/share/mender/identity
+/usr/share/doc/mender/examples/demo.crt
