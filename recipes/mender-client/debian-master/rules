@@ -4,7 +4,7 @@
 	dh $@
 
 override_dh_auto_configure:
-	dh_auto_configure -- -D CMAKE_BUILD_TYPE=Release -D BOOST_ALL_DYN_LINK=ON
+	dh_auto_configure -- -D CMAKE_BUILD_TYPE=Release
 
 override_dh_auto_test:
 	true
