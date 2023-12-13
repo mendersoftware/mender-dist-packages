@@ -228,8 +228,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
 
-        # TODO - Cpp client does not yet report a version
-        # self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
+        self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
         # Default setup expects ServerURL hosted.mender.io
         # TODO - No mender-setup yet
