@@ -14,9 +14,6 @@
 #    limitations under the License.
 
 import pytest
-import time
-import os.path
-import re
 
 from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
