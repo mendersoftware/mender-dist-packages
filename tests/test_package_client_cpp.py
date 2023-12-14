@@ -112,15 +112,7 @@ all_files = [
     # Systemd services
     #
     {"name": "/lib/systemd/system/mender-updated.service", "type": "file",},
-    {
-        "name": "/etc/systemd/multi-user.target.wants/mender-updated.service",
-        "type": "file",
-    },
     {"name": "/lib/systemd/system/mender-authd.service", "type": "file",},
-    {
-        "name": "/etc/systemd/multi-user.target.wants/mender-authd.service",
-        "type": "file",
-    },
     #
     # Demo certificate
     #
@@ -154,6 +146,13 @@ class PackageMenderClientChecker:
             "tail -n +2 /usr/share/doc/mender-client/copyright | md5sum"
         )
         assert result.stdout.split(" ")[0] == expected_copyright_from_l2_md5sum
+
+    def check_systemd_service(self, ssh_connection):
+        result = ssh_connection.run("systemctl is-enabled mender-authd")
+        assert result.stdout.strip() == "enabled"
+
+        result = ssh_connection.run("systemctl is-enabled mender-updated")
+        assert result.stdout.strip() == "enabled"
 
 
 @pytest.mark.cppclient
@@ -241,6 +240,8 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         self.check_installed_files(setup_tester_ssh_connection)
 
         self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
+
+        self.check_systemd_service(setup_tester_ssh_connection)
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_remove_stop(
