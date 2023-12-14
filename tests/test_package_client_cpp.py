@@ -146,7 +146,7 @@ class PackageMenderClientChecker:
             result = ssh_connection.run("mender-update --version")
             assert mender_version in result.stdout
 
-    def check_installed_files(self, ssh_connection, device_type="unknown"):
+    def check_installed_files(self, ssh_connection):
         verify_file_exists(ssh_connection, all_files)
         # Northern.tech copyright file
         ssh_connection.run("test -f /usr/share/doc/mender-client/copyright")
@@ -238,7 +238,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
             + package_filename(mender_dist_packages_versions["mender-client"])
         )
 
-        self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
+        self.check_installed_files(setup_tester_ssh_connection)
 
         self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
