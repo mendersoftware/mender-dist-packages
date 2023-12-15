@@ -14,9 +14,6 @@
 #    limitations under the License.
 
 import pytest
-import time
-import os.path
-import re
 
 from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
@@ -48,27 +45,44 @@ all_files = [
     # Inventory scripts symlinked to /etc/ as conf files
     #
     {"name": "/usr/share/mender/inventory", "type": "directory",},
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-bootloader-integration",
+        "type": "file",
+    },
     {"name": "/usr/share/mender/inventory/mender-inventory-hostinfo", "type": "file",},
     {"name": "/usr/share/mender/inventory/mender-inventory-network", "type": "file",},
     {"name": "/usr/share/mender/inventory/mender-inventory-os", "type": "file",},
+    {"name": "/usr/share/mender/inventory/mender-inventory-provides", "type": "file",},
     {
         "name": "/usr/share/mender/inventory/mender-inventory-rootfs-type",
         "type": "file",
     },
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-update-modules",
+        "type": "file",
+    },
     {"name": "/etc/mender/inventory", "type": "directory",},
+    {
+        "name": "/etc/mender/inventory/mender-inventory-bootloader-integration",
+        "type": "file",
+    },
     {"name": "/etc/mender/inventory/mender-inventory-hostinfo", "type": "executable",},
     {"name": "/etc/mender/inventory/mender-inventory-network", "type": "executable",},
     {"name": "/etc/mender/inventory/mender-inventory-os", "type": "executable",},
+    {"name": "/etc/mender/inventory/mender-inventory-provides", "type": "file",},
     {
         "name": "/etc/mender/inventory/mender-inventory-rootfs-type",
         "type": "executable",
     },
+    {"name": "/etc/mender/inventory/mender-inventory-update-modules", "type": "file",},
     #
     # Update modules
     #
     {"name": "/usr/share/mender/modules/v3/", "type": "directory",},
     {"name": "/usr/share/mender/modules/v3/deb", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/directory", "type": "executable",},
+    {"name": "/usr/share/mender/modules/v3/docker", "type": "executable",},
+    {"name": "/usr/share/mender/modules/v3/rootfs-image", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/rpm", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/script", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/single-file", "type": "executable",},
@@ -82,8 +96,8 @@ all_files = [
     },
     #
     # Configuration files
+    # Installed by mender-setup
     #
-    # TODO - Not installed until mender-setup is available
     # {
     #     "name": "/etc/mender/",
     #     "type": "directory",
@@ -98,24 +112,14 @@ all_files = [
     # Systemd services
     #
     {"name": "/lib/systemd/system/mender-updated.service", "type": "file",},
-    # {
-    #     "name": "/etc/systemd/multi-user.target.wants/mender-updated.service",
-    #     "type": "file",
-    # },
     {"name": "/lib/systemd/system/mender-authd.service", "type": "file",},
-    # {
-    #     "name": "/etc/systemd/multi-user.target.wants/mender-authd.service",
-    #     "type": "file",
-    # },
     #
     # Demo certificate
     #
-    # {
-    #     "name": "/usr/share/doc/mender/examples/demo.crt",
-    #     "type": "file",
-    # },
+    {"name": "/usr/share/doc/mender/examples/demo.crt", "type": "file",},
     #
     # Device type file
+    # Installed by mender-setup
     #
     # {
     #     "name": "/var/lib/mender/device_type",
@@ -134,7 +138,7 @@ class PackageMenderClientChecker:
             result = ssh_connection.run("mender-update --version")
             assert mender_version in result.stdout
 
-    def check_installed_files(self, ssh_connection, device_type="unknown"):
+    def check_installed_files(self, ssh_connection):
         verify_file_exists(ssh_connection, all_files)
         # Northern.tech copyright file
         ssh_connection.run("test -f /usr/share/doc/mender-client/copyright")
@@ -142,6 +146,13 @@ class PackageMenderClientChecker:
             "tail -n +2 /usr/share/doc/mender-client/copyright | md5sum"
         )
         assert result.stdout.split(" ")[0] == expected_copyright_from_l2_md5sum
+
+    def check_systemd_service(self, ssh_connection):
+        result = ssh_connection.run("systemctl is-enabled mender-authd")
+        assert result.stdout.strip() == "enabled"
+
+        result = ssh_connection.run("systemctl is-enabled mender-updated")
+        assert result.stdout.strip() == "enabled"
 
 
 @pytest.mark.cppclient
@@ -226,29 +237,38 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
             + package_filename(mender_dist_packages_versions["mender-client"])
         )
 
-        self.check_installed_files(setup_tester_ssh_connection, "raspberrypi")
+        self.check_installed_files(setup_tester_ssh_connection)
 
-        # TODO - Cpp client does not yet report a version
-        # self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
+        self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
-        # Default setup expects ServerURL hosted.mender.io
-        # TODO - No mender-setup yet
-        # result = setup_tester_ssh_connection.sudo("cat /etc/mender/mender.conf")
-        # assert '"ServerURL": "https://hosted.mender.io"' in result.stdout
+        self.check_systemd_service(setup_tester_ssh_connection)
 
-    # @pytest.mark.usefixtures("setup_test_container")
-    # def test_remove_stop(
-    #     self, setup_tester_ssh_connection, mender_dist_packages_versions
-    # ):
-    #     result = setup_tester_ssh_connection.run("sudo apt remove mender-client")
-    #     assert (
-    #         "Removing mender-client ("
-    #         + mender_dist_packages_versions["mender-client"]
-    #         + ")"
-    #         in result.stdout
-    #     )
+    @pytest.mark.usefixtures("setup_test_container")
+    def test_remove_stop(
+        self, setup_tester_ssh_connection, mender_dist_packages_versions
+    ):
+        result = setup_tester_ssh_connection.run("sudo dpkg --remove mender-client")
+        assert (
+            "Removing mender-client ("
+            + mender_dist_packages_versions["mender-client"]
+            + ")"
+            in result.stdout
+        )
 
-    # @pytest.mark.usefixtures("setup_test_container")
-    # def test_purge(self, setup_tester_ssh_connection, mender_dist_packages_versions):
-    #     result = setup_tester_ssh_connection.run("sudo dpkg --purge mender-client")
-    #     assert result.return_code == 0
+    @pytest.mark.usefixtures("setup_test_container")
+    def test_purge(self, setup_tester_ssh_connection):
+        # Dummy configuration
+        setup_tester_ssh_connection.run("sudo mkdir --parents /etc/mender/")
+        setup_tester_ssh_connection.run(
+            "echo 'config' | sudo tee /etc/mender/mender.conf"
+        )
+        setup_tester_ssh_connection.run("sudo mkdir --parents /var/lib/mender/")
+        setup_tester_ssh_connection.run(
+            "echo 'device' | sudo tee /var/lib/mender/device_type"
+        )
+
+        # Purging mender-client removes the configuration
+        result = setup_tester_ssh_connection.run("sudo dpkg --purge mender-client")
+        assert result.return_code == 0
+        setup_tester_ssh_connection.run("test ! -f /etc/mender/mender.conf")
+        setup_tester_ssh_connection.run("test ! -f /var/lib/mender/device_type")

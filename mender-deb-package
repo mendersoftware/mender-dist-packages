@@ -134,12 +134,13 @@ prepare_recipe() {
     if [ "${debian_recipe}" = "debian-2.1.x" ]; then
       # Skip for 2.1.x, special handling in debian/rules
       true
-    elif [ "${debian_recipe}" = "debian-master" ]; then
-      # skip
-      true
-    else
+    elif [[ "${debian_recipe}" =~ ^debian-(2|3).* ]]; then
+      # For the rest of the golang series, copy the service file
       cp support/mender-client.service debian/mender-client.service ||
       cp support/mender.service debian/mender-client.service
+    else
+      # From 4.0 on, it is handled from the CMake install target
+      true
     fi
   elif [ "${DEB_PACKAGE}" = "mender-connect" ]; then
     cp support/mender-connect.service debian/
