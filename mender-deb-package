@@ -36,6 +36,12 @@ verify_script_arguments() {
   SAVE_ORIG=$7
 }
 
+# MEN-6911
+# Delete the shared libssp library, so that the static one is picked up as the fallback
+remove_shared_libssp() {
+    rm /opt/cross-pi-gcc-*/arm-linux-gnueabihf/lib/libssp.so*
+}
+
 maybe_import_gpg_key() {
   # For PRs and other development branches, we don't have GPG key
   if [ -n "$MENDER_PRIVATE_GPG_KEY_BUILD" ]; then \
@@ -370,6 +376,8 @@ get_deb_version
 prepare_recipe
 
 postprocess_recipe
+
+remove_shared_libssp
 
 if [[ "${SAVE_ORIG}" == "true" ]]; then
 
