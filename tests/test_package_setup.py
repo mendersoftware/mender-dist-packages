@@ -35,7 +35,7 @@ class TestPackageSetup:
         )
 
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
+            "sudo DEBIAN_FRONTEND=noninteractive dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-setup"],
                 package_name="mender-setup",
@@ -93,7 +93,7 @@ class TestPackageSetup:
         setup_tester_ssh_connection.run("sudo rm /etc/mender/mender.conf")
         setup_tester_ssh_connection.run("sudo rm /var/lib/mender/device_type")
         setup_tester_ssh_connection.run(
-            "sudo dpkg -i "
+            "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-setup"], "mender-setup"
             )

@@ -9,6 +9,7 @@ variables:
   MENDER_APP_UPDATE_MODULE_VERSION: "master"
   MENDER_SETUP_VERSION: "master"
   MENDER_SNAPSHOT_VERSION: "master"
+  MENDER_FLASH_VERSION: "master"
   MENDER_GATEWAY_VERSION: "master"
   MENDER_MONITOR_VERSION: "master"
   # Bucket name
@@ -30,6 +31,8 @@ variables:
   PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC: "false"
   # Workaround for GitLab intermittent networking
   FF_NETWORK_PER_BUILD: 1
+  # Builder image version
+  IMAGE_VERSION: "master"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix:
@@ -80,6 +83,7 @@ build:orig:debian:buster:amd64:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -103,6 +107,7 @@ build:packages:
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
@@ -127,7 +132,7 @@ test:check-python3-formatting:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
-test:acceptance:
+.test:acceptance:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   stage: test
@@ -182,6 +187,9 @@ test:acceptance:
       --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)
       --mender-snapshot-version $MENDER_SNAPSHOT_VERSION
       --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
+      --mender-flash-version $MENDER_FLASH_VERSION
+      --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
+      -m "${PYTEST_FILTER}"
     - |-
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] && \
            [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
@@ -191,7 +199,23 @@ test:acceptance:
             --mender-monitor-version $MENDER_MONITOR_VERSION \
             --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version) \
             --commercial-tests
+            -m "${PYTEST_FILTER}"
         fi
+
+test:acceptance:golang:
+  rules:
+    - if: $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/
+  extends: .test:acceptance
+  variables:
+    PYTEST_FILTER: "not cppclient"
+
+test:acceptance:cpp:
+  rules:
+    - if: $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/
+    - if: $MENDER_VERSION == "master"
+  extends: .test:acceptance
+  variables:
+    PYTEST_FILTER: "not golangclient"
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag

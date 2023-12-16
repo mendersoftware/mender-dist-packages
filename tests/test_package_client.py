@@ -22,6 +22,7 @@ from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
 
 
+@pytest.mark.golangclient
 class PackageMenderClientChecker:
 
     expected_update_modules = ["deb", "directory", "rpm", "script", "single-file"]
@@ -192,6 +193,7 @@ class PackageMenderClientChecker:
         assert "Stopped Mender OTA update service." in result.stdout
 
 
+@pytest.mark.golangclient
 class TestPackageMenderClientDefaults(PackageMenderClientChecker):
     """Tests installation, setup, start, removal and purge of mender-client deb package with
     in non-interactive method (i.e. default configuration).
@@ -210,7 +212,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         # Install the deb package. On failure, install the missing dependencies.
         result = setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg -i "
+            "sudo dpkg --install "
             + package_filename(mender_dist_packages_versions["mender-client"])
             + "|| sudo apt-get -f -y install"
         )

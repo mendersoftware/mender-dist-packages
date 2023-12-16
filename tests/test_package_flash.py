@@ -19,8 +19,8 @@ from helpers import package_filename, upload_deb_package
 from mender_test_containers.helpers import *
 
 
-class TestPackageSnapshot:
-    """Tests installation of mender-snapshot deb package.
+class TestPackageFlash:
+    """Tests installation of mender-flash deb package.
     """
 
     @pytest.mark.usefixtures("setup_test_container")
@@ -30,28 +30,28 @@ class TestPackageSnapshot:
 
         upload_deb_package(
             setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-snapshot"],
-            package_name="mender-snapshot",
+            mender_dist_packages_versions["mender-flash"],
+            package_name="mender-flash",
         )
 
         result = setup_tester_ssh_connection.run(
-            "sudo dpkg --install "
+            "sudo dpkg --install --ignore-depends=mender-update "
             + package_filename(
-                mender_dist_packages_versions["mender-snapshot"],
-                package_name="mender-snapshot",
+                mender_dist_packages_versions["mender-flash"],
+                package_name="mender-flash",
             ),
         )
         assert (
-            "Unpacking mender-snapshot ("
-            + mender_dist_packages_versions["mender-snapshot"]
+            "Unpacking mender-flash ("
+            + mender_dist_packages_versions["mender-flash"]
             + ")"
             in result.stdout
         )
         assert (
-            "Setting up mender-snapshot ("
-            + mender_dist_packages_versions["mender-snapshot"]
+            "Setting up mender-flash ("
+            + mender_dist_packages_versions["mender-flash"]
             + ")"
             in result.stdout
         )
 
-        setup_tester_ssh_connection.run("test -x /usr/bin/mender-snapshot")
+        setup_tester_ssh_connection.run("test -x /usr/bin/mender-flash")
