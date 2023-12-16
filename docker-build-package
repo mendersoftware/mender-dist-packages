@@ -18,10 +18,9 @@ set -e
 
 IMAGE_NAME_PREFIX=registry.gitlab.com/northern.tech/mender/mender-test-containers:mender-dist-packages-builder
 
-# TODO (MEN-6569) - hardcoded to lluiscampos whilst this is a feature branch
 declare -A mender_client_props=(
     [recipe_name]="mender-client"
-    [src_url]="https://github.com/lluiscampos/mender"
+    [src_url]="https://github.com/mendersoftware/mender"
     [arch_indep]="false"
     [commercial]="false"
 )
