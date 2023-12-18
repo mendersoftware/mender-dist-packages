@@ -221,7 +221,7 @@ test:check-python3-formatting:
             --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version) \
             --mender-monitor-version $MENDER_MONITOR_VERSION \
             --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version) \
-            --commercial-tests
+            --commercial-tests \
             -m "${PYTEST_FILTER}"
         fi
 
