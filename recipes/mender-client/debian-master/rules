@@ -33,3 +33,8 @@ override_dh_auto_install:
 	for file in debian/tmp/etc/mender/inventory/*; do \
 		ln -sf /etc/mender/inventory/"$$(basename "$$file")" debian/tmp/usr/share/mender/inventory/; \
 	done
+
+# Do not build debug symbols packages
+# See https://northerntech.atlassian.net/browse/MEN-6915
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym

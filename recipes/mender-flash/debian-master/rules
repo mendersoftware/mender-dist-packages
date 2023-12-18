@@ -10,3 +10,8 @@ override_dh_auto_configure:
 
 override_dh_auto_test:
 	true
+
+# Do not build debug symbols packages
+# See https://northerntech.atlassian.net/browse/MEN-6915
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym
