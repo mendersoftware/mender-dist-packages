@@ -151,7 +151,7 @@ prepare_recipe() {
   fi
 
   # For legacy OS, patch the debian/rules file for mender-client
-  if [ "${DEB_PACKAGE}" = "mender-client" ]; then
+  if [[ "${DEB_PACKAGE}" == "mender-client" && -f "debian/rules.legacy.patch" ]]; then
     if [[ "$OS_CODENAME" == "buster" || "$OS_CODENAME" = "focal" ]]; then
       patch debian/rules debian/rules.legacy.patch
     fi
@@ -231,6 +231,7 @@ EOF
                 --build-indep \
                 --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
                 debian/control
+  rm -f ${DEB_PACKAGE}-build-deps-indep_*
 
   # See MEN-6794 for more details.
   # Install also the builder architecture dependencies for dh_shlibdeps to work correctly.
@@ -245,6 +246,7 @@ EOF
                 --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
                 --host-arch ${ARCH} \
                 debian/control
+  rm -f ${DEB_PACKAGE}-build-deps-depends_*
 
   case "$ARCH" in
     amd64)
