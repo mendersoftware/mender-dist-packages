@@ -2,16 +2,36 @@ variables:
   # Packages versions
   # NOTE: when adding variables here update also trigger from mender-qa:
   # https://github.com/mendersoftware/mender-qa/blob/master/gitlab-pipeline/stage/trigger-packages.yml
-  MENDER_VERSION: "master"
-  MENDER_CONNECT_VERSION: "master"
-  MENDER_CONFIGURE_VERSION: "master"
-  MENDER_ARTIFACT_VERSION: "master"
-  MENDER_APP_UPDATE_MODULE_VERSION: "master"
-  MENDER_SETUP_VERSION: "master"
-  MENDER_SNAPSHOT_VERSION: "master"
-  MENDER_FLASH_VERSION: "master"
-  MENDER_GATEWAY_VERSION: "master"
-  MENDER_MONITOR_VERSION: "master"
+  MENDER_VERSION:
+    value: "master"
+    description: "Version of mender repository"
+  MENDER_CONNECT_VERSION:
+    value: "master"
+    description: "Version of mender-connect repository"
+  MENDER_CONFIGURE_VERSION:
+    value: "master"
+    description: "Version of mender-configure repository"
+  MENDER_ARTIFACT_VERSION:
+    value: "master"
+    description: "Version of mender-artifact repository"
+  MENDER_APP_UPDATE_MODULE_VERSION:
+    value: "master"
+    description: "Version of mender-app-update-module repository"
+  MENDER_SETUP_VERSION:
+    value: "master"
+    description: "Version of mender-setup repository"
+  MENDER_SNAPSHOT_VERSION:
+    value: "master"
+    description: "Version of mender-snapshot repository"
+  MENDER_FLASH_VERSION:
+    value: "master"
+    description: "Version of mender-flash repository"
+  MENDER_GATEWAY_VERSION:
+    value: "master"
+    description: "Version of mender-gateway repository"
+  MENDER_MONITOR_VERSION:
+    value: "master"
+    description: "Version of monitor-client repository"
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
@@ -25,10 +45,13 @@ variables:
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
   # GPG key for build, to be set by CI/CD variables
   GPG_PRIV_KEY_BUILD: ""
-  # Whether to run acceptance tests.
-  TEST_MENDER_DIST_PACKAGES: "true"
-  # Whether to publish packages automatically - they can always be published manually
-  PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC: "false"
+  TEST_MENDER_DIST_PACKAGES:
+    value: "true"
+    description: "Whether to run acceptance tests"
+  PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC:
+    value: "false"
+    description: |-
+      Whether to publish packages automatically - they can always be published manually
   # Workaround for GitLab intermittent networking
   FF_NETWORK_PER_BUILD: 1
   # Builder image version
