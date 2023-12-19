@@ -156,8 +156,6 @@ test:check-python3-formatting:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
 .test:acceptance:
-  rules:
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   stage: test
   image: docker:dind
   tags:
@@ -227,15 +225,15 @@ test:check-python3-formatting:
 
 test:acceptance:golang:
   rules:
-    - if: $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
   extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not cppclient"
 
 test:acceptance:cpp:
   rules:
-    - if: $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/
-    - if: $MENDER_VERSION == "master"
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not golangclient"
