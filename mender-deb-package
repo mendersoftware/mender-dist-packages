@@ -55,7 +55,7 @@ checkout_repo_clean_local_path() {
 
 checkout_repo() {
   local -r repo_path=$(checkout_repo_clean_local_path "${REPO_URL}")
-  git clone --depth 1 --recurse-submodules --branch ${VERSION} ${REPO_URL} ${repo_path}
+  git clone --recurse-submodules --branch "${VERSION}" "${REPO_URL}" "${repo_path}"
   cd ${repo_path}
 }
 
