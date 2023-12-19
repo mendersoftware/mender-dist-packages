@@ -131,11 +131,12 @@ all_files = [
 
 class PackageMenderClientChecker:
     def check_mender_client_version(self, ssh_connection, mender_version):
+        result = ssh_connection.run("mender-auth --version")
         if mender_version != "master":
-            result = ssh_connection.run("mender-auth --version")
             assert mender_version in result.stdout
 
-            result = ssh_connection.run("mender-update --version")
+        result = ssh_connection.run("mender-update --version")
+        if mender_version != "master":
             assert mender_version in result.stdout
 
     def check_installed_files(self, ssh_connection):
