@@ -4,7 +4,6 @@ Section: admin
 Priority: optional
 Standards-Version: 4.0.0
 Build-Depends-Indep: cmake, debhelper (>= 10)
-# Build-Depends: debhelper-compat (= 13)
 Build-Depends: libstdc++-dev
 Homepage: https://mender.io
 
