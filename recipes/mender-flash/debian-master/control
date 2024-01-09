@@ -9,6 +9,6 @@ Homepage: https://mender.io
 
 Package: mender-flash
 Architecture: any
-Depends: mender-update, ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Mender Flash is an utility to flash block devices used by the Mender Client
  to write into the inactive partition during a rootfs update.
