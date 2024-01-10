@@ -2,12 +2,36 @@ variables:
   # Packages versions
   # NOTE: when adding variables here update also trigger from mender-qa:
   # https://github.com/mendersoftware/mender-qa/blob/master/gitlab-pipeline/stage/trigger-packages.yml
-  MENDER_VERSION: "master"
-  MENDER_CONNECT_VERSION: "master"
-  MENDER_CONFIGURE_VERSION: "master"
-  MENDER_ARTIFACT_VERSION: "master"
-  MENDER_GATEWAY_VERSION: "master"
-  MENDER_MONITOR_VERSION: "master"
+  MENDER_VERSION:
+    value: "master"
+    description: "Version of mender repository"
+  MENDER_CONNECT_VERSION:
+    value: "master"
+    description: "Version of mender-connect repository"
+  MENDER_CONFIGURE_VERSION:
+    value: "master"
+    description: "Version of mender-configure repository"
+  MENDER_ARTIFACT_VERSION:
+    value: "master"
+    description: "Version of mender-artifact repository"
+  MENDER_APP_UPDATE_MODULE_VERSION:
+    value: "master"
+    description: "Version of mender-app-update-module repository"
+  MENDER_SETUP_VERSION:
+    value: "master"
+    description: "Version of mender-setup repository"
+  MENDER_SNAPSHOT_VERSION:
+    value: "master"
+    description: "Version of mender-snapshot repository"
+  MENDER_FLASH_VERSION:
+    value: "master"
+    description: "Version of mender-flash repository"
+  MENDER_GATEWAY_VERSION:
+    value: "master"
+    description: "Version of mender-gateway repository"
+  MENDER_MONITOR_VERSION:
+    value: "master"
+    description: "Version of monitor-client repository"
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
@@ -21,12 +45,28 @@ variables:
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
   # GPG key for build, to be set by CI/CD variables
   GPG_PRIV_KEY_BUILD: ""
-  # Whether to run acceptance tests.
-  TEST_MENDER_DIST_PACKAGES: "true"
-  # Whether to publish packages automatically - they can always be published manually
-  PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC: "false"
+  TEST_MENDER_DIST_PACKAGES:
+    value: "true"
+    description: "Whether to run acceptance tests"
+  PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC:
+    value: "false"
+    description: |-
+      Whether to publish packages automatically - they can always be published manually
   # Workaround for GitLab intermittent networking
   FF_NETWORK_PER_BUILD: 1
+  # Builder image version
+  IMAGE_VERSION: "master"
+
+# NOTE: To add distributions, modify first the matrix in mender-test-containers repository
+.mender-dist-packages-image-matrix:
+  parallel:
+    matrix:
+      - DISTRO: debian
+        RELEASE: [buster, bullseye]
+        ARCH: [amd64, armhf, arm64]
+      - DISTRO: ubuntu
+        RELEASE: [focal, jammy]
+        ARCH: [amd64, armhf, arm64]
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -39,140 +79,10 @@ include:
     file: '.gitlab-ci-github-status-updates.yml'
 
 stages:
-  - build:images
   - build:orig
   - build:packages
   - test
   - publish
-
-.template:build:image:
-  stage: build:images
-  image: docker:git
-  tags:
-    - mender-qa-worker-generic
-  services:
-    - docker:dind
-  before_script:
-    - apk --update --no-cache add bash curl aws-cli
-    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
-  script:
-    # GPG key is available only in protected branches
-    - if [ "$GPG_PRIV_KEY_BUILD" != "" ]; then
-    -   GPG_KEY_BUILD="$GPG_PRIV_KEY_BUILD"
-        ./docker-build-image $DISTRO $RELEASE $ARCH
-    - else
-    -   ./docker-build-image $DISTRO $RELEASE $ARCH
-    - fi
-    - docker save mendersoftware/mender-dist-packages:builder-$DISTRO-$RELEASE-$ARCH -o builder-$DISTRO-$RELEASE-$ARCH.tar
-    - mender_ci_save_tmp_artifact builder-$DISTRO-$RELEASE-$ARCH.tar
-  artifacts:
-    paths:
-      - checksums
-
-build:image:debian:buster:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-  extends: .template:build:image
-
-build:image:debian:buster:armhf:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "armhf"
-  extends: .template:build:image
-
-build:image:debian:buster:arm64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "arm64"
-  extends: .template:build:image
-
-build:image:debian:bullseye:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "bullseye"
-    ARCH: "amd64"
-  extends: .template:build:image
-
-build:image:debian:bullseye:armhf:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "bullseye"
-    ARCH: "armhf"
-  extends: .template:build:image
-
-build:image:debian:bullseye:arm64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "bullseye"
-    ARCH: "arm64"
-  extends: .template:build:image
-
-build:image:ubuntu:bionic:amd64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "amd64"
-  extends: .template:build:image
-
-build:image:ubuntu:bionic:armhf:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "armhf"
-  extends: .template:build:image
-
-build:image:ubuntu:bionic:arm64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "arm64"
-  extends: .template:build:image
-
-build:image:ubuntu:focal:amd64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "focal"
-    ARCH: "amd64"
-  extends: .template:build:image
-
-build:image:ubuntu:focal:armhf:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "focal"
-    ARCH: "armhf"
-  extends: .template:build:image
-
-build:image:ubuntu:focal:arm64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "focal"
-    ARCH: "arm64"
-  extends: .template:build:image
-
-build:image:ubuntu:jammy:amd64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "jammy"
-    ARCH: "amd64"
-  extends: .template:build:image
-
-build:image:ubuntu:jammy:armhf:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "jammy"
-    ARCH: "armhf"
-  extends: .template:build:image
-
-build:image:ubuntu:jammy:arm64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "jammy"
-    ARCH: "arm64"
-  extends: .template:build:image
 
 build:orig:debian:buster:amd64:
   stage: build:orig
@@ -181,29 +91,28 @@ build:orig:debian:buster:amd64:
     - mender-qa-worker-generic
   services:
     - docker:dind
-  needs:
-    - build:image:debian:buster:amd64
   variables:
     DISTRO: "debian"
     RELEASE: "buster"
     ARCH: "amd64"
   before_script:
-    - apk --update --no-cache add bash curl aws-cli
-    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
-    - mender_ci_load_tmp_artifact builder-$DISTRO-$RELEASE-$ARCH.tar
-    - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - apk --update --no-cache add bash
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
-    - find / -name '*.orig.tar.*'
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - find output -type f
   artifacts:
     paths:
-      - output/*
+      - output/orig
 
-.template:build:packages:
+build:packages:
   stage: build:packages
   image: docker:git
   tags:
@@ -211,164 +120,27 @@ build:orig:debian:buster:amd64:
   services:
     - docker:dind
   before_script:
-    - apk --update --no-cache add bash curl aws-cli
-    - eval "$(curl https://raw.githubusercontent.com/mendersoftware/mendertesting/master/mender-ci-common.sh)"
-    - mender_ci_load_tmp_artifact builder-$DISTRO-$RELEASE-$ARCH.tar
-    - docker load -i builder-$DISTRO-$RELEASE-$ARCH.tar
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - apk --update --no-cache add bash
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
     - fi
-    - find output
+    - find output -type f
   artifacts:
     paths:
-      - output/*
-
-build:packages:debian:buster:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-  dependencies:
-    - build:orig:debian:buster:amd64
-    - build:image:debian:buster:amd64
-  extends: .template:build:packages
-
-build:packages:debian:buster:armhf:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "armhf"
-  dependencies:
-    - build:image:debian:buster:armhf
-  extends: .template:build:packages
-
-build:packages:debian:buster:arm64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "arm64"
-  dependencies:
-    - build:image:debian:buster:arm64
-  extends: .template:build:packages
-
-build:packages:debian:bullseye:amd64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "bullseye"
-    ARCH: "amd64"
-  dependencies:
-    - build:orig:debian:buster:amd64
-    - build:image:debian:bullseye:amd64
-  extends: .template:build:packages
-
-build:packages:debian:bullseye:armhf:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "bullseye"
-    ARCH: "armhf"
-  dependencies:
-    - build:image:debian:bullseye:armhf
-  extends: .template:build:packages
-
-build:packages:debian:bullseye:arm64:
-  variables:
-    DISTRO: "debian"
-    RELEASE: "bullseye"
-    ARCH: "arm64"
-  dependencies:
-    - build:image:debian:bullseye:arm64
-  extends: .template:build:packages
-
-build:packages:ubuntu:bionic:amd64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "amd64"
-  dependencies:
-    - build:orig:debian:buster:amd64
-    - build:image:ubuntu:bionic:amd64
-  extends: .template:build:packages
-
-build:packages:ubuntu:bionic:armhf:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "armhf"
-  dependencies:
-    - build:image:ubuntu:bionic:armhf
-  extends: .template:build:packages
-
-build:packages:ubuntu:bionic:arm64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "bionic"
-    ARCH: "arm64"
-  dependencies:
-    - build:image:ubuntu:bionic:arm64
-  extends: .template:build:packages
-
-build:packages:ubuntu:focal:amd64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "focal"
-    ARCH: "amd64"
-  dependencies:
-    - build:orig:debian:buster:amd64
-    - build:image:ubuntu:focal:amd64
-  extends: .template:build:packages
-
-build:packages:ubuntu:focal:armhf:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "focal"
-    ARCH: "armhf"
-  dependencies:
-    - build:image:ubuntu:focal:armhf
-  extends: .template:build:packages
-
-build:packages:ubuntu:focal:arm64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "focal"
-    ARCH: "arm64"
-  dependencies:
-    - build:image:ubuntu:focal:arm64
-  extends: .template:build:packages
-
-build:packages:ubuntu:jammy:amd64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "jammy"
-    ARCH: "amd64"
-  dependencies:
-    - build:orig:debian:buster:amd64
-    - build:image:ubuntu:jammy:amd64
-  extends: .template:build:packages
-
-build:packages:ubuntu:jammy:armhf:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "jammy"
-    ARCH: "armhf"
-  dependencies:
-    - build:image:ubuntu:jammy:armhf
-  extends: .template:build:packages
-
-build:packages:ubuntu:jammy:arm64:
-  variables:
-    DISTRO: "ubuntu"
-    RELEASE: "jammy"
-    ARCH: "arm64"
-  dependencies:
-    - build:image:ubuntu:jammy:arm64
-  extends: .template:build:packages
+      - output/commercial
+      - output/opensource
+  parallel: !reference [.mender-dist-packages-image-matrix, parallel]
 
 test:check-commits:
   only:
@@ -383,18 +155,16 @@ test:check-python3-formatting:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
-test:acceptance:
-  rules:
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
+.test:acceptance:
   stage: test
   image: docker:dind
   tags:
     - mender-qa-worker-generic
   dependencies:
     # Note that we are only testing packages from Debian buster
-    - build:packages:debian:buster:amd64
-    - build:packages:debian:buster:armhf
-    - build:packages:debian:buster:arm64
+    - "build:packages: [debian, buster, amd64]"
+    - "build:packages: [debian, buster, armhf]"
+    - "build:packages: [debian, buster, arm64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -421,7 +191,7 @@ test:acceptance:
     - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
       libffi-dev libc-dev python3-dev bash musl-dev rust cargo
     - cd tests
-    - pip3 install -r requirements.txt
+    - pip3 install --break-system-packages -r requirements.txt
     - REFERENCE_DIST=debian-buster-amd64
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
@@ -432,24 +202,41 @@ test:acceptance:
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
       --mender-artifact-version $MENDER_ARTIFACT_VERSION
       --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
+      --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION
+      --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)
+      --mender-setup-version $MENDER_SETUP_VERSION
+      --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)
+      --mender-snapshot-version $MENDER_SNAPSHOT_VERSION
+      --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
+      --mender-flash-version $MENDER_FLASH_VERSION
+      --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
+      -m "${PYTEST_FILTER}"
     - |-
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] && \
            [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
           python3 -m pytest -v \
-            --mender-client-version $MENDER_VERSION \
-            --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client-deb-version) \
-            --mender-connect-version $MENDER_CONNECT_VERSION \
-            --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version) \
-            --mender-configure-version $MENDER_CONFIGURE_VERSION \
-            --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version) \
-            --mender-artifact-version $MENDER_ARTIFACT_VERSION \
-            --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version) \
             --mender-gateway-version $MENDER_GATEWAY_VERSION \
             --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version) \
             --mender-monitor-version $MENDER_MONITOR_VERSION \
             --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version) \
-            --commercial-tests
+            --commercial-tests \
+            -m "${PYTEST_FILTER}"
         fi
+
+test:acceptance:golang:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
+  extends: .test:acceptance
+  variables:
+    PYTEST_FILTER: "not cppclient"
+
+test:acceptance:cpp:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
+  extends: .test:acceptance
+  variables:
+    PYTEST_FILTER: "not golangclient"
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
@@ -466,22 +253,6 @@ test:acceptance:
 .template:publish:s3:apt-repo:
   stage: publish
   image: debian:buster
-  dependencies:
-    - build:packages:debian:buster:amd64
-    - build:packages:debian:buster:armhf
-    - build:packages:debian:buster:arm64
-    - build:packages:debian:bullseye:amd64
-    - build:packages:debian:bullseye:armhf
-    - build:packages:debian:bullseye:arm64
-    - build:packages:ubuntu:bionic:amd64
-    - build:packages:ubuntu:bionic:armhf
-    - build:packages:ubuntu:bionic:arm64
-    - build:packages:ubuntu:focal:amd64
-    - build:packages:ubuntu:focal:armhf
-    - build:packages:ubuntu:focal:arm64
-    - build:packages:ubuntu:jammy:amd64
-    - build:packages:ubuntu:jammy:armhf
-    - build:packages:ubuntu:jammy:arm64
   before_script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
@@ -494,7 +265,7 @@ test:acceptance:
   script:
     # Upload files: first .buildinfo and .deb, then .changes
     - for d in output/opensource/*; do
-    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
+    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.ddeb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
     -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
     -   done
     -   find "$d" -name '*.changes' | while read -r file; do
@@ -545,22 +316,6 @@ publish:production:s3:scripts:install-mender-sh:
 .template:publish:s3:
   stage: publish
   image: debian:buster
-  dependencies:
-    - build:packages:debian:buster:amd64
-    - build:packages:debian:buster:armhf
-    - build:packages:debian:buster:arm64
-    - build:packages:debian:bullseye:amd64
-    - build:packages:debian:bullseye:armhf
-    - build:packages:debian:bullseye:arm64
-    - build:packages:ubuntu:bionic:amd64
-    - build:packages:ubuntu:bionic:armhf
-    - build:packages:ubuntu:bionic:arm64
-    - build:packages:ubuntu:focal:amd64
-    - build:packages:ubuntu:focal:armhf
-    - build:packages:ubuntu:focal:arm64
-    - build:packages:ubuntu:jammy:amd64
-    - build:packages:ubuntu:jammy:armhf
-    - build:packages:ubuntu:jammy:arm64
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions

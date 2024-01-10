@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2022 Northern.tech AS
+# Copyright 2023 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-from distutils.version import LooseVersion
+import packaging.version
 
 import pytest
 
@@ -29,18 +29,26 @@ def setup_test_container_props(request):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--mender-client-version", required=True)
-    parser.addoption("--mender-client-deb-version", required=True)
-    parser.addoption("--mender-connect-version", required=True)
-    parser.addoption("--mender-connect-deb-version", required=True)
-    parser.addoption("--mender-configure-version", required=True)
-    parser.addoption("--mender-configure-deb-version", required=True)
-    parser.addoption("--mender-artifact-version", required=True)
-    parser.addoption("--mender-artifact-deb-version", required=True)
-    parser.addoption("--mender-gateway-version", required=False, default="none")
-    parser.addoption("--mender-gateway-deb-version", required=False, default="none")
-    parser.addoption("--mender-monitor-version", required=False, default="none")
-    parser.addoption("--mender-monitor-deb-version", required=False, default="none")
+    parser.addoption("--mender-client-version", required=False)
+    parser.addoption("--mender-client-deb-version", required=False)
+    parser.addoption("--mender-connect-version", required=False)
+    parser.addoption("--mender-connect-deb-version", required=False)
+    parser.addoption("--mender-configure-version", required=False)
+    parser.addoption("--mender-configure-deb-version", required=False)
+    parser.addoption("--mender-artifact-version", required=False)
+    parser.addoption("--mender-artifact-deb-version", required=False)
+    parser.addoption("--mender-app-update-module-version", required=False)
+    parser.addoption("--mender-app-update-module-deb-version", required=False)
+    parser.addoption("--mender-setup-version", required=False)
+    parser.addoption("--mender-setup-deb-version", required=False)
+    parser.addoption("--mender-snapshot-version", required=False)
+    parser.addoption("--mender-snapshot-deb-version", required=False)
+    parser.addoption("--mender-flash-version", required=False)
+    parser.addoption("--mender-flash-deb-version", required=False)
+    parser.addoption("--mender-gateway-version", required=False)
+    parser.addoption("--mender-gateway-deb-version", required=False)
+    parser.addoption("--mender-monitor-version", required=False)
+    parser.addoption("--mender-monitor-deb-version", required=False)
     parser.addoption(
         "--commercial-tests", action="store_true", required=False, default=False
     )
@@ -64,6 +72,26 @@ def mender_configure_version(request):
 @pytest.fixture(scope="session")
 def mender_artifact_version(request):
     return request.config.getoption("--mender-artifact-version")
+
+
+@pytest.fixture(scope="session")
+def mender_app_update_module_version(request):
+    return request.config.getoption("--mender-app-update-module-version")
+
+
+@pytest.fixture(scope="session")
+def mender_setup_version(request):
+    return request.config.getoption("--mender-setup-version")
+
+
+@pytest.fixture(scope="session")
+def mender_snapshot_version(request):
+    return request.config.getoption("--mender-snapshot-version")
+
+
+@pytest.fixture(scope="session")
+def mender_flash_version(request):
+    return request.config.getoption("--mender-flash-version")
 
 
 @pytest.fixture(scope="session")
@@ -99,6 +127,12 @@ def mender_dist_packages_versions(request):
         "mender-connect": request.config.getoption("--mender-connect-deb-version"),
         "mender-configure": request.config.getoption("--mender-configure-deb-version"),
         "mender-artifact": request.config.getoption("--mender-artifact-deb-version"),
+        "mender-app-update-module": request.config.getoption(
+            "--mender-app-update-module-deb-version"
+        ),
+        "mender-setup": request.config.getoption("--mender-setup-deb-version"),
+        "mender-snapshot": request.config.getoption("--mender-snapshot-deb-version"),
+        "mender-flash": request.config.getoption("--mender-flash-deb-version"),
         "mender-gateway": request.config.getoption("--mender-gateway-deb-version"),
         "mender-monitor": request.config.getoption("--mender-monitor-deb-version"),
     }
@@ -115,10 +149,12 @@ def min_version_impl(request, marker, min_version):
     version_mark = request.node.get_closest_marker(marker)
     if version_mark is not None:
         try:
-            if LooseVersion(version_mark.args[0]) > LooseVersion(min_version):
+            if packaging.version.Version(
+                version_mark.args[0]
+            ) > packaging.version.Version(min_version):
                 pytest.skip("Test requires %s %s" % (marker, version_mark.args[0]))
-        except TypeError:
-            # Type error indicates that 'version' is likely a string (master).
+        except packaging.version.InvalidVersion:
+            # Indicates that 'version' is likely a string (master).
             pass
 
 
@@ -155,6 +191,42 @@ def min_mender_artifact_version(request):
         request,
         "min_mender_artifact_version",
         request.config.getoption("--mender-artifact-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_mender_app_update_module_version(request):
+    min_version_impl(
+        request,
+        "min_mender_app_update_module_version",
+        request.config.getoption("--mender-app-update-module-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_setup_version(request):
+    min_version_impl(
+        request,
+        "min_setup_version",
+        request.config.getoption("--mender-setup-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_snapshot_version(request):
+    min_version_impl(
+        request,
+        "min_snapshot_version",
+        request.config.getoption("--mender-snapshot-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_flash_version(request):
+    min_version_impl(
+        request,
+        "min_flash_version",
+        request.config.getoption("--mender-flash-version"),
     )
 
 
