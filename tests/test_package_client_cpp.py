@@ -114,6 +114,13 @@ all_files = [
     {"name": "/lib/systemd/system/mender-updated.service", "type": "file",},
     {"name": "/lib/systemd/system/mender-authd.service", "type": "file",},
     #
+    # D-Bus policy files
+    #
+    {
+        "name": "/usr/share/dbus-1/system.d/io.mender.AuthenticationManager.conf",
+        "type": "file",
+    },
+    #
     # Demo certificate
     #
     {"name": "/usr/share/doc/mender-auth/examples/demo.crt", "type": "file",},
