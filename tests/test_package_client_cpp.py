@@ -116,7 +116,7 @@ all_files = [
     #
     # Demo certificate
     #
-    {"name": "/usr/share/doc/mender/examples/demo.crt", "type": "file",},
+    {"name": "/usr/share/doc/mender-auth/examples/demo.crt", "type": "file",},
     #
     # Device type file
     # Installed by mender-setup
