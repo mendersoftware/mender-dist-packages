@@ -127,15 +127,16 @@ class TestInstallMenderScript:
     ):
         """Pass mender setup args, should be propagated"""
 
+        # MEN-6947: Using experimental until mender-setup 1.0.0 is released
         generic_debian_container.run(
-            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- -- --demo --device-type cool-device --hosted-mender --tenant-token my-secret-token"
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- -c experimental -- --demo --device-type cool-device --hosted-mender --tenant-token my-secret-token"
         )
 
         result = generic_debian_container.run("cat /etc/mender/mender.conf")
         assert '"ServerURL": "https://hosted.mender.io"' in result.stdout.decode()
 
         result = generic_debian_container.run("cat /var/lib/mender/device_type")
-        assert result.stdout.decode() == "device_type=cool-device"
+        assert result.stdout.decode().strip() == "device_type=cool-device"
 
         result = generic_debian_container.run("cat /etc/mender/mender-connect.conf")
         assert '"User": "nobody"' in result.stdout.decode()

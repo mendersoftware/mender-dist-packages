@@ -106,7 +106,7 @@ usage() {
     echo ""
     echo "If no components are specified, defaults will be installed"
     echo ""
-    echo "Anything after a '--' gets passed directly to 'mender setup' command."
+    echo "Anything after a '--' gets passed directly to 'mender-setup' command."
     echo ""
     echo "Supported components (x = installed by default):"
     for c in $AVAILABLE_COMPONENTS; do
@@ -376,7 +376,7 @@ do_install_open() {
        -o Dpkg::Options::="--force-confold" \
        $selected_components_open
 
-    echo "  Success! Please run \`mender setup\` to configure the client."
+    echo "  Success! Please run \`mender-setup\` to configure the client."
 }
 
 do_install_commercial() {
@@ -436,9 +436,10 @@ do_setup_mender_client() {
         return
     fi
 
-    echo "  Setting up mender with options: $MENDER_SETUP_ARGS"
-    mender setup $MENDER_SETUP_ARGS
-    pidof systemd && systemctl restart mender-client
+    echo "  Setting up mender-setup with options: $MENDER_SETUP_ARGS"
+    mender-setup $MENDER_SETUP_ARGS
+    pidof systemd && systemctl restart mender-authd
+    pidof systemd && systemctl restart mender-updated
     echo "  Success!"
 }
 
