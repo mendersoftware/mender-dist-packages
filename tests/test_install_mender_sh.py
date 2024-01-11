@@ -136,7 +136,7 @@ class TestInstallMenderScript:
         assert '"ServerURL": "https://hosted.mender.io"' in result.stdout.decode()
 
         result = generic_debian_container.run("cat /var/lib/mender/device_type")
-        assert result.stdout.decode() == "device_type=cool-device"
+        assert result.stdout.decode().strip() == "device_type=cool-device"
 
         result = generic_debian_container.run("cat /etc/mender/mender-connect.conf")
         assert '"User": "nobody"' in result.stdout.decode()
