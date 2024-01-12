@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -e
+
+ACTION="$1"
+OLD_VERSION="$2"
+NEW_VERSION="$3"
+
+case "$ACTION" in
+    abort-install)
+        dpkg-divert --remove --no-rename /usr/share/mender/identity/mender-device-identity
+        dpkg-divert --remove --no-rename /etc/mender/identity/mender-device-identity
+        dpkg-divert --remove --no-rename /usr/share/dbus-1/system.d/io.mender.AuthenticationManager.conf
+        ;;
+
+    *)
+        # Nothing to do for upgrades.
+        ;;
+esac
+
+exit 0

@@ -13,14 +13,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import glob
 import http.server
-import socketserver
-import threading
 import os
+import socketserver
 import subprocess
+import threading
 
 import pytest
 from fabric import Result as FabricResult
+from helpers import packages_path
 
 SCRIPT_SERVER_ADDR = "localhost"
 SCRIPT_SERVER_PORT = 8000
@@ -67,7 +69,18 @@ def generic_debian_container(request):
 
         def run(self, command, warn=False):
             cmd = "docker exec %s /bin/bash -c '%s'" % (self.container_id, command)
-            return subprocess.run(cmd, shell=True, capture_output=True, check=not warn)
+            try:
+                return subprocess.run(
+                    cmd, shell=True, capture_output=True, check=not warn
+                )
+            except subprocess.CalledProcessError as e:
+                print(e.output.decode())
+                raise
+
+        def put(self, source, dest):
+            subprocess.check_call(
+                ["docker", "cp", source, f"{self.container_id}:{dest}"]
+            )
 
     c = GenericContainer(docker_container_id)
 
@@ -76,6 +89,26 @@ def generic_debian_container(request):
     c.run("apt install -y curl")
 
     return c
+
+
+def put_all_packages(container, dest):
+    container.run(f"mkdir -p {dest}")
+    for package in glob.glob(packages_path("mender-client", "amd64") + "/*.deb"):
+        container.put(package, dest)
+
+
+def prepare_local_apt_repo(container):
+    # Copy freshly built packages and configure a local APT repo with dpkg-dev. See:
+    # https://askubuntu.com/questions/458748/is-it-possible-to-add-a-location-folder-on-my-hard-disk-to-sources-list
+    put_all_packages(container, "/packages")
+    container.run("apt install -y dpkg-dev")
+    container.run(
+        "cd /packages && dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz"
+    )
+    container.run(
+        "echo deb [trusted=yes] file:/packages ./ > /etc/apt/sources.list.d/packages.list"
+    )
+    container.run("apt update")
 
 
 def check_installed(conn, pkg, installed=True):
@@ -187,6 +220,28 @@ class TestInstallMenderScript:
 
         check_installed(generic_debian_container, "mender-client")
         check_installed(generic_debian_container, "mender-connect", installed=False)
+        check_installed(generic_debian_container, "mender-configure")
+
+    def test_upgrade_all_packages(
+        self, generic_debian_container,
+    ):
+        # Install latest stable software
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s"
+        )
+
+        # And now upgrade to the freshly built packages
+        prepare_local_apt_repo(generic_debian_container)
+        generic_debian_container.run("apt -y upgrade")
+
+        # All packages should be upgraded
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-update")
+        check_installed(generic_debian_container, "mender-auth")
+        check_installed(generic_debian_container, "mender-flash")
+        check_installed(generic_debian_container, "mender-setup")
+        check_installed(generic_debian_container, "mender-snapshot")
+        check_installed(generic_debian_container, "mender-connect")
         check_installed(generic_debian_container, "mender-configure")
 
 

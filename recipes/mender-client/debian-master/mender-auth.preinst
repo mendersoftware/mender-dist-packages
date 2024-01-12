@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -e
+
+ACTION="$1"
+OLD_VERSION="$2"
+NEW_VERSION="$3"
+
+case "$ACTION" in
+    install)
+        # mender-auth is going to replace files that are owned by the old
+        # mender-client. mender-client is also going to be installed, which will remove
+        # those files and solve those conflicts, but not until later. Therefore we need to
+        # divert these files now, and restore them after the new mender-client package is
+        # also installed.
+        dpkg-divert --add --no-rename /usr/share/mender/identity/mender-device-identity
+        dpkg-divert --add --no-rename /etc/mender/identity/mender-device-identity
+        dpkg-divert --add --no-rename /usr/share/dbus-1/system.d/io.mender.AuthenticationManager.conf
+        ;;
+
+    *)
+        # Nothing to do for upgrades.
+        ;;
+esac
+
+exit 0
