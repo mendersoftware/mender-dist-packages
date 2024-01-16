@@ -1,0 +1,40 @@
+#!/bin/sh
+
+set -e
+
+ACTION="$1"
+OLD_VERSION="$2"
+NEW_VERSION="$3"
+
+case "$ACTION" in
+    abort-install)
+        dpkg-divert --remove --no-rename /etc/mender/inventory/mender-inventory-bootloader-integration
+        dpkg-divert --remove --no-rename /etc/mender/inventory/mender-inventory-hostinfo
+        dpkg-divert --remove --no-rename /etc/mender/inventory/mender-inventory-network
+        dpkg-divert --remove --no-rename /etc/mender/inventory/mender-inventory-os
+        dpkg-divert --remove --no-rename /etc/mender/inventory/mender-inventory-provides
+        dpkg-divert --remove --no-rename /etc/mender/inventory/mender-inventory-rootfs-type
+        dpkg-divert --remove --no-rename /etc/mender/inventory/mender-inventory-update-modules
+        dpkg-divert --remove --no-rename /usr/share/mender/modules/v3/deb
+        dpkg-divert --remove --no-rename /usr/share/mender/modules/v3/directory
+        dpkg-divert --remove --no-rename /usr/share/mender/modules/v3/docker
+        dpkg-divert --remove --no-rename /usr/share/mender/modules/v3/rootfs-image
+        dpkg-divert --remove --no-rename /usr/share/mender/modules/v3/rpm
+        dpkg-divert --remove --no-rename /usr/share/mender/modules/v3/script
+        dpkg-divert --remove --no-rename /usr/share/mender/modules/v3/single-file
+        dpkg-divert --remove --no-rename /usr/share/mender/inventory/mender-inventory-bootloader-integration
+        dpkg-divert --remove --no-rename /usr/share/mender/inventory/mender-inventory-hostinfo
+        dpkg-divert --remove --no-rename /usr/share/mender/inventory/mender-inventory-network
+        dpkg-divert --remove --no-rename /usr/share/mender/inventory/mender-inventory-os
+        dpkg-divert --remove --no-rename /usr/share/mender/inventory/mender-inventory-provides
+        dpkg-divert --remove --no-rename /usr/share/mender/inventory/mender-inventory-rootfs-type
+        dpkg-divert --remove --no-rename /usr/share/mender/inventory/mender-inventory-update-modules
+        dpkg-divert --remove --no-rename /etc/mender/scripts/version
+        ;;
+
+    *)
+        # Nothing to do for upgrades.
+        ;;
+esac
+
+exit 0

@@ -4,4 +4,3 @@
 /usr/share/mender/inventory/*
 /etc/mender/scripts/version
 /etc/mender/inventory/*
-/etc/mender/identity/*
