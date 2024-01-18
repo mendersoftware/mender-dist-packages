@@ -1,0 +1,64 @@
+#!/bin/sh
+
+set -e
+
+ACTION="$1"
+OLD_VERSION="$2"
+NEW_VERSION="$3"
+
+case "$ACTION" in
+    upgrade)
+        case "$OLD_VERSION" in
+            4.*)
+                # Downgrading from v4 we need to take back ownership of the conffiles that were
+                # split into mender-auth and mender-update packages and disable the systemd services
+                # mender-auth files
+                dpkg-divert --add --no-rename /usr/share/mender/identity/mender-device-identity
+                dpkg-divert --add --no-rename /etc/mender/identity/mender-device-identity
+                dpkg-divert --add --no-rename /usr/share/dbus-1/system.d/io.mender.AuthenticationManager.conf
+                # mender-update files
+                dpkg-divert --add --no-rename /etc/mender/inventory/mender-inventory-bootloader-integration
+                dpkg-divert --add --no-rename /etc/mender/inventory/mender-inventory-hostinfo
+                dpkg-divert --add --no-rename /etc/mender/inventory/mender-inventory-network
+                dpkg-divert --add --no-rename /etc/mender/inventory/mender-inventory-os
+                dpkg-divert --add --no-rename /etc/mender/inventory/mender-inventory-provides
+                dpkg-divert --add --no-rename /etc/mender/inventory/mender-inventory-rootfs-type
+                dpkg-divert --add --no-rename /etc/mender/inventory/mender-inventory-update-modules
+                dpkg-divert --add --no-rename /usr/share/mender/modules/v3/deb
+                dpkg-divert --add --no-rename /usr/share/mender/modules/v3/directory
+                dpkg-divert --add --no-rename /usr/share/mender/modules/v3/docker
+                dpkg-divert --add --no-rename /usr/share/mender/modules/v3/rootfs-image
+                dpkg-divert --add --no-rename /usr/share/mender/modules/v3/rpm
+                dpkg-divert --add --no-rename /usr/share/mender/modules/v3/script
+                dpkg-divert --add --no-rename /usr/share/mender/modules/v3/single-file
+                dpkg-divert --add --no-rename /usr/share/mender/inventory/mender-inventory-bootloader-integration
+                dpkg-divert --add --no-rename /usr/share/mender/inventory/mender-inventory-hostinfo
+                dpkg-divert --add --no-rename /usr/share/mender/inventory/mender-inventory-network
+                dpkg-divert --add --no-rename /usr/share/mender/inventory/mender-inventory-os
+                dpkg-divert --add --no-rename /usr/share/mender/inventory/mender-inventory-provides
+                dpkg-divert --add --no-rename /usr/share/mender/inventory/mender-inventory-rootfs-type
+                dpkg-divert --add --no-rename /usr/share/mender/inventory/mender-inventory-update-modules
+                dpkg-divert --add --no-rename /etc/mender/scripts/version
+                # stop and disable the v4 services
+                if systemctl is-active mender-authd; then
+                    systemctl stop mender-authd
+                    systemctl disable mender-authd
+                fi
+                if systemctl is-active mender-updated; then
+                    systemctl stop mender-updated
+                    systemctl disable mender-updated
+                fi
+                ;;
+
+            *)
+                # Nothing to do for v3 or older.
+                ;;
+        esac
+        ;;
+
+    *)
+        # Nothing to do for install.
+        ;;
+esac
+
+exit 0
