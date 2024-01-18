@@ -21,8 +21,7 @@ import subprocess
 import threading
 
 import pytest
-from fabric import Result as FabricResult
-from helpers import packages_path
+from helpers import packages_path, check_installed
 
 SCRIPT_SERVER_ADDR = "localhost"
 SCRIPT_SERVER_PORT = 8000
@@ -125,17 +124,6 @@ def local_apt_repo_from_upstream_packages(container, pool_paths, dest):
         container.run(f"cd {dest} && curl --remote-name {url}")
 
     prepare_local_apt_repo(container, dest)
-
-
-def check_installed(conn, pkg, installed=True):
-    """Check whether the given package is installed on the device given by
-    conn."""
-
-    res = conn.run(f"dpkg --status {pkg}", warn=True)
-    if isinstance(res, FabricResult):
-        assert (res.return_code == 0) == installed
-    else:
-        assert (res.returncode == 0) == installed
 
 
 @pytest.mark.usefixtures("script_server")

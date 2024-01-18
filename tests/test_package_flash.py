@@ -15,7 +15,7 @@
 
 import pytest
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
 
@@ -34,24 +34,13 @@ class TestPackageFlash:
             package_name="mender-flash",
         )
 
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --install --ignore-depends=mender-update "
             + package_filename(
                 mender_dist_packages_versions["mender-flash"],
                 package_name="mender-flash",
             ),
         )
-        assert (
-            "Unpacking mender-flash ("
-            + mender_dist_packages_versions["mender-flash"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-flash ("
-            + mender_dist_packages_versions["mender-flash"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-flash")
 
         setup_tester_ssh_connection.run("test -x /usr/bin/mender-flash")

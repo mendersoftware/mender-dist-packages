@@ -16,7 +16,7 @@
 import pytest
 import os.path
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
 
@@ -60,7 +60,7 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
             package_arch="all",
         )
 
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --ignore-depends=mender-client --install "
             + package_filename(
                 mender_dist_packages_versions["mender-app-update-module"],
@@ -68,18 +68,7 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
                 package_arch="all",
             ),
         )
-        assert (
-            "Unpacking mender-app-update-module ("
-            + mender_dist_packages_versions["mender-app-update-module"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-app-update-module ("
-            + mender_dist_packages_versions["mender-app-update-module"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-app-update-module")
 
         self.check_installed_files(setup_tester_ssh_connection)
 

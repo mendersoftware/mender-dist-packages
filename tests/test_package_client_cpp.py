@@ -15,7 +15,7 @@
 
 import pytest
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
 expected_copyright_from_l2_md5sum = "39a30292da940b7ce011150e8c8d5e4f"
@@ -201,49 +201,28 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         )
 
         # Install the deb packages. On failure, install the missing dependencies.
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo apt install --yes ./"
             + package_filename(mender_dist_packages_versions["mender-client"]).replace(
                 "client", "update"
             )
         )
-        assert (
-            "Unpacking mender-update ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-update ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-update")
 
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo apt install --yes ./"
             + package_filename(mender_dist_packages_versions["mender-client"]).replace(
                 "client", "auth"
             )
         )
-        assert (
-            "Unpacking mender-auth ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-auth ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-auth")
 
         # Install the client meta-package also
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo apt install --yes ./"
             + package_filename(mender_dist_packages_versions["mender-client"])
         )
+        check_installed(setup_tester_ssh_connection, "mender-client")
 
         self.check_installed_files(setup_tester_ssh_connection)
 
@@ -252,16 +231,8 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         self.check_systemd_service(setup_tester_ssh_connection)
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_remove_stop(
-        self, setup_tester_ssh_connection, mender_dist_packages_versions
-    ):
-        result = setup_tester_ssh_connection.run("sudo dpkg --remove mender-client")
-        assert (
-            "Removing mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
+    def test_remove_stop(self, setup_tester_ssh_connection):
+        setup_tester_ssh_connection.run("sudo dpkg --remove mender-client")
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_purge(self, setup_tester_ssh_connection):
@@ -278,5 +249,6 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         # Purging mender-client removes the configuration
         result = setup_tester_ssh_connection.run("sudo dpkg --purge mender-client")
         assert result.return_code == 0
+        check_installed(setup_tester_ssh_connection, "mender-client", installed=False)
         setup_tester_ssh_connection.run("test ! -f /etc/mender/mender.conf")
         setup_tester_ssh_connection.run("test ! -f /var/lib/mender/device_type")

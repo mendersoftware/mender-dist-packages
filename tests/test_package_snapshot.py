@@ -15,7 +15,7 @@
 
 import pytest
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
 
@@ -34,24 +34,13 @@ class TestPackageSnapshot:
             package_name="mender-snapshot",
         )
 
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-snapshot"],
                 package_name="mender-snapshot",
             ),
         )
-        assert (
-            "Unpacking mender-snapshot ("
-            + mender_dist_packages_versions["mender-snapshot"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-snapshot ("
-            + mender_dist_packages_versions["mender-snapshot"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-snapshot")
 
         setup_tester_ssh_connection.run("test -x /usr/bin/mender-snapshot")
