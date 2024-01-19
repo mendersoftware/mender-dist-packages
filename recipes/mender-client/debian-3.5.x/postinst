@@ -2,6 +2,8 @@
 
 set -e
 
+ACTION="$1"
+
 # If the file exists, we understand that mender setup was already run or
 # the device was manually configured at some point. Do nothing.
 if [ ! -f /etc/mender/mender.conf ]; then
@@ -26,5 +28,38 @@ if [ ! -f /etc/mender/mender.conf ]; then
     fi
 
 fi
+
+case "$ACTION" in
+    # We always want to do this.
+    *)
+        # Restore files that were diverted during an downgrade from mender-client v4. Use `--quiet`
+        # to avoid a lot of messages in case the files are not diverted, which will usually be the case.
+        dpkg-divert --quiet --remove --rename /usr/share/mender/identity/mender-device-identity
+        dpkg-divert --quiet --remove --rename /etc/mender/identity/mender-device-identity
+        dpkg-divert --quiet --remove --rename /usr/share/dbus-1/system.d/io.mender.AuthenticationManager.conf
+        dpkg-divert --quiet --remove --rename /etc/mender/inventory/mender-inventory-bootloader-integration
+        dpkg-divert --quiet --remove --rename /etc/mender/inventory/mender-inventory-hostinfo
+        dpkg-divert --quiet --remove --rename /etc/mender/inventory/mender-inventory-network
+        dpkg-divert --quiet --remove --rename /etc/mender/inventory/mender-inventory-os
+        dpkg-divert --quiet --remove --rename /etc/mender/inventory/mender-inventory-provides
+        dpkg-divert --quiet --remove --rename /etc/mender/inventory/mender-inventory-rootfs-type
+        dpkg-divert --quiet --remove --rename /etc/mender/inventory/mender-inventory-update-modules
+        dpkg-divert --quiet --remove --rename /usr/share/mender/modules/v3/deb
+        dpkg-divert --quiet --remove --rename /usr/share/mender/modules/v3/directory
+        dpkg-divert --quiet --remove --rename /usr/share/mender/modules/v3/docker
+        dpkg-divert --quiet --remove --rename /usr/share/mender/modules/v3/rootfs-image
+        dpkg-divert --quiet --remove --rename /usr/share/mender/modules/v3/rpm
+        dpkg-divert --quiet --remove --rename /usr/share/mender/modules/v3/script
+        dpkg-divert --quiet --remove --rename /usr/share/mender/modules/v3/single-file
+        dpkg-divert --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-bootloader-integration
+        dpkg-divert --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-hostinfo
+        dpkg-divert --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-network
+        dpkg-divert --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-os
+        dpkg-divert --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-provides
+        dpkg-divert --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-rootfs-type
+        dpkg-divert --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-update-modules
+        dpkg-divert --quiet --remove --rename /etc/mender/scripts/version
+        ;;
+esac
 
 #DEBHELPER#

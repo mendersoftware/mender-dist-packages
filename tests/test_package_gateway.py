@@ -15,7 +15,7 @@
 
 import pytest
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 
 
 class TestPackageGateway:
@@ -31,24 +31,13 @@ class TestPackageGateway:
         )
 
         # Install
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-gateway"], "mender-gateway",
             )
         )
-        assert (
-            "Unpacking mender-gateway ("
-            + mender_dist_packages_versions["mender-gateway"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-gateway ("
-            + mender_dist_packages_versions["mender-gateway"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-gateway")
 
         # Check mender-gateway files
         setup_tester_ssh_connection.run("test -x /usr/bin/mender-gateway")

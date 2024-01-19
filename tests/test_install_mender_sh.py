@@ -21,8 +21,7 @@ import subprocess
 import threading
 
 import pytest
-from fabric import Result as FabricResult
-from helpers import packages_path
+from helpers import packages_path, check_installed
 
 SCRIPT_SERVER_ADDR = "localhost"
 SCRIPT_SERVER_PORT = 8000
@@ -91,35 +90,40 @@ def generic_debian_container(request):
     return c
 
 
-def put_all_packages(container, dest):
+def put_all_built_packages(container, dest):
     container.run(f"mkdir -p {dest}")
     for package in glob.glob(packages_path("mender-client", "amd64") + "/*.deb"):
         container.put(package, dest)
 
 
-def prepare_local_apt_repo(container):
-    # Copy freshly built packages and configure a local APT repo with dpkg-dev. See:
+def prepare_local_apt_repo(container, packages_path):
+    # Configure a local APT repo with dpkg-dev. See:
     # https://askubuntu.com/questions/458748/is-it-possible-to-add-a-location-folder-on-my-hard-disk-to-sources-list
-    put_all_packages(container, "/packages")
     container.run("apt install -y dpkg-dev")
     container.run(
-        "cd /packages && dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz"
+        f"cd {packages_path} && dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz"
+    )
+    sources_list_file = (
+        f"/etc/apt/sources.list.d/{os.path.basename(packages_path)}.list"
     )
     container.run(
-        "echo deb [trusted=yes] file:/packages ./ > /etc/apt/sources.list.d/packages.list"
+        f"echo deb [trusted=yes] file:{packages_path} ./ > {sources_list_file}"
     )
     container.run("apt update")
 
 
-def check_installed(conn, pkg, installed=True):
-    """Check whether the given package is installed on the device given by
-    conn."""
+def local_apt_repo_from_built_packages(container):
+    put_all_built_packages(container, "/packages")
+    prepare_local_apt_repo(container, "/packages")
 
-    res = conn.run(f"dpkg --status {pkg}", warn=True)
-    if isinstance(res, FabricResult):
-        assert (res.return_code == 0) == installed
-    else:
-        assert (res.returncode == 0) == installed
+
+def local_apt_repo_from_upstream_packages(container, pool_paths, dest):
+    container.run(f"mkdir {dest}")
+    for path in pool_paths:
+        url = f"https://downloads.mender.io/repos/debian/pool/main/{path}"
+        container.run(f"cd {dest} && curl --remote-name {url}")
+
+    prepare_local_apt_repo(container, dest)
 
 
 @pytest.mark.usefixtures("script_server")
@@ -231,7 +235,7 @@ class TestInstallMenderScript:
         )
 
         # And now upgrade to the freshly built packages
-        prepare_local_apt_repo(generic_debian_container)
+        local_apt_repo_from_built_packages(generic_debian_container)
         generic_debian_container.run("apt -y upgrade")
 
         # All packages should be upgraded
@@ -241,6 +245,124 @@ class TestInstallMenderScript:
         check_installed(generic_debian_container, "mender-flash")
         check_installed(generic_debian_container, "mender-setup")
         check_installed(generic_debian_container, "mender-snapshot")
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+
+@pytest.mark.usefixtures("script_server")
+class TestUpgradeMenderV4:
+    def test_upgrade_from_v3_to_v4_to_build(
+        self, generic_debian_container,
+    ):
+        # Install mender-client 3.5.2
+        local_apt_repo_from_upstream_packages(
+            generic_debian_container,
+            [
+                "m/mender-client/mender-client_3.5.2-1+debian+buster_amd64.deb",
+                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "m/mender-configure/mender-configure_1.1.1-1+debian+buster_all.deb",
+            ],
+            "/mender_3_5_2",
+        )
+        generic_debian_container.run(
+            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client mender-connect mender-configure"
+        )
+
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+        # Upgrade to mender-client 4.0.0
+        local_apt_repo_from_upstream_packages(
+            generic_debian_container,
+            [
+                "m/mender-client/mender-client_4.0.0-1+debian+buster_amd64.deb",
+                "m/mender-client/mender-update_4.0.0-1+debian+buster_amd64.deb",
+                "m/mender-client/mender-auth_4.0.0-1+debian+buster_amd64.deb",
+                "m/mender-flash/mender-flash_1.0.0-1+debian+buster_amd64.deb",
+                "m/mender-setup/mender-setup_1.0.0-1+debian+buster_amd64.deb",
+                "m/mender-snapshot/mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
+                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "m/mender-configure/mender-configure_1.1.2-1+debian+buster_all.deb",
+            ],
+            "/mender_4_0_0",
+        )
+        # Note the use of apt instead of apt-get - the latter wouldn't install the new packages
+        generic_debian_container.run("apt --assume-yes upgrade")
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-update")
+        check_installed(generic_debian_container, "mender-auth")
+        check_installed(generic_debian_container, "mender-flash")
+        check_installed(generic_debian_container, "mender-setup")
+        check_installed(generic_debian_container, "mender-snapshot")
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+        # Upgrade to the freshly built packages
+        local_apt_repo_from_built_packages(generic_debian_container)
+        generic_debian_container.run("apt --assume-yes upgrade")
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-update")
+        check_installed(generic_debian_container, "mender-auth")
+        check_installed(generic_debian_container, "mender-flash")
+        check_installed(generic_debian_container, "mender-setup")
+        check_installed(generic_debian_container, "mender-snapshot")
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+    def test_upgrade_from_v3_to_build(
+        self, generic_debian_container,
+    ):
+        # Install mender-client 3.5.2
+        local_apt_repo_from_upstream_packages(
+            generic_debian_container,
+            [
+                "m/mender-client/mender-client_3.5.2-1+debian+buster_amd64.deb",
+                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "m/mender-configure/mender-configure_1.1.1-1+debian+buster_all.deb",
+            ],
+            "/mender_3_5_2",
+        )
+        generic_debian_container.run(
+            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client mender-connect mender-configure"
+        )
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+        # Upgrade to the freshly built packages
+        local_apt_repo_from_built_packages(generic_debian_container)
+        generic_debian_container.run("apt --assume-yes upgrade")
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+    def test_upgrade_from_v4_to_build(
+        self, generic_debian_container,
+    ):
+        # Install mender-client 4.0.0
+        local_apt_repo_from_upstream_packages(
+            generic_debian_container,
+            [
+                "m/mender-client/mender-client_4.0.0-1+debian+buster_amd64.deb",
+                "m/mender-client/mender-update_4.0.0-1+debian+buster_amd64.deb",
+                "m/mender-client/mender-auth_4.0.0-1+debian+buster_amd64.deb",
+                "m/mender-flash/mender-flash_1.0.0-1+debian+buster_amd64.deb",
+                "m/mender-setup/mender-setup_1.0.0-1+debian+buster_amd64.deb",
+                "m/mender-snapshot/mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
+                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "m/mender-configure/mender-configure_1.1.2-1+debian+buster_all.deb",
+            ],
+            "/mender_4_0_0",
+        )
+        generic_debian_container.run(
+            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client mender-connect mender-configure"
+        )
+
+        # Upgrade to the freshly built packages
+        local_apt_repo_from_built_packages(generic_debian_container)
+        generic_debian_container.run("apt --assume-yes upgrade")
+        check_installed(generic_debian_container, "mender-client")
         check_installed(generic_debian_container, "mender-connect")
         check_installed(generic_debian_container, "mender-configure")
 

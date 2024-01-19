@@ -16,9 +16,8 @@
 import pytest
 import time
 import os.path
-import re
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
 
@@ -211,23 +210,12 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         )
 
         # Install the deb package. On failure, install the missing dependencies.
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo DEBIAN_FRONTEND=noninteractive dpkg --install "
             + package_filename(mender_dist_packages_versions["mender-client"])
-            + "|| sudo apt-get -f -y install"
+            + "|| sudo apt-get --fix-broken --assume-yes install"
         )
-        assert (
-            "Unpacking mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-client")
 
         self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
@@ -261,27 +249,14 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         assert "No dual rootfs configuration present" in result.stdout
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_remove_stop(
-        self, setup_tester_ssh_connection, mender_dist_packages_versions
-    ):
-        result = setup_tester_ssh_connection.run("sudo dpkg -r mender-client")
-        assert (
-            "Removing mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
+    def test_remove_stop(self, setup_tester_ssh_connection):
+        setup_tester_ssh_connection.run("sudo dpkg --remove mender-client")
 
         self.check_removed_files(setup_tester_ssh_connection, purge=False)
 
     @pytest.mark.usefixtures("setup_test_container")
-    def test_purge(self, setup_tester_ssh_connection, mender_dist_packages_versions):
-        result = setup_tester_ssh_connection.run("sudo dpkg -P mender-client")
-        assert (
-            "Purging configuration files for mender-client ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
+    def test_purge(self, setup_tester_ssh_connection):
+        setup_tester_ssh_connection.run("sudo dpkg --purge mender-client")
+        check_installed(setup_tester_ssh_connection, "mender-client", installed=False)
 
         self.check_removed_files(setup_tester_ssh_connection, purge=True)

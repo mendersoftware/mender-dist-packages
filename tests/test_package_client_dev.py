@@ -15,7 +15,7 @@
 
 import pytest
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 
 
 @pytest.mark.usefixtures("setup_mender_configured")
@@ -33,7 +33,7 @@ class TestPackageDev:
         )
 
         # Install
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --ignore-depends=mender-client --install "
             + package_filename(
                 mender_dist_packages_versions["mender-client"],
@@ -41,18 +41,7 @@ class TestPackageDev:
                 package_arch="all",
             )
         )
-        assert (
-            "Unpacking mender-client-dev ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-client-dev ("
-            + mender_dist_packages_versions["mender-client"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-client-dev")
 
         # Check mender-client-dev files
         setup_tester_ssh_connection.run(
