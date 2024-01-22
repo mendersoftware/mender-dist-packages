@@ -87,16 +87,26 @@ get_deb_distribution() {
   fi
 }
 
+# This function declares three variables for the rest of the script to use:
+#   DEB_VERSION          The full Debian technical version
+#   DEB_VERSION_NO_REV   The Git version of the package, either tag or X.Y.Z~gitDATE
+#   DEB_VERSION_NO_EPOCH The Debian version minus the epoch, matching the string in the filename
 get_deb_version() {
   # Create a version from Git.
-  #  - For Git tags: X.Y.Z-<debian_suffix>
-  #  - For master: X.Y.Z~git<commit-date>.<commit-sha>-<debian_suffix>+b<BUILD_ID>
+  #  - For Git tags: <debian-epoch>X.Y.Z-<debian_suffix>
+  #  - For master: <debian-epoch>X.Y.Z~git<commit-date>.<commit-sha>-<debian_suffix>+b<BUILD_ID>
   #     where X.Y.Z is latest tag (not necessarily matching git describe)
+  debian_epoch=""
+  if [ "${DEB_PACKAGE}" = "mender-client" ]; then
+    debian_epoch="1:"
+  fi
   debian_suffix="1+$OS_DISTRO+$OS_CODENAME"
   if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
     DEB_VERSION="$(git describe --tags --exact-match)"
     DEB_VERSION_NO_REV="${DEB_VERSION}"
     DEB_VERSION="${DEB_VERSION}-${debian_suffix}"
+    DEB_VERSION_NO_EPOCH="${DEB_VERSION}"
+    DEB_VERSION="${debian_epoch}${DEB_VERSION}"
   else
     DEB_VERSION="$(git tag | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -n1)"
     if [ -z "${DEB_VERSION}" ]; then
@@ -115,6 +125,8 @@ get_deb_version() {
     # this has to have something to do with the `b` being a prefix
     # to binary numbers in perl
     DEB_VERSION="${DEB_VERSION}+builder${BUILD_ID}"
+    DEB_VERSION_NO_EPOCH="${DEB_VERSION}"
+    DEB_VERSION="${debian_epoch}${DEB_VERSION}"
   fi
 }
 
@@ -345,7 +357,7 @@ copy_deb_packages() {
     cp ${file} /output
   done
   # Echo the package version to /output
-  echo ${DEB_VERSION} > /output/${DEB_PACKAGE}-deb-version
+  echo ${DEB_VERSION_NO_EPOCH} > /output/${DEB_PACKAGE}-deb-version
   # Give packages same owner as the folder.
   chown --reference /output /output/*
 }

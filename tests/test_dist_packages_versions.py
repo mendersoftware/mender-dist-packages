@@ -15,8 +15,6 @@
 
 import re
 
-import pytest
-
 
 def verify_package_version(version, deb_version):
     # For master, expect something like: "0.0~git20191022.dade697-1+debian+buster+b279517265"

@@ -13,9 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import pytest
-
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 
 
 class TestPackageArtifact:
@@ -30,24 +28,13 @@ class TestPackageArtifact:
         )
 
         # Install
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-artifact"], "mender-artifact",
             )
         )
-        assert (
-            "Unpacking mender-artifact ("
-            + mender_dist_packages_versions["mender-artifact"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-artifact ("
-            + mender_dist_packages_versions["mender-artifact"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-artifact")
 
         # Check mender-artifact files
         setup_tester_ssh_connection.run("test -x /usr/bin/mender-artifact")

@@ -14,10 +14,9 @@
 #    limitations under the License.
 
 import pytest
-import os.path
 import re
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 
 
 @pytest.mark.usefixtures("setup_mender_configured")
@@ -36,24 +35,13 @@ class TestPackageAddons:
         )
 
         # Install
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-connect"], "mender-connect"
             )
         )
-        assert (
-            "Unpacking mender-connect ("
-            + mender_dist_packages_versions["mender-connect"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-connect ("
-            + mender_dist_packages_versions["mender-connect"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-connect")
 
         # Check mender-connect files
         setup_tester_ssh_connection.run("test -x /usr/bin/mender-connect")
@@ -87,7 +75,7 @@ class TestPackageAddons:
         )
 
         # Install
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-configure"],
@@ -95,18 +83,7 @@ class TestPackageAddons:
                 "all",
             )
         )
-        assert (
-            "Unpacking mender-configure ("
-            + mender_dist_packages_versions["mender-configure"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-configure ("
-            + mender_dist_packages_versions["mender-configure"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-configure")
 
         # Check mender-configure files
         setup_tester_ssh_connection.run(
@@ -136,7 +113,7 @@ class TestPackageAddons:
         assert result.exited == 0
 
         # Install
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-monitor"],
@@ -144,18 +121,7 @@ class TestPackageAddons:
                 "all",
             )
         )
-        assert (
-            "Unpacking mender-monitor ("
-            + mender_dist_packages_versions["mender-monitor"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-monitor ("
-            + mender_dist_packages_versions["mender-monitor"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-monitor")
 
         # Check mender-monitor files
         setup_tester_ssh_connection.run(

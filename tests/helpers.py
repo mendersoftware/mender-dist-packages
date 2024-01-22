@@ -15,6 +15,8 @@
 
 import os.path
 
+from fabric import Result as FabricResult
+
 tests_path = os.path.dirname(os.path.realpath(__file__))
 output_path = os.path.normpath(os.path.join(tests_path, "..", "output"))
 
@@ -58,3 +60,14 @@ def upload_deb_package(
     ssh_connection.put(
         package_filename_path(package_version, package_name, package_arch)
     )
+
+
+def check_installed(conn, pkg, installed=True):
+    """Check whether the given package is installed on the device given by
+    conn."""
+
+    res = conn.run(f"dpkg --status {pkg}", warn=True)
+    if isinstance(res, FabricResult):
+        assert (res.return_code == 0) == installed
+    else:
+        assert (res.returncode == 0) == installed

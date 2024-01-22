@@ -15,7 +15,7 @@
 
 import pytest
 
-from helpers import package_filename, upload_deb_package
+from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
 
@@ -34,25 +34,14 @@ class TestPackageSetup:
             package_name="mender-setup",
         )
 
-        result = setup_tester_ssh_connection.run(
+        setup_tester_ssh_connection.run(
             "sudo DEBIAN_FRONTEND=noninteractive dpkg --install "
             + package_filename(
                 mender_dist_packages_versions["mender-setup"],
                 package_name="mender-setup",
             ),
         )
-        assert (
-            "Unpacking mender-setup ("
-            + mender_dist_packages_versions["mender-setup"]
-            + ")"
-            in result.stdout
-        )
-        assert (
-            "Setting up mender-setup ("
-            + mender_dist_packages_versions["mender-setup"]
-            + ")"
-            in result.stdout
-        )
+        check_installed(setup_tester_ssh_connection, "mender-setup")
         setup_tester_ssh_connection.run("test -x /usr/bin/mender-setup")
         setup_tester_ssh_connection.run("test -f /etc/mender/mender.conf")
         setup_tester_ssh_connection.run("test -f /var/lib/mender/device_type")
