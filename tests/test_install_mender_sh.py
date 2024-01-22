@@ -164,9 +164,8 @@ class TestInstallMenderScript:
     ):
         """Pass mender setup args, should be propagated"""
 
-        # MEN-6947: Using experimental until mender-setup 1.0.0 is released
         generic_debian_container.run(
-            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- -c experimental -- --demo --device-type cool-device --hosted-mender --tenant-token my-secret-token"
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- -- --demo --device-type cool-device --hosted-mender --tenant-token my-secret-token"
         )
 
         result = generic_debian_container.run("cat /etc/mender/mender.conf")
@@ -254,15 +253,15 @@ class TestUpgradeMenderV4:
     def test_upgrade_from_v3_to_v4_to_build(
         self, generic_debian_container,
     ):
-        # Install mender-client 3.5.2
+        # Install mender-client 3.5.1 (epoch 0:)
         local_apt_repo_from_upstream_packages(
             generic_debian_container,
             [
-                "m/mender-client/mender-client_3.5.2-1+debian+buster_amd64.deb",
-                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "m/mender-client/mender-client_3.5.1-1+debian+buster_amd64.deb",
+                "m/mender-connect/mender-connect_2.1.1-1+debian+buster_amd64.deb",
                 "m/mender-configure/mender-configure_1.1.1-1+debian+buster_all.deb",
             ],
-            "/mender_3_5_2",
+            "/mender_3_5_1",
         )
         generic_debian_container.run(
             "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client mender-connect mender-configure"
@@ -313,7 +312,7 @@ class TestUpgradeMenderV4:
     def test_upgrade_from_v3_to_build(
         self, generic_debian_container,
     ):
-        # Install mender-client 3.5.2
+        # Install mender-client 3.5.2 (epoch 1:)
         local_apt_repo_from_upstream_packages(
             generic_debian_container,
             [
