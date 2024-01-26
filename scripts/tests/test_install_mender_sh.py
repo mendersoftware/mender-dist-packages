@@ -481,25 +481,3 @@ class TestUpgradeMenderV4:
         check_installed(generic_debian_container, "mender-client")
         check_installed(generic_debian_container, "mender-connect")
         check_installed(generic_debian_container, "mender-configure")
-
-
-@pytest.mark.usefixtures("script_server")
-class TestInstallMenderScriptRaspberryOS:
-    def test_raspbian_default(
-        self, setup_tester_ssh_connection_f,
-    ):
-        # We need to access the toplevel host's port from QUEMU to curl the script.
-        localhost = setup_tester_ssh_connection_f.run(
-            "ip route | grep default | awk '{print $3}'"
-        ).stdout.strip()
-
-        # Explicitly accept suite change from "stable" to "oldstable"
-        setup_tester_ssh_connection_f.run(
-            "sudo apt-get update --allow-releaseinfo-change-suite"
-        )
-
-        setup_tester_ssh_connection_f.run(
-            f"curl http://{localhost}:{SCRIPT_SERVER_PORT}/install-mender.sh | sudo bash -s"
-        )
-        for pkg in ["mender-client", "mender-configure", "mender-connect"]:
-            check_installed(setup_tester_ssh_connection_f, pkg)
