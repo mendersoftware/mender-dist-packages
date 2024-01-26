@@ -62,17 +62,9 @@ variables:
     description: |-
       Overrides Debian suffix, which by default is "-1". Use it to manually build (and publish)
       a new version of a package from already released (git tagged) software.
-
-# NOTE: To add distributions, modify first the matrix in mender-test-containers repository
-.mender-dist-packages-image-matrix:
-  parallel:
-    matrix:
-      - DISTRO: debian
-        RELEASE: [buster, bullseye]
-        ARCH: [amd64, armhf, arm64]
-      - DISTRO: ubuntu
-        RELEASE: [focal, jammy]
-        ARCH: [amd64, armhf, arm64]
+  # Protected CI variables to access private repositories
+  MENDER_PRIVATE_REPO_ACCESS_USER: ""
+  MENDER_PRIVATE_REPO_ACCESS_TOKEN: ""
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -85,75 +77,261 @@ include:
 
 stages:
   - build:orig
-  - build:packages
+  - build:package
   - test
   - publish
 
-build:orig:debian:buster:amd64:
-  stage: build:orig
-  image: docker:git
-  tags:
-    - mender-qa-worker-generic
-  services:
-    - docker:dind
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-  before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-  script:
-    - apk --update --no-cache add bash
-    - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
-    - else
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION true
-    - fi
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
-    - find output -type f
+.generate-config:
+  stage: .pre
+  image: alpine
+  before_script: apk add --no-cache gettext
+  script: envsubst '$TMPL_PACKAGE_NAME,$TMPL_PACKAGE_VERSION,$TMPL_PYTEST_FILTER' < gitlab-pipeline/package-pipeline.yml.tmpl > package-pipeline.yml
   artifacts:
     paths:
-      - output/orig
+      - package-pipeline.yml
 
-build:packages:
-  stage: build:packages
-  image: docker:git
-  tags:
-    - hetzner-amd-beefy
-  services:
-    - docker:dind
-  before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-  script:
-    - apk --update --no-cache add bash
-    - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
-    - else
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
-    - fi
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
-    - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
-    - fi
-    - find output -type f
-  artifacts:
-    paths:
-      - output/commercial
-      - output/opensource
-  parallel: !reference [.mender-dist-packages-image-matrix, parallel]
+generate-config:mender-client4:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_VERSION =~ /^[23]\..*/'
+      when: never
+    - if: '$MENDER_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-client4
+    TMPL_PACKAGE_VERSION: $MENDER_VERSION
+    TMPL_PYTEST_FILTER: "test_mender_client_cpp or test_mender_client_dev"
+
+child-pipeline:mender-client4:
+  rules:
+    - if: '$MENDER_VERSION =~ /^[23]\..*/'
+      when: never
+    - if: '$MENDER_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-client4
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-client4
+        artifact: package-pipeline.yml
+
+generate-config:mender-client:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_VERSION =~ /^[23]\..*/'
+  variables:
+    TMPL_PACKAGE_NAME: mender-client
+    TMPL_PACKAGE_VERSION: $MENDER_VERSION
+    TMPL_PYTEST_FILTER: "test_mender_client and not test_mender_client_cpp"
+
+child-pipeline:mender-client:
+  rules:
+    - if: '$MENDER_VERSION =~ /^[23]\..*/'
+  stage: test
+  needs:
+    - job: generate-config:mender-client
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-client
+        artifact: package-pipeline.yml
+
+generate-config:mender-connect:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_CONNECT_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-connect
+    TMPL_PACKAGE_VERSION: $MENDER_CONNECT_VERSION
+    TMPL_PYTEST_FILTER: test_mender_connect
+
+child-pipeline:mender-connect:
+  rules:
+    - if: '$MENDER_CONNECT_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-connect
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-connect
+        artifact: package-pipeline.yml
+
+generate-config:mender-configure:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_CONFIGURE_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-configure
+    TMPL_PACKAGE_VERSION: $MENDER_CONFIGURE_VERSION
+    TMPL_PYTEST_FILTER: test_mender_configure
+
+child-pipeline:mender-configure:
+  rules:
+    - if: '$MENDER_CONFIGURE_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-configure
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-configure
+        artifact: package-pipeline.yml
+
+generate-config:mender-artifact:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_ARTIFACT_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-artifact
+    TMPL_PACKAGE_VERSION: $MENDER_ARTIFACT_VERSION
+    TMPL_PYTEST_FILTER: test_package_tools
+
+child-pipeline:mender-artifact:
+  rules:
+    - if: '$MENDER_ARTIFACT_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-artifact
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-artifact
+        artifact: package-pipeline.yml
+
+generate-config:mender-app-update-module:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_APP_UPDATE_MODULE_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-app-update-module
+    TMPL_PACKAGE_VERSION: $MENDER_APP_UPDATE_MODULE_VERSION
+    TMPL_PYTEST_FILTER: test_package_app_update_module
+
+child-pipeline:mender-app-update-module:
+  rules:
+    - if: '$MENDER_APP_UPDATE_MODULE_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-app-update-module
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-app-update-module
+        artifact: package-pipeline.yml
+
+generate-config:mender-setup:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_SETUP_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-setup
+    TMPL_PACKAGE_VERSION: $MENDER_SETUP_VERSION
+    TMPL_PYTEST_FILTER: test_package_setup
+
+child-pipeline:mender-setup:
+  rules:
+    - if: '$MENDER_SETUP_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-setup
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-setup
+        artifact: package-pipeline.yml
+
+generate-config:mender-snapshot:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_SNAPSHOT_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-snapshot
+    TMPL_PACKAGE_VERSION: $MENDER_SNAPSHOT_VERSION
+    TMPL_PYTEST_FILTER: test_package_snapshot
+
+child-pipeline:mender-snapshot:
+  rules:
+    - if: '$MENDER_SNAPSHOT_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-snapshot
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-snapshot
+        artifact: package-pipeline.yml
+
+generate-config:mender-flash:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_FLASH_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-flash
+    TMPL_PACKAGE_VERSION: $MENDER_FLASH_VERSION
+    TMPL_PYTEST_FILTER: test_package_flash
+
+child-pipeline:mender-flash:
+  rules:
+    - if: '$MENDER_FLASH_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-flash
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-flash
+        artifact: package-pipeline.yml
+
+generate-config:mender-gateway:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_PRIVATE_REPO_ACCESS_TOKEN == ""'
+      when: never
+    - if: '$MENDER_GATEWAY_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-gateway
+    TMPL_PACKAGE_VERSION: $MENDER_GATEWAY_VERSION
+    TMPL_PYTEST_FILTER: test_package_gateway
+
+child-pipeline:mender-gateway:
+  rules:
+    - if: '$MENDER_PRIVATE_REPO_ACCESS_TOKEN == ""'
+      when: never
+    - if: '$MENDER_GATEWAY_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-gateway
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-gateway
+        artifact: package-pipeline.yml
+
+generate-config:mender-monitor:
+  extends: .generate-config
+  rules:
+    - if: '$MENDER_PRIVATE_REPO_ACCESS_TOKEN == ""'
+      when: never
+    - if: '$MENDER_MONITOR_VERSION != ""'
+  variables:
+    TMPL_PACKAGE_NAME: mender-monitor
+    TMPL_PACKAGE_VERSION: $MENDER_MONITOR_VERSION
+    TMPL_PYTEST_FILTER: test_mender_monitor
+
+child-pipeline:mender-monitor:
+  rules:
+    - if: '$MENDER_PRIVATE_REPO_ACCESS_TOKEN == ""'
+      when: never
+    - if: '$MENDER_MONITOR_VERSION != ""'
+  stage: test
+  needs:
+    - job: generate-config:mender-monitor
+      artifacts: true
+  trigger:
+    include:
+      - job: generate-config:mender-monitor
+        artifact: package-pipeline.yml
 
 test:check-commits:
   only:
@@ -167,95 +345,6 @@ test:check-license:
 test:check-python3-formatting:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
-
-.test:acceptance:
-  stage: test
-  image: docker:dind
-  tags:
-    - mender-qa-worker-generic
-  dependencies:
-    # Note that we are only testing packages from Debian buster
-    - "build:packages: [debian, buster, amd64]"
-    - "build:packages: [debian, buster, armhf]"
-    - "build:packages: [debian, buster, arm64]"
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  before_script:
-    # DinD setup in Mender CI runners
-    - unset DOCKER_HOST
-    - unset DOCKER_TLS_VERIFY
-    - unset DOCKER_CERT_PATH
-    # Start dockerd in the background
-    - /usr/local/bin/dockerd &
-    # Wait for dockerd to start
-    - |-
-      MAX_WAIT=30
-      while [ ! -e "/var/run/docker.sock" ] && [ $MAX_WAIT -gt 0 ]; do
-        MAX_WAIT=$(($MAX_WAIT - 1))
-        sleep 1
-      done
-    # Verify that the docker server is up and running
-    - docker version
-    # Git submodules
-    - apk --update --no-cache add git
-    - git submodule sync --recursive
-    - git submodule update --init --recursive
-    # Log in to pull test image from registry.gitlab.com
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-  script:
-    - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
-      libffi-dev libc-dev python3-dev bash musl-dev rust cargo
-    - cd tests
-    - pip3 install --break-system-packages -r requirements.txt
-    - REFERENCE_DIST=debian-buster-amd64
-    - |-
-        commercial_tests_flags=""
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] &&
-           [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
-          commercial_tests_flags="--commercial-tests"
-          commercial_tests_flags="$commercial_tests_flags --mender-gateway-version $MENDER_GATEWAY_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version)"
-          commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version)"
-        fi
-    - python3 -m pytest -v
-      --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client*-deb-version)
-      --mender-connect-version $MENDER_CONNECT_VERSION
-      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)
-      --mender-configure-version $MENDER_CONFIGURE_VERSION
-      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
-      --mender-artifact-version $MENDER_ARTIFACT_VERSION
-      --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
-      --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION
-      --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)
-      --mender-setup-version $MENDER_SETUP_VERSION
-      --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)
-      --mender-snapshot-version $MENDER_SNAPSHOT_VERSION
-      --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
-      --mender-flash-version $MENDER_FLASH_VERSION
-      --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
-      -m "${PYTEST_FILTER}"
-      ${commercial_tests_flags}
-      --junit-xml results.xml
-  artifacts:
-    reports:
-      junit: tests/results.xml
-
-test:acceptance:golang:
-  rules:
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
-  extends: .test:acceptance
-  variables:
-    PYTEST_FILTER: "not cppclient"
-
-test:acceptance:cpp:
-  rules:
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  extends: .test:acceptance
-  variables:
-    PYTEST_FILTER: "not golangclient"
 
 test:acceptance:script:
   rules:

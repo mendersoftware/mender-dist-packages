@@ -1,0 +1,39 @@
+# Template for test:acceptance jobs.
+# The job need to extend adding an 'script' section
+.test:acceptance:
+  stage: test
+  image: docker:dind
+  tags:
+    - mender-qa-worker-generic
+  dependencies:
+    # Note that we are only testing packages from Debian buster
+    - "build:package: [debian, buster, amd64]"
+    - "build:package: [debian, buster, armhf]"
+    - "build:package: [debian, buster, arm64]"
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+  before_script:
+    # DinD setup in Mender CI runners
+    - unset DOCKER_HOST
+    - unset DOCKER_TLS_VERIFY
+    - unset DOCKER_CERT_PATH
+    # Start dockerd in the background
+    - /usr/local/bin/dockerd &
+    # Wait for dockerd to start
+    - |-
+      MAX_WAIT=30
+      while [ ! -e "/var/run/docker.sock" ] && [ $MAX_WAIT -gt 0 ]; do
+        MAX_WAIT=$(($MAX_WAIT - 1))
+        sleep 1
+      done
+    # Verify that the docker server is up and running
+    - docker version
+    # Git submodules
+    - apk --update --no-cache add git
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+    # Log in to pull test image from registry.gitlab.com
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+  artifacts:
+    reports:
+      junit: tests/results.xml
