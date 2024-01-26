@@ -57,17 +57,6 @@ variables:
   # Builder image version
   IMAGE_VERSION: "master"
 
-# NOTE: To add distributions, modify first the matrix in mender-test-containers repository
-.mender-dist-packages-image-matrix:
-  parallel:
-    matrix:
-      - DISTRO: debian
-        RELEASE: [buster, bullseye]
-        ARCH: [amd64, armhf, arm64]
-      - DISTRO: ubuntu
-        RELEASE: [focal, jammy]
-        ARCH: [amd64, armhf, arm64]
-
 include:
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-check-commits-signoffs.yml'
@@ -84,63 +73,53 @@ stages:
   - test
   - publish
 
-build:orig:debian:buster:amd64:
-  stage: build:orig
-  image: docker:git
-  tags:
-    - mender-qa-worker-generic
-  services:
-    - docker:dind
-  variables:
-    DISTRO: "debian"
-    RELEASE: "buster"
-    ARCH: "amd64"
-  before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-  script:
-    - apk --update --no-cache add bash
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
-    - find output -type f
-  artifacts:
-    paths:
-      - output/orig
+# .mender-dist-packages:package-matrix:
+#   parallel:
+#     matrix:
+#       - PACKAGE: [mender-flash, mender-setup]
 
-build:packages:
-  stage: build:packages
-  image: docker:git
-  tags:
-    - mender-qa-worker-generic
-  services:
-    - docker:dind
-  before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-  script:
-    - apk --update --no-cache add bash
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
-    - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
-    - fi
-    - find output -type f
+generate-config:mender-flash:
+  rules:
+    - if: '$MENDER_FLASH_VERSION != "master"'
+  stage: .pre
+  script: cp dummy dummy.yml
   artifacts:
     paths:
-      - output/commercial
-      - output/opensource
-  parallel: !reference [.mender-dist-packages-image-matrix, parallel]
+      - dummy.yml
+
+child-pipeline:mender-flash:
+  rules:
+    - if: '$MENDER_FLASH_VERSION != "master"'
+  stage: test
+  needs:
+    - job: generate-config:mender-flash
+      artifacts: true
+  trigger:
+    include:
+      - artifact: dummy.yml
+        job: generate-config:mender-flash
+
+generate-config:manual:
+  when: manual
+  variables:
+    RECIPE: "mender-client"
+    VERSION: "master"
+  stage: .pre
+  script: cp dummy dummy.yml
+  artifacts:
+    paths:
+      - dummy.yml
+
+child-pipeline:manual:
+  when: manual
+  stage: test
+  needs:
+    - job: generate-config:manual
+      artifacts: true
+  trigger:
+    include:
+      - artifact: dummy.yml
+        job: generate-config:manual
 
 test:check-commits:
   only:
@@ -155,225 +134,141 @@ test:check-python3-formatting:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
-.test:acceptance:
-  stage: test
-  image: docker:dind
-  tags:
-    - mender-qa-worker-generic
-  dependencies:
-    # Note that we are only testing packages from Debian buster
-    - "build:packages: [debian, buster, amd64]"
-    - "build:packages: [debian, buster, armhf]"
-    - "build:packages: [debian, buster, arm64]"
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-  before_script:
-    # DinD setup in Mender CI runners
-    - unset DOCKER_HOST
-    - unset DOCKER_TLS_VERIFY
-    - unset DOCKER_CERT_PATH
-    # Start dockerd in the background
-    - /usr/local/bin/dockerd &
-    # Wait for dockerd to start
-    - |-
-      MAX_WAIT=30
-      while [ ! -e "/var/run/docker.sock" ] && [ $MAX_WAIT -gt 0 ]; do
-        MAX_WAIT=$(($MAX_WAIT - 1))
-        sleep 1
-      done
-    # Verify that the docker server is up and running
-    - docker version
-    # Git submodules
-    - apk --update --no-cache add git
-    - git submodule sync --recursive
-    - git submodule update --init --recursive
-  script:
-    - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
-      libffi-dev libc-dev python3-dev bash musl-dev rust cargo
-    - cd tests
-    - pip3 install --break-system-packages -r requirements.txt
-    - REFERENCE_DIST=debian-buster-amd64
-    - |-
-        commercial_tests_flags=""
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] &&
-           [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
-          commercial_tests_flags="--commercial-tests"
-          commercial_tests_flags="$commercial_tests_flags --mender-gateway-version $MENDER_GATEWAY_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version)"
-          commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version)"
-        fi
-    - python3 -m pytest -v
-      --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client-deb-version)
-      --mender-connect-version $MENDER_CONNECT_VERSION
-      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)
-      --mender-configure-version $MENDER_CONFIGURE_VERSION
-      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
-      --mender-artifact-version $MENDER_ARTIFACT_VERSION
-      --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
-      --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION
-      --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)
-      --mender-setup-version $MENDER_SETUP_VERSION
-      --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)
-      --mender-snapshot-version $MENDER_SNAPSHOT_VERSION
-      --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
-      --mender-flash-version $MENDER_FLASH_VERSION
-      --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
-      -m "${PYTEST_FILTER}"
-      ${commercial_tests_flags}
-      --junit-xml results.xml
-  artifacts:
-    reports:
-      junit: tests/results.xml
-
-test:acceptance:golang:
-  rules:
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
-  extends: .test:acceptance
-  variables:
-    PYTEST_FILTER: "not cppclient"
-
-test:acceptance:cpp:
-  rules:
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  extends: .test:acceptance
-  variables:
-    PYTEST_FILTER: "not golangclient"
-
 test:acceptance:script:
-  extends: .test:acceptance
-  dependencies: []
+  stage: test
+  needs: []
+  image: ubuntu:jammy
+  services:
+    - docker:dind
   script:
-    - apk --update --no-cache add python3 py3-pip
-    - pip3 install --break-system-packages -r tests/requirements.txt
+    - apt update && apt install --assume-yes python3 python3-pip
+    - pip install -r tests/requirements.txt
     - cd scripts/tests
     - python3 -m pytest -v --junit-xml results.xml
   artifacts:
     reports:
       junit: scripts/tests/results.xml
 
-.publish_helper_functions: &publish_helper_functions |
-  # Bash function to check if the string is a final tag
-  function is_final_tag () {
-    version="$1"
-    [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && return 0 || return $?
-  }
-  # Bash function to check if the string is a build tag
-  function is_build_tag () {
-    version="$1"
-    [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-build[0-9]+$ ]] && return 0 || return $?
-  }
+# .publish_helper_functions: &publish_helper_functions |
+#   # Bash function to check if the string is a final tag
+#   function is_final_tag () {
+#     version="$1"
+#     [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && return 0 || return $?
+#   }
+#   # Bash function to check if the string is a build tag
+#   function is_build_tag () {
+#     version="$1"
+#     [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-build[0-9]+$ ]] && return 0 || return $?
+#   }
 
-.template:publish:s3:apt-repo:
-  stage: publish
-  image: debian:buster
-  before_script:
-    - apt update && apt install -yyq awscli
-    # Lock the bucket to block concurrent jobs
-    - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
-    -   echo "$S3_BUCKET_REPO_PATH locked, waiting..."
-    -   sleep 10
-    - done
-    - touch lock
-    - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
-  script:
-    # Upload files: first .buildinfo and .deb, then .changes
-    - for d in output/opensource/*; do
-    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.ddeb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
-    -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
-    -   done
-    -   find "$d" -name '*.changes' | while read -r file; do
-    -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
-    -   done
-    - done
-  after_script:
-    - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+# .template:publish:s3:apt-repo:
+#   stage: publish
+#   image: debian:buster
+#   before_script:
+#     - apt update && apt install -yyq awscli
+#     # Lock the bucket to block concurrent jobs
+#     - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
+#     -   echo "$S3_BUCKET_REPO_PATH locked, waiting..."
+#     -   sleep 10
+#     - done
+#     - touch lock
+#     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+#   script:
+#     # Upload files: first .buildinfo and .deb, then .changes
+#     - for d in output/opensource/*; do
+#     -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.ddeb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
+#     -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
+#     -   done
+#     -   find "$d" -name '*.changes' | while read -r file; do
+#     -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
+#     -   done
+#     - done
+#   after_script:
+#     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
-publish:s3:apt-repo:manual:
-  when: manual
-  extends: .template:publish:s3:apt-repo
+# publish:s3:apt-repo:manual:
+#   when: manual
+#   extends: .template:publish:s3:apt-repo
 
-publish:s3:apt-repo:automatic:
-  rules:
-    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
-  extends: .template:publish:s3:apt-repo
+# publish:s3:apt-repo:automatic:
+#   rules:
+#     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+#   extends: .template:publish:s3:apt-repo
 
-.publish-template:s3:scripts:install-mender-sh:
-  stage: publish
-  image: debian:buster
-  before_script:
-    - apt update && apt install -yyq awscli
-  only:
-    changes:
-      - scripts/install-mender.sh
+# .publish-template:s3:scripts:install-mender-sh:
+#   stage: publish
+#   image: debian:buster
+#   before_script:
+#     - apt update && apt install -yyq awscli
+#   only:
+#     changes:
+#       - scripts/install-mender.sh
 
-publish:staging:s3:scripts:install-mender-sh:
-  extends: .publish-template:s3:scripts:install-mender-sh
-  script:
-    - echo "Publishing install-mender.sh to S3 (staging)"
-    - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/staging/install-mender.sh --content-type text/plain
-    - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/staging/install-mender.sh
-  only:
-    refs:
-      - master
+# publish:staging:s3:scripts:install-mender-sh:
+#   extends: .publish-template:s3:scripts:install-mender-sh
+#   script:
+#     - echo "Publishing install-mender.sh to S3 (staging)"
+#     - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/staging/install-mender.sh --content-type text/plain
+#     - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/staging/install-mender.sh
+#   only:
+#     refs:
+#       - master
 
-publish:production:s3:scripts:install-mender-sh:
-  extends: .publish-template:s3:scripts:install-mender-sh
-  script:
-    - echo "Publishing install-mender.sh to S3 (production)"
-    - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/install-mender.sh --content-type text/plain
-    - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/install-mender.sh
-  only:
-    refs:
-      - production
+# publish:production:s3:scripts:install-mender-sh:
+#   extends: .publish-template:s3:scripts:install-mender-sh
+#   script:
+#     - echo "Publishing install-mender.sh to S3 (production)"
+#     - aws s3 cp scripts/install-mender.sh s3://$S3_BUCKET_NAME/$S3_BUCKET_SCRIPTS_PATH/install-mender.sh --content-type text/plain
+#     - aws s3api put-object-acl --acl public-read --bucket ${S3_BUCKET_NAME} --key ${S3_BUCKET_SCRIPTS_PATH}/install-mender.sh
+#   only:
+#     refs:
+#       - production
 
-.template:publish:s3:
-  stage: publish
-  image: debian:buster
-  before_script:
-    - apt update && apt install -yyq awscli
-    - *publish_helper_functions
-  script:
-    - echo "Publishing ${PUBLISH_PACKAGE_PREFIX} version ${PUBLISH_PACKAGE_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"
-    - find output/commercial -name "${PUBLISH_PACKAGE_PREFIX}*.deb" | while read -r file; do
-    -   aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/
-    #   Make copy for "master" to be consumed by get.mender.io script:
-    -   if [ "${PUBLISH_PACKAGE_VERSION}" == "master" ]; then
-    -     copy_filename=$(basename "$file" | sed 's/_[^\+]*/_master-1/; s/\+builder[^_]*//')
-    -     aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/${copy_filename}
-    -   fi
-    - done
+# .template:publish:s3:
+#   stage: publish
+#   image: debian:buster
+#   before_script:
+#     - apt update && apt install -yyq awscli
+#     - *publish_helper_functions
+#   script:
+#     - echo "Publishing ${PUBLISH_PACKAGE_PREFIX} version ${PUBLISH_PACKAGE_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"
+#     - find output/commercial -name "${PUBLISH_PACKAGE_PREFIX}*.deb" | while read -r file; do
+#     -   aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/
+#     #   Make copy for "master" to be consumed by get.mender.io script:
+#     -   if [ "${PUBLISH_PACKAGE_VERSION}" == "master" ]; then
+#     -     copy_filename=$(basename "$file" | sed 's/_[^\+]*/_master-1/; s/\+builder[^_]*//')
+#     -     aws s3 cp "$file" s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/${copy_filename}
+#     -   fi
+#     - done
 
-.template:publish:s3:mender-monitor:
-  variables:
-    PUBLISH_PACKAGE_PREFIX: "mender-monitor"
-    PUBLISH_PACKAGE_VERSION: "$MENDER_MONITOR_VERSION"
-    PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_MONITOR"
-  extends: .template:publish:s3
+# .template:publish:s3:mender-monitor:
+#   variables:
+#     PUBLISH_PACKAGE_PREFIX: "mender-monitor"
+#     PUBLISH_PACKAGE_VERSION: "$MENDER_MONITOR_VERSION"
+#     PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_MONITOR"
+#   extends: .template:publish:s3
 
-publish:s3:mender-monitor:manual:
-  when: manual
-  extends: .template:publish:s3:mender-monitor
+# publish:s3:mender-monitor:manual:
+#   when: manual
+#   extends: .template:publish:s3:mender-monitor
 
-publish:s3:mender-monitor:automatic:
-  rules:
-    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
-  extends: .template:publish:s3:mender-monitor
+# publish:s3:mender-monitor:automatic:
+#   rules:
+#     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+#   extends: .template:publish:s3:mender-monitor
 
-.template:publish:s3:mender-gateway:
-  variables:
-    PUBLISH_PACKAGE_PREFIX: "mender-gateway"
-    PUBLISH_PACKAGE_VERSION: "$MENDER_GATEWAY_VERSION"
-    PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_GATEWAY"
-  extends: .template:publish:s3
+# .template:publish:s3:mender-gateway:
+#   variables:
+#     PUBLISH_PACKAGE_PREFIX: "mender-gateway"
+#     PUBLISH_PACKAGE_VERSION: "$MENDER_GATEWAY_VERSION"
+#     PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_GATEWAY"
+#   extends: .template:publish:s3
 
-publish:s3:mender-gateway:manual:
-  when: manual
-  extends: .template:publish:s3:mender-gateway
+# publish:s3:mender-gateway:manual:
+#   when: manual
+#   extends: .template:publish:s3:mender-gateway
 
-publish:s3:mender-gateway:automatic:
-  rules:
-    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
-  extends: .template:publish:s3:mender-gateway
+# publish:s3:mender-gateway:automatic:
+#   rules:
+#     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+#   extends: .template:publish:s3:mender-gateway
