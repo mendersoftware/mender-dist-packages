@@ -222,6 +222,10 @@ test:check-python3-formatting:
       --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
       -m "${PYTEST_FILTER}"
       ${commercial_tests_flags}
+      --junit-xml results.xml
+  artifacts:
+    reports:
+      junit: tests/results.xml
 
 test:acceptance:golang:
   rules:
