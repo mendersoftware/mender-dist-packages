@@ -105,11 +105,7 @@ def mender_monitor_version(request):
 
 
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--commercial-tests"):
-        for item in items:
-            if "commercial" not in item.keywords:
-                item.add_marker(pytest.mark.skip(reason="not a commercial test"))
-    else:
+    if not config.getoption("--commercial-tests"):
         skip_commercial = pytest.mark.skip(
             reason="run with the commercial-tests option"
         )

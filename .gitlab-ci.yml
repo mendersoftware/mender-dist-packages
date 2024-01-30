@@ -193,6 +193,16 @@ test:check-python3-formatting:
     - cd tests
     - pip3 install --break-system-packages -r requirements.txt
     - REFERENCE_DIST=debian-buster-amd64
+    - |-
+        commercial_tests_flags=""
+        if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] &&
+           [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
+          commercial_tests_flags="--commercial-tests"
+          commercial_tests_flags="$commercial_tests_flags --mender-gateway-version $MENDER_GATEWAY_VERSION"
+          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
+          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version)"
+        fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
       --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client-deb-version)
@@ -211,17 +221,11 @@ test:check-python3-formatting:
       --mender-flash-version $MENDER_FLASH_VERSION
       --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
       -m "${PYTEST_FILTER}"
-    - |-
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] && \
-           [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
-          python3 -m pytest -v \
-            --mender-gateway-version $MENDER_GATEWAY_VERSION \
-            --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version) \
-            --mender-monitor-version $MENDER_MONITOR_VERSION \
-            --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version) \
-            --commercial-tests \
-            -m "${PYTEST_FILTER}"
-        fi
+      ${commercial_tests_flags}
+      --junit-xml results.xml
+  artifacts:
+    reports:
+      junit: tests/results.xml
 
 test:acceptance:golang:
   rules:
