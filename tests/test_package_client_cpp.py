@@ -185,7 +185,9 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         # Client meta package
         upload_deb_package(
-            setup_tester_ssh_connection, mender_dist_packages_versions["mender-client"]
+            setup_tester_ssh_connection,
+            mender_dist_packages_versions["mender-client"],
+            package_name="mender-client",
         )
         # Upload mender-auth
         upload_deb_package(
@@ -203,24 +205,29 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         # Install the deb packages. On failure, install the missing dependencies.
         setup_tester_ssh_connection.run(
             "sudo apt install --yes ./"
-            + package_filename(mender_dist_packages_versions["mender-client"]).replace(
-                "client", "update"
-            )
+            + package_filename(
+                mender_dist_packages_versions["mender-client"],
+                package_name="mender-client",
+            ).replace("client", "update")
         )
         check_installed(setup_tester_ssh_connection, "mender-update")
 
         setup_tester_ssh_connection.run(
             "sudo apt install --yes ./"
-            + package_filename(mender_dist_packages_versions["mender-client"]).replace(
-                "client", "auth"
-            )
+            + package_filename(
+                mender_dist_packages_versions["mender-client"],
+                package_name="mender-client",
+            ).replace("client", "auth")
         )
         check_installed(setup_tester_ssh_connection, "mender-auth")
 
         # Install the client meta-package also
         setup_tester_ssh_connection.run(
             "sudo apt install --yes ./"
-            + package_filename(mender_dist_packages_versions["mender-client"])
+            + package_filename(
+                mender_dist_packages_versions["mender-client"],
+                package_name="mender-client",
+            )
         )
         check_installed(setup_tester_ssh_connection, "mender-client")
 

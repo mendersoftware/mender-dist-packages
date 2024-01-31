@@ -37,17 +37,13 @@ def packages_path(package, package_arch="armhf"):
     return os.path.join(output_path, subdir)
 
 
-def package_filename(
-    package_version, package_name="mender-client", package_arch="armhf"
-):
+def package_filename(package_version, package_name, package_arch="armhf"):
     return "{name}_{version}_{arch}.deb".format(
         name=package_name, version=package_version, arch=package_arch
     )
 
 
-def package_filename_path(
-    package_version, package_name="mender-client", package_arch="armhf"
-):
+def package_filename_path(package_version, package_name, package_arch="armhf"):
     return os.path.join(
         packages_path(package_name, package_arch),
         package_filename(package_version, package_name, package_arch),
@@ -55,7 +51,7 @@ def package_filename_path(
 
 
 def upload_deb_package(
-    ssh_connection, package_version, package_name="mender-client", package_arch="armhf"
+    ssh_connection, package_version, package_name, package_arch="armhf"
 ):
     ssh_connection.put(
         package_filename_path(package_version, package_name, package_arch)
