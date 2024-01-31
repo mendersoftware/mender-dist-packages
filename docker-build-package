@@ -24,6 +24,12 @@ declare -A mender_client_props=(
     [arch_indep]="false"
     [commercial]="false"
 )
+declare -A mender_client4_props=(
+    [recipe_name]="mender-client4"
+    [src_url]="https://github.com/mendersoftware/mender"
+    [arch_indep]="false"
+    [commercial]="false"
+)
 declare -A mender_connect_props=(
     [recipe_name]="mender-connect"
     [src_url]="https://github.com/mendersoftware/mender-connect"
@@ -85,6 +91,7 @@ declare -A mender_snapshot_props=(
 
 declare -a packages=(
     mender_client_props
+    mender_client4_props
     mender_connect_props
     mender_configure_props
     mender_artifact_props
