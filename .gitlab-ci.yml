@@ -105,7 +105,11 @@ build:orig:debian:buster:amd64:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - apk --update --no-cache add bash
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
+    - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
+    - else
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION true
+    - fi
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
@@ -129,7 +133,11 @@ build:packages:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
     - apk --update --no-cache add bash
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
+    - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
+    - else
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
+    - fi
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
     - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
@@ -213,7 +221,7 @@ test:check-python3-formatting:
         fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client-deb-version)
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client*-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION

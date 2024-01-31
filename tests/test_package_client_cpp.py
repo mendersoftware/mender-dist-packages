@@ -149,9 +149,9 @@ class PackageMenderClientChecker:
     def check_installed_files(self, ssh_connection):
         verify_file_exists(ssh_connection, all_files)
         # Northern.tech copyright file
-        ssh_connection.run("test -f /usr/share/doc/mender-client/copyright")
+        ssh_connection.run("test -f /usr/share/doc/mender-client4/copyright")
         result = ssh_connection.run(
-            "tail -n +2 /usr/share/doc/mender-client/copyright | md5sum"
+            "tail -n +2 /usr/share/doc/mender-client4/copyright | md5sum"
         )
         assert result.stdout.split(" ")[0] == expected_copyright_from_l2_md5sum
 
@@ -186,19 +186,19 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         # Client meta package
         upload_deb_package(
             setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-client"],
-            package_name="mender-client",
+            mender_dist_packages_versions["mender-client4"],
+            package_name="mender-client4",
         )
         # Upload mender-auth
         upload_deb_package(
             setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-client"],
+            mender_dist_packages_versions["mender-client4"],
             package_name="mender-auth",
         )
         # Upload mender-update
         upload_deb_package(
             setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-client"],
+            mender_dist_packages_versions["mender-client4"],
             package_name="mender-update",
         )
 
@@ -225,11 +225,11 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         setup_tester_ssh_connection.run(
             "sudo apt install --yes ./"
             + package_filename(
-                mender_dist_packages_versions["mender-client"],
-                package_name="mender-client",
+                mender_dist_packages_versions["mender-client4"],
+                package_name="mender-client4",
             )
         )
-        check_installed(setup_tester_ssh_connection, "mender-client")
+        check_installed(setup_tester_ssh_connection, "mender-client4")
 
         self.check_installed_files(setup_tester_ssh_connection)
 
@@ -239,7 +239,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_remove_stop(self, setup_tester_ssh_connection):
-        setup_tester_ssh_connection.run("sudo dpkg --remove mender-client")
+        setup_tester_ssh_connection.run("sudo dpkg --remove mender-client4")
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_purge(self, setup_tester_ssh_connection):
@@ -254,8 +254,8 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         )
 
         # Purging mender-client removes the configuration
-        result = setup_tester_ssh_connection.run("sudo dpkg --purge mender-client")
+        result = setup_tester_ssh_connection.run("sudo dpkg --purge mender-client4")
         assert result.return_code == 0
-        check_installed(setup_tester_ssh_connection, "mender-client", installed=False)
+        check_installed(setup_tester_ssh_connection, "mender-client4", installed=False)
         setup_tester_ssh_connection.run("test ! -f /etc/mender/mender.conf")
         setup_tester_ssh_connection.run("test ! -f /var/lib/mender/device_type")

@@ -60,6 +60,13 @@ def mender_version(request):
 
 
 @pytest.fixture(scope="session")
+def mender_client_package_name(mender_version):
+    if mender_version.startswith("3."):
+        return "mender-client"
+    return "mender-client4"
+
+
+@pytest.fixture(scope="session")
 def mender_connect_version(request):
     return request.config.getoption("--mender-connect-version")
 
@@ -120,6 +127,7 @@ def mender_dist_packages_versions(request):
 
     return {
         "mender-client": request.config.getoption("--mender-client-deb-version"),
+        "mender-client4": request.config.getoption("--mender-client-deb-version"),
         "mender-connect": request.config.getoption("--mender-connect-deb-version"),
         "mender-configure": request.config.getoption("--mender-configure-deb-version"),
         "mender-artifact": request.config.getoption("--mender-artifact-deb-version"),
