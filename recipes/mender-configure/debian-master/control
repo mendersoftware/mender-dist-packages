@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 9)
 
 Package: mender-configure
 Architecture: all
-Depends: dbus, curl, mender-client (>=2.5.0), ${misc:Depends}
+Depends: dbus, curl, mender-update | mender-client (>=2.5.0), ${misc:Depends}
 Description: Mender Configure
  Mender Configure is a Mender add-on which enhances the Mender Client providing an Update
  Module to configure the device
