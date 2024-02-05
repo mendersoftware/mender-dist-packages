@@ -56,6 +56,12 @@ variables:
   FF_NETWORK_PER_BUILD: 1
   # Builder image version
   IMAGE_VERSION: "master"
+  # Debian suffix
+  OVERRIDE_DEBIAN_SUFFIX:
+    value: ""
+    description: |-
+      Overrides Debian suffix, which by default is "-1". Use it to manually build (and publish)
+      a new version of a package from already released (git tagged) software.
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix:
