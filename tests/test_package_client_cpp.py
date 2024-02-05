@@ -208,18 +208,18 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
             + package_filename(
                 mender_dist_packages_versions["mender-client"],
                 package_name="mender-client",
-            ).replace("client", "update")
+            ).replace("client", "auth")
         )
-        check_installed(setup_tester_ssh_connection, "mender-update")
+        check_installed(setup_tester_ssh_connection, "mender-auth")
 
         setup_tester_ssh_connection.run(
             "sudo apt install --yes ./"
             + package_filename(
                 mender_dist_packages_versions["mender-client"],
                 package_name="mender-client",
-            ).replace("client", "auth")
+            ).replace("client", "update")
         )
-        check_installed(setup_tester_ssh_connection, "mender-auth")
+        check_installed(setup_tester_ssh_connection, "mender-update")
 
         # Install the client meta-package also
         setup_tester_ssh_connection.run(
