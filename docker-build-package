@@ -170,8 +170,9 @@ docker run --rm \
         --volume $(pwd)/${output_dir}:/output \
         --volume $(pwd)/${orig_dir}:/orig \
         --volume $(pwd)/mender-deb-package:/script \
-        -e MENDER_PRIVATE_REPO_ACCESS_USER="${MENDER_PRIVATE_REPO_ACCESS_USER}" \
-        -e MENDER_PRIVATE_GPG_KEY_BUILD="${MENDER_PRIVATE_GPG_KEY_BUILD}" \
+        --env MENDER_PRIVATE_REPO_ACCESS_USER \
+        --env MENDER_PRIVATE_GPG_KEY_BUILD \
+        --env OVERRIDE_DEBIAN_SUFFIX \
         ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \

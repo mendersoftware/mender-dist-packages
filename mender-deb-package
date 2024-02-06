@@ -100,7 +100,11 @@ get_deb_version() {
   if [ "${DEB_PACKAGE}" = "mender-client" ]; then
     debian_epoch="1:"
   fi
-  debian_suffix="1+$OS_DISTRO+$OS_CODENAME"
+  debian_suffix="1"
+  if [ -n "${OVERRIDE_DEBIAN_SUFFIX}" ]; then
+    debian_suffix="${OVERRIDE_DEBIAN_SUFFIX}"
+  fi
+  debian_suffix="$debian_suffix+$OS_DISTRO+$OS_CODENAME"
   if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
     DEB_VERSION="$(git describe --tags --exact-match)"
     DEB_VERSION_NO_REV="${DEB_VERSION}"
