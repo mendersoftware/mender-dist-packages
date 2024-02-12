@@ -126,6 +126,15 @@ def local_apt_repo_from_upstream_packages(container, pool_paths, dest):
     prepare_local_apt_repo(container, dest)
 
 
+def local_apt_repo_from_test_packages(container, pool_paths, dest):
+    container.run(f"mkdir {dest}")
+    for path in pool_paths:
+        url = f"https://downloads.mender.io/repos/debian/pool/test-packages/{path}"
+        container.run(f"cd {dest} && curl --remote-name {url}")
+
+    prepare_local_apt_repo(container, dest)
+
+
 @pytest.mark.usefixtures("script_server")
 class TestInstallMenderScript:
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
@@ -361,17 +370,17 @@ class TestUpgradeMenderV4:
         check_installed(generic_debian_container, "mender-configure")
 
         # Upgrade to mender-client 4.0.0
-        local_apt_repo_from_upstream_packages(
+        local_apt_repo_from_test_packages(
             generic_debian_container,
             [
-                "m/mender-client/mender-client_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-client/mender-update_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-client/mender-auth_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-flash/mender-flash_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-setup/mender-setup_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-snapshot/mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
-                "m/mender-configure/mender-configure_1.1.2-1+debian+buster_all.deb",
+                "mender-client_4.0.0-1+debian+buster_amd64.deb",
+                "mender-update_4.0.0-1+debian+buster_amd64.deb",
+                "mender-auth_4.0.0-1+debian+buster_amd64.deb",
+                "mender-flash_1.0.0-1+debian+buster_amd64.deb",
+                "mender-setup_1.0.0-1+debian+buster_amd64.deb",
+                "mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
+                "mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "mender-configure_1.1.2-1+debian+buster_all.deb",
             ],
             "/mender_4_0_0",
         )
@@ -429,17 +438,17 @@ class TestUpgradeMenderV4:
         self, generic_debian_container,
     ):
         # Install mender-client 4.0.0
-        local_apt_repo_from_upstream_packages(
+        local_apt_repo_from_test_packages(
             generic_debian_container,
             [
-                "m/mender-client/mender-client_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-client/mender-update_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-client/mender-auth_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-flash/mender-flash_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-setup/mender-setup_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-snapshot/mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
-                "m/mender-configure/mender-configure_1.1.2-1+debian+buster_all.deb",
+                "mender-client_4.0.0-1+debian+buster_amd64.deb",
+                "mender-update_4.0.0-1+debian+buster_amd64.deb",
+                "mender-auth_4.0.0-1+debian+buster_amd64.deb",
+                "mender-flash_1.0.0-1+debian+buster_amd64.deb",
+                "mender-setup_1.0.0-1+debian+buster_amd64.deb",
+                "mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
+                "mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "mender-configure_1.1.2-1+debian+buster_all.deb",
             ],
             "/mender_4_0_0",
         )
