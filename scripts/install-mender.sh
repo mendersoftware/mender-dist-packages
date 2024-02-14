@@ -18,7 +18,9 @@ CHANNEL="stable"
 
 # All available components
 AVAILABLE_COMPONENTS="\
+mender-auth \
 mender-client \
+mender-client4 \
 mender-configure \
 mender-configure-demo \
 mender-configure-timezone \
@@ -26,10 +28,18 @@ mender-connect \
 mender-gateway \
 mender-monitor \
 mender-monitor-demo \
+mender-update \
 "
 
 # Default components (installed when no flags and no specified components)
 DEFAULT_COMPONENTS="\
+mender-client4 \
+mender-configure \
+mender-connect \
+"
+
+# Default components for legacy distributions (installed when no flags and no specified components)
+DEFAULT_COMPONENTS_LEGACY="\
 mender-client \
 mender-configure \
 mender-connect \
@@ -60,6 +70,9 @@ mender-monitor-demo \
 
 SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
 DEMO="0"
+
+# mender-setup CLI
+MENDER_SETUP_CLI="mender-setup"
 
 # Path where to install the Mender APT repository
 MENDER_APT_SOURCES_LIST="/etc/apt/sources.list.d/mender.list"
@@ -106,7 +119,7 @@ usage() {
     echo ""
     echo "If no components are specified, defaults will be installed"
     echo ""
-    echo "Anything after a '--' gets passed directly to 'mender setup' command."
+    echo "Anything after a '--' gets passed directly to '${MENDER_SETUP_CLI}' command."
     echo ""
     echo "Supported components (x = installed by default):"
     for c in $AVAILABLE_COMPONENTS; do
@@ -376,7 +389,7 @@ do_install_open() {
        -o Dpkg::Options::="--force-confold" \
        $selected_components_open
 
-    echo "  Success! Please run \`mender setup\` to configure the client."
+    echo "  Success! Please run \`${MENDER_SETUP_CLI}\` to configure the client."
 }
 
 do_install_commercial() {
@@ -437,7 +450,7 @@ do_setup_mender_client() {
     fi
 
     echo "  Setting up mender with options: $MENDER_SETUP_ARGS"
-    mender setup $MENDER_SETUP_ARGS
+    $MENDER_SETUP_CLI $MENDER_SETUP_ARGS
     pidof systemd && systemctl restart mender-client
     echo "  Success!"
 }
@@ -485,6 +498,12 @@ command_exists() {
     command -v "$@" > /dev/null 2>&1
 }
 
+select_mender_client_legacy() {
+    DEFAULT_COMPONENTS="$DEFAULT_COMPONENTS_LEGACY"
+    SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
+    MENDER_SETUP_CLI="mender setup"
+}
+
 # Set the LSB_DIST and DIST_VERSION variables guessing the distribution and version;
 # It also checks if this is a forked Linux distro.
 # Credits: https://get.docker.com/
@@ -504,9 +523,11 @@ check_dist_and_version() {
             case "$DIST_VERSION" in
                 jammy)
                     DIST_VERSION="jammy"
+                    select_mender_client_legacy
                 ;;
                 focal)
                     DIST_VERSION="focal"
+                    select_mender_client_legacy
                 ;;
                 *)
                     echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
@@ -520,9 +541,11 @@ check_dist_and_version() {
             case "$DIST_VERSION" in
                 11)
                     DIST_VERSION="bullseye"
+                    select_mender_client_legacy
                 ;;
                 10)
                     DIST_VERSION="buster"
+                    select_mender_client_legacy
                 ;;
                 *)
                     echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
@@ -564,9 +587,11 @@ check_dist_and_version() {
                 case "$DIST_VERSION" in
                     11)
                         DIST_VERSION="bullseye"
+                        select_mender_client_legacy
                     ;;
                     10)
                         DIST_VERSION="buster"
+                        select_mender_client_legacy
                     ;;
                     *)
                         echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
@@ -588,8 +613,8 @@ check_dist_and_version() {
     fi
 }
 
-banner
 check_dist_and_version
+banner
 init "$@"
 print_components
 get_deps
