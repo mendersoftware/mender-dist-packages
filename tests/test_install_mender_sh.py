@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2021 Northern.tech AS
+# Copyright 2024 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -219,7 +219,7 @@ class TestInstallMenderScript:
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-connect"
         )
 
-        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-auth")
         check_installed(generic_debian_container, "mender-connect")
         check_installed(generic_debian_container, "mender-configure", installed=False)
 
@@ -230,7 +230,8 @@ class TestInstallMenderScript:
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-configure"
         )
 
-        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-auth")
+        check_installed(generic_debian_container, "mender-update")
         check_installed(generic_debian_container, "mender-connect", installed=False)
         check_installed(generic_debian_container, "mender-configure")
 
