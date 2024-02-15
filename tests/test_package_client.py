@@ -206,13 +206,18 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
         assert "raspberrypi" in result.stdout
 
         upload_deb_package(
-            setup_tester_ssh_connection, mender_dist_packages_versions["mender-client"]
+            setup_tester_ssh_connection,
+            mender_dist_packages_versions["mender-client"],
+            package_name="mender-client",
         )
 
         # Install the deb package. On failure, install the missing dependencies.
         setup_tester_ssh_connection.run(
             "sudo DEBIAN_FRONTEND=noninteractive dpkg --install "
-            + package_filename(mender_dist_packages_versions["mender-client"])
+            + package_filename(
+                mender_dist_packages_versions["mender-client"],
+                package_name="mender-client",
+            )
             + "|| sudo apt-get --fix-broken --assume-yes install"
         )
         check_installed(setup_tester_ssh_connection, "mender-client")

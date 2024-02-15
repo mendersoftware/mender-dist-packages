@@ -22,26 +22,33 @@ from helpers import package_filename, upload_deb_package, check_installed
 class TestPackageDev:
     @pytest.mark.min_mender_client_version("3.0.0")
     def test_mender_client_dev(
-        self, setup_tester_ssh_connection, mender_dist_packages_versions
+        self,
+        setup_tester_ssh_connection,
+        mender_dist_packages_versions,
+        mender_client_package_name,
     ):
         # Upload
         upload_deb_package(
             setup_tester_ssh_connection,
             mender_dist_packages_versions["mender-client"],
-            "mender-client-dev",
+            mender_client_package_name + "-dev",
             package_arch="all",
         )
 
         # Install
         setup_tester_ssh_connection.run(
-            "sudo dpkg --ignore-depends=mender-client --install "
+            "sudo dpkg --ignore-depends="
+            + mender_client_package_name
+            + " --install "
             + package_filename(
                 mender_dist_packages_versions["mender-client"],
-                "mender-client-dev",
+                mender_client_package_name + "-dev",
                 package_arch="all",
             )
         )
-        check_installed(setup_tester_ssh_connection, "mender-client-dev")
+        check_installed(
+            setup_tester_ssh_connection, mender_client_package_name + "-dev"
+        )
 
         # Check mender-client-dev files
         setup_tester_ssh_connection.run(

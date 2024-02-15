@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2021 Northern.tech AS
+# Copyright 2024 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -126,6 +126,15 @@ def local_apt_repo_from_upstream_packages(container, pool_paths, dest):
     prepare_local_apt_repo(container, dest)
 
 
+def local_apt_repo_from_test_packages(container, pool_paths, dest):
+    container.run(f"mkdir {dest}")
+    for path in pool_paths:
+        url = f"https://downloads.mender.io/repos/debian/pool/test-packages/{path}"
+        container.run(f"cd {dest} && curl --remote-name {url}")
+
+    prepare_local_apt_repo(container, dest)
+
+
 @pytest.mark.usefixtures("script_server")
 class TestInstallMenderScript:
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
@@ -210,7 +219,7 @@ class TestInstallMenderScript:
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-connect"
         )
 
-        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-auth")
         check_installed(generic_debian_container, "mender-connect")
         check_installed(generic_debian_container, "mender-configure", installed=False)
 
@@ -221,29 +230,119 @@ class TestInstallMenderScript:
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-configure"
         )
 
-        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-auth")
+        check_installed(generic_debian_container, "mender-update")
         check_installed(generic_debian_container, "mender-connect", installed=False)
         check_installed(generic_debian_container, "mender-configure")
 
-    def test_upgrade_all_packages(
+    def test_upgrade_mender_v3_series(
         self, generic_debian_container,
     ):
-        # Install latest stable software
+        # Install latest stable software (client v3)
         generic_debian_container.run(
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s"
         )
 
-        # And now upgrade to the freshly built packages
+        # Now upgrade to the freshly built packages
         local_apt_repo_from_built_packages(generic_debian_container)
-        generic_debian_container.run("apt -y upgrade")
+        generic_debian_container.run("apt --assume-yes upgrade")
 
-        # All packages should be upgraded
+        # Only mender-client should be upgraded
         check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-client4", installed=False)
+        check_installed(generic_debian_container, "mender-update", installed=False)
+        check_installed(generic_debian_container, "mender-auth", installed=False)
+        check_installed(generic_debian_container, "mender-flash", installed=False)
+        check_installed(generic_debian_container, "mender-setup", installed=False)
+        check_installed(generic_debian_container, "mender-snapshot", installed=False)
+        # The addons should not be removed
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+    def test_upgrade_mender_v4_series_meta_package_with_addons(
+        self, generic_debian_container,
+    ):
+        # Install latest stable software (client v3)
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s"
+        )
+
+        local_apt_repo_from_built_packages(generic_debian_container)
+
+        # MEN-7010
+        # Currently, production mender-configure still depends (only) on mender-client.
+        # We need first to update this one to the freshly built in order to make the rest of the
+        # test succeed. This part can be removed after MEN-7010 is finished.
+        generic_debian_container.run("apt install --assume-yes mender-configure")
+
+        # Now install freshly built mender-client4
+        generic_debian_container.run(
+            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-update mender-client4"
+        )
+
+        # mender-client should be removed and mender-client4 + all packages should be installed
+        check_installed(generic_debian_container, "mender-client", installed=False)
+        check_installed(generic_debian_container, "mender-client4")
         check_installed(generic_debian_container, "mender-update")
         check_installed(generic_debian_container, "mender-auth")
         check_installed(generic_debian_container, "mender-flash")
         check_installed(generic_debian_container, "mender-setup")
         check_installed(generic_debian_container, "mender-snapshot")
+        # The addons should not be removed
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+    def test_upgrade_mender_v4_series_meta_package_only_client(
+        self, generic_debian_container,
+    ):
+        # Install latest stable software (client v3)
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-client"
+        )
+
+        # Now install freshly built mender-client4
+        local_apt_repo_from_built_packages(generic_debian_container)
+        generic_debian_container.run(
+            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client4"
+        )
+
+        # mender-client should be removed and mender-client4 + all packages should be installed
+        check_installed(generic_debian_container, "mender-client", installed=False)
+        check_installed(generic_debian_container, "mender-client4")
+        check_installed(generic_debian_container, "mender-update")
+        check_installed(generic_debian_container, "mender-auth")
+        check_installed(generic_debian_container, "mender-flash")
+        check_installed(generic_debian_container, "mender-setup")
+        check_installed(generic_debian_container, "mender-snapshot")
+
+    def test_upgrade_mender_v4_series_explicit_auth_update(
+        self, generic_debian_container,
+    ):
+        # Install latest stable software (client v3)
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s"
+        )
+
+        local_apt_repo_from_built_packages(generic_debian_container)
+
+        # MEN-7010
+        # Currently, production mender-configure still depends (only) on mender-client.
+        # We need first to update this one to the freshly built in order to make the rest of the
+        # test succeed. This part can be removed after MEN-7010 is finished.
+        generic_debian_container.run("apt install --assume-yes mender-configure")
+
+        # Now install freshly built packages
+        generic_debian_container.run(
+            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-auth mender-update"
+        )
+
+        # mender-client should be removed and required packages should be installed
+        check_installed(generic_debian_container, "mender-client", installed=False)
+        check_installed(generic_debian_container, "mender-client4", installed=False)
+        check_installed(generic_debian_container, "mender-update")
+        check_installed(generic_debian_container, "mender-auth")
+        check_installed(generic_debian_container, "mender-flash")
+        # The addons should not be removed
         check_installed(generic_debian_container, "mender-connect")
         check_installed(generic_debian_container, "mender-configure")
 
@@ -272,17 +371,17 @@ class TestUpgradeMenderV4:
         check_installed(generic_debian_container, "mender-configure")
 
         # Upgrade to mender-client 4.0.0
-        local_apt_repo_from_upstream_packages(
+        local_apt_repo_from_test_packages(
             generic_debian_container,
             [
-                "m/mender-client/mender-client_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-client/mender-update_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-client/mender-auth_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-flash/mender-flash_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-setup/mender-setup_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-snapshot/mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
-                "m/mender-configure/mender-configure_1.1.2-1+debian+buster_all.deb",
+                "mender-client_4.0.0-1+debian+buster_amd64.deb",
+                "mender-update_4.0.0-1+debian+buster_amd64.deb",
+                "mender-auth_4.0.0-1+debian+buster_amd64.deb",
+                "mender-flash_1.0.0-1+debian+buster_amd64.deb",
+                "mender-setup_1.0.0-1+debian+buster_amd64.deb",
+                "mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
+                "mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "mender-configure_1.1.2-1+debian+buster_all.deb",
             ],
             "/mender_4_0_0",
         )
@@ -340,17 +439,17 @@ class TestUpgradeMenderV4:
         self, generic_debian_container,
     ):
         # Install mender-client 4.0.0
-        local_apt_repo_from_upstream_packages(
+        local_apt_repo_from_test_packages(
             generic_debian_container,
             [
-                "m/mender-client/mender-client_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-client/mender-update_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-client/mender-auth_4.0.0-1+debian+buster_amd64.deb",
-                "m/mender-flash/mender-flash_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-setup/mender-setup_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-snapshot/mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
-                "m/mender-connect/mender-connect_2.2.0-1+debian+buster_amd64.deb",
-                "m/mender-configure/mender-configure_1.1.2-1+debian+buster_all.deb",
+                "mender-client_4.0.0-1+debian+buster_amd64.deb",
+                "mender-update_4.0.0-1+debian+buster_amd64.deb",
+                "mender-auth_4.0.0-1+debian+buster_amd64.deb",
+                "mender-flash_1.0.0-1+debian+buster_amd64.deb",
+                "mender-setup_1.0.0-1+debian+buster_amd64.deb",
+                "mender-snapshot_1.0.0-1+debian+buster_amd64.deb",
+                "mender-connect_2.2.0-1+debian+buster_amd64.deb",
+                "mender-configure_1.1.2-1+debian+buster_all.deb",
             ],
             "/mender_4_0_0",
         )

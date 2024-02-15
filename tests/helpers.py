@@ -37,17 +37,13 @@ def packages_path(package, package_arch="armhf"):
     return os.path.join(output_path, subdir)
 
 
-def package_filename(
-    package_version, package_name="mender-client", package_arch="armhf"
-):
+def package_filename(package_version, package_name, package_arch="armhf"):
     return "{name}_{version}_{arch}.deb".format(
         name=package_name, version=package_version, arch=package_arch
     )
 
 
-def package_filename_path(
-    package_version, package_name="mender-client", package_arch="armhf"
-):
+def package_filename_path(package_version, package_name, package_arch="armhf"):
     return os.path.join(
         packages_path(package_name, package_arch),
         package_filename(package_version, package_name, package_arch),
@@ -55,7 +51,7 @@ def package_filename_path(
 
 
 def upload_deb_package(
-    ssh_connection, package_version, package_name="mender-client", package_arch="armhf"
+    ssh_connection, package_version, package_name, package_arch="armhf"
 ):
     ssh_connection.put(
         package_filename_path(package_version, package_name, package_arch)
@@ -63,11 +59,19 @@ def upload_deb_package(
 
 
 def check_installed(conn, pkg, installed=True):
-    """Check whether the given package is installed on the device given by
-    conn."""
+    """Check whether the given package is installed on the device given by conn.
+    Check the specific dpkg Status to differentiate between installed (install ok installed)
+    and other status like removed but not purged (deinstall ok config-files)"""
 
     res = conn.run(f"dpkg --status {pkg}", warn=True)
     if isinstance(res, FabricResult):
-        assert (res.return_code == 0) == installed
+        retcode = res.return_code
+        output = res.stdout
     else:
-        assert (res.returncode == 0) == installed
+        retcode = res.returncode
+        output = res.stdout.decode()
+
+    if installed:
+        assert "Status: install ok installed" in output
+    else:
+        assert retcode != 0 or "Status: install ok installed" not in output
