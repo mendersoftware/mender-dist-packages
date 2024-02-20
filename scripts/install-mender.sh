@@ -126,7 +126,7 @@ usage() {
     echo ""
     echo "If no components are specified, defaults will be installed"
     echo ""
-    echo "Anything after a '--' gets passed directly to '${MENDER_SETUP_CLI}' command."
+    echo "Anything after a '--' gets passed directly to the client setup tool."
     echo ""
     echo "This script will install the Mender Client 3.x series on Ubuntu jammy or older, "
     echo "and on Debian bullseye or older. On newer distributions, it will install the "
@@ -404,7 +404,7 @@ do_install_open() {
        -o Dpkg::Options::="--force-confold" \
        $selected_components_open
 
-    echo "  Success! Please run \`${MENDER_SETUP_CLI}\` to configure the client."
+    echo "  Success! Please run \``mender_setup_cli`\` to configure the client."
 }
 
 do_install_commercial() {
@@ -465,7 +465,7 @@ do_setup_mender_client() {
     fi
 
     echo "  Setting up mender with options: $MENDER_SETUP_ARGS"
-    $MENDER_SETUP_CLI $MENDER_SETUP_ARGS
+    `mender_setup_cli` $MENDER_SETUP_ARGS
     pidof systemd && systemctl restart mender-client
     echo "  Success!"
 }
@@ -518,6 +518,16 @@ select_mender_client_legacy() {
         DEFAULT_COMPONENTS="$DEFAULT_COMPONENTS_LEGACY"
         SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
         MENDER_SETUP_CLI="mender setup"
+    fi
+}
+
+mender_setup_cli() {
+    if which mender-setup >/dev/null; then
+        echo "mender-setup"
+    elif which mender >/dev/null; then
+        echo "mender setup"
+    else
+        echo $MENDER_SETUP_CLI
     fi
 }
 
