@@ -170,6 +170,14 @@ if [ "$commercial" != "true" -a "$ARCH" = "amd64" ]; then
     echo "Including source packages in the build."
     BUILD_TYPE="source,${BUILD_TYPE}"
 fi
+
+if [ "$ARCH" = "armhf" -a "$DISTRO" = "debian" ]; then
+    PLATFORM="--platform=linux/arm/v6"
+fi
+
+# Temporary until we've got master-versions of the armhf images
+IMAGE_VERSION=1186277340
+
 echo
 
 docker run --rm \
@@ -180,6 +188,7 @@ docker run --rm \
         --env MENDER_PRIVATE_REPO_ACCESS_USER \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
         --env OVERRIDE_DEBIAN_SUFFIX \
+        ${PLATFORM} \
         ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \
