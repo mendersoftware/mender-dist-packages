@@ -212,6 +212,30 @@ class TestInstallMenderScript:
         res = generic_debian_container.run("dpkg --status mender-connect", warn=True)
         assert res.returncode == 1
 
+    def test_client_switch(
+        self, generic_debian_container,
+    ):
+        """Special test to validate the mender-client to mender-client4 switch in production"""
+
+        generic_debian_container.run(
+            f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s"
+        )
+
+        # All default packages shall be installed
+        check_installed(generic_debian_container, "mender-client")
+        check_installed(generic_debian_container, "mender-client4", installed=False)
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
+        # Switch to mender-client4
+        generic_debian_container.run(
+            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client4"
+        )
+        check_installed(generic_debian_container, "mender-client", installed=False)
+        check_installed(generic_debian_container, "mender-client4")
+        check_installed(generic_debian_container, "mender-connect")
+        check_installed(generic_debian_container, "mender-configure")
+
     def test_connect(
         self, generic_debian_container,
     ):
