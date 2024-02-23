@@ -223,7 +223,7 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
 
         # Install the client meta-package also
         setup_tester_ssh_connection.run(
-            "sudo apt install --yes ./"
+            "sudo dpkg --install --ignore-depends=mender-snapshot,mender-setup,mender-flash ./"
             + package_filename(
                 mender_dist_packages_versions["mender-client4"],
                 package_name="mender-client4",
