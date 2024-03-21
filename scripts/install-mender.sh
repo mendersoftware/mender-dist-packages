@@ -454,8 +454,8 @@ do_install_commercial() {
 }
 
 do_setup_mender_client() {
-    # Return if mender-client was not installed
-    if [[ ! "$SELECTED_COMPONENTS" == *"mender-client"* ]]; then
+    # Return if mender nor mender-setup were installed
+    if ! which mender-setup >/dev/null && ! which mender >/dev/null; then
         return
     fi
 
@@ -466,7 +466,11 @@ do_setup_mender_client() {
 
     echo "  Setting up mender with options: $MENDER_SETUP_ARGS"
     `mender_setup_cli` $MENDER_SETUP_ARGS
-    pidof systemd && systemctl restart mender-client
+    pidof systemd >/dev/null 2>&1 && {
+        systemctl is-enabled mender-authd >/dev/null 2>&1 && systemctl restart mender-authd
+        systemctl is-enabled mender-updated >/dev/null 2>&1 && systemctl restart mender-updated
+        systemctl is-enabled mender-client >/dev/null 2>&1 && systemctl restart mender-client
+    }
     echo "  Success!"
 }
 
