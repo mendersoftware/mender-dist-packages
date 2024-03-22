@@ -270,7 +270,7 @@ class TestInstallMenderScript:
         # Now install freshly built mender-client4
         local_apt_repo_from_built_packages(generic_debian_container)
         generic_debian_container.run(
-            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client4"
+            "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-update mender-client4"
         )
 
         # mender-client should be removed and mender-client4 + all packages should be installed
