@@ -235,12 +235,20 @@ EOF
   fi
 
   # Buster armhf patch
-  if [ "$OS_DISTRO" = "debian" -a "$OS_CODENAME" = "buster" -a "$ARCH" = "armhf" ]; then
-      local REPO_PATH="${REPO_URL#https:/}"
-      if [ -f "$REPO_PATH/CMakeLists.txt" ]; then
-         # Set cmake version to 3.13
-         sed -i 's/(VERSION 3.15)/(VERSION 3.13)/g' $REPO_PATH/CMakeLists.txt
-      fi
+  if [ "${DEB_PACKAGE}" = "mender-client4" \
+          -a "$OS_DISTRO" = "debian" \
+          -a "$OS_CODENAME" = "buster" \
+          -a "$ARCH" = "armhf" ];
+  then
+    local REPO_PATH="${REPO_URL#https:/}"
+
+    # mender requires CMake 3.14 when using MENDER_DOWNLOAD_BOOST but buster-armhf (Raspberry Pi OS)
+    # image comes with CMake 3.13. We workaround the issue by pre-installing BOOST in the image,
+    # so here we can ignore the requirement.
+    if grep -q cmake_minimum_required "$REPO_PATH/CMakeLists.txt"; then
+      sed -i.bak '/cmake_minimum_required/d' $REPO_PATH/CMakeLists.txt
+      diff -u $REPO_PATH/CMakeLists.txt.bak $REPO_PATH/CMakeLists.txt || true
+    fi
   fi
 
   # Install the builder architecture independent dependencies from the debian/control file
