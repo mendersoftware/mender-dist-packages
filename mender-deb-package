@@ -249,6 +249,14 @@ EOF
       sed -i.bak '/cmake_minimum_required/d' $REPO_PATH/CMakeLists.txt
       diff -u $REPO_PATH/CMakeLists.txt.bak $REPO_PATH/CMakeLists.txt || true
     fi
+
+    # On 4.0.x series, the vendored projects are added which indirectly rises the CMake required
+    # version. These are not needed anyway so we can remove it. See:
+    # https://github.com/mendersoftware/mender/pull/1610/commits/c7c48d1b9368ce3d4be53a4e29536d324b328f82
+    if grep -q "add_subdirectory(vendor/expected)" "$REPO_PATH/main.cmake"; then
+      sed -i.bak '\|add_subdirectory(vendor/expected)|d' $REPO_PATH/main.cmake
+      diff -u $REPO_PATH/main.cmake.bak $REPO_PATH/main.cmake || true
+    fi
   fi
 
   # Install the builder architecture independent dependencies from the debian/control file
