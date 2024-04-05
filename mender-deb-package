@@ -234,15 +234,6 @@ EOF
     rm -f debian/patches/series
   fi
 
-  # Buster armhf patch
-  if [ "$OS_DISTRO" = "debian" -a "$OS_CODENAME" = "buster" -a "$ARCH" = "armhf" ]; then
-      local REPO_PATH="${REPO_URL#https:/}"
-      if [ -f "$REPO_PATH/CMakeLists.txt" ]; then
-         # Set cmake version to 3.13
-         sed -i 's/(VERSION 3.15)/(VERSION 3.13)/g' $REPO_PATH/CMakeLists.txt
-      fi
-  fi
-
   # Install the builder architecture independent dependencies from the debian/control file
   mk-build-deps --install \
                 --build-indep \
