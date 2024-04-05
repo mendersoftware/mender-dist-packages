@@ -258,6 +258,20 @@ test:acceptance:cpp:
   variables:
     PYTEST_FILTER: "not golangclient"
 
+test:acceptance:script:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
+  extends: .test:acceptance
+  dependencies: []
+  script:
+    - apk --update --no-cache add python3 py3-pip
+    - pip3 install --break-system-packages -r tests/requirements.txt
+    - cd scripts/tests
+    - python3 -m pytest -v --junit-xml results.xml
+  artifacts:
+    reports:
+      junit: scripts/tests/results.xml
+
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
   function is_final_tag () {
