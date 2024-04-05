@@ -3,9 +3,6 @@
 %:
 	dh $@
 
-override_dh_auto_configure:
-	dh_auto_configure -- -D BUILD_TESTS=OFF
-
 override_dh_auto_install:
 	DESTDIR=debian/tmp make install install-scripts install-demo
 
