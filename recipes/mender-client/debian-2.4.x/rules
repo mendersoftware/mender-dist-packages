@@ -3,9 +3,6 @@
 %:
 	dh $@
 
-override_dh_auto_configure:
-	dh_auto_configure -- -D BUILD_TESTS=OFF
-
 override_dh_auto_build:
 	make CGO_CFLAGS="${CGO_CFLAGS}" CGO_LDFLAGS="${CGO_LDFLAGS}" CC="${CC}" \
 	GOOS=linux CGO_ENABLED=1 build

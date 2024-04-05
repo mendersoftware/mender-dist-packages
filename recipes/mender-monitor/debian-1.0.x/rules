@@ -5,8 +5,5 @@
 %:
 	dh $@
 
-override_dh_auto_configure:
-	dh_auto_configure -- -D BUILD_TESTS=OFF
-
 override_dh_link:
 	true

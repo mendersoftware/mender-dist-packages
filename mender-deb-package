@@ -227,37 +227,18 @@ EOF
     # We want the patches applied for Debian Buster
     rm -f debian/source/local-options
     skip_patches_flag=
-    apt update
-    apt install -y cmake
   else
     # Skip applying the patches
     rm -f debian/patches/series
   fi
 
-  # Buster armhf patch
-  if [ "$OS_DISTRO" = "debian" -a "$OS_CODENAME" = "buster" -a "$ARCH" = "armhf" ]; then
-      local REPO_PATH="${REPO_URL#https:/}"
-      if [ -f "$REPO_PATH/CMakeLists.txt" ]; then
-         # Set cmake version to 3.13
-         sed -i 's/(VERSION 3.15)/(VERSION 3.13)/g' $REPO_PATH/CMakeLists.txt
-      fi
-  fi
-
-  # Install the builder architecture independent dependencies from the debian/control file
+  # Install the dependencies from the debian/control file
+  apt-get update
   mk-build-deps --install \
                 --build-indep \
                 --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
                 debian/control
   rm -f ${DEB_PACKAGE}-build-deps-indep_*
-
-  # See MEN-6794 for more details.
-  # Install also the builder architecture dependencies for dh_shlibdeps to work correctly.
-  # This was originally intended to _not_ be installed for the Raspberry Pi Os build, but there was
-  # a bug in the if logic(*) that made the script always install them.
-  # While they are not used for the build step (iow, the binaries use the rpi headers and libs), the
-  # metadata is used by dh_shlibdeps to fill up the Dependencies in the resulting package.
-  #
-  # (*) https://github.com/mendersoftware/mender-dist-packages/commit/5f3ebd14#diff-a1c0857e31235a7e1f61a609fa8125f3fd2f1a12f04e1dbbba78931e89969a87R224
   mk-build-deps --install \
                 --build-dep \
                 --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
