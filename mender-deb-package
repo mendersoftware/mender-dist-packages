@@ -227,12 +227,12 @@ EOF
     # We want the patches applied for Debian Buster
     rm -f debian/source/local-options
     skip_patches_flag=
-    apt update
-    apt install -y cmake
   else
     # Skip applying the patches
     rm -f debian/patches/series
   fi
+
+  apt-get update
 
   # Install the builder architecture independent dependencies from the debian/control file
   mk-build-deps --install \
