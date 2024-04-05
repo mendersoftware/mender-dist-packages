@@ -76,13 +76,12 @@ variables:
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-commits-signoffs.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-license.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-python3-format.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-github-status-updates.yml'
+    file:
+      - '.gitlab-ci-check-commits-signoffs.yml'
+      - '.gitlab-ci-check-license.yml'
+      - '.gitlab-ci-check-python3-format.yml'
+      - '.gitlab-ci-github-status-updates.yml'
+  - local: 'gitlab-pipeline/test-acceptance.yml'
 
 stages:
   - build:orig
