@@ -188,7 +188,7 @@ docker run --rm \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
         --env OVERRIDE_DEBIAN_SUFFIX \
         ${PLATFORM} \
-        ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-feature-armhf-native} \
+        ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \
         ${BUILD_TYPE} \
