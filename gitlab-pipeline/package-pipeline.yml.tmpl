@@ -1,0 +1,146 @@
+stages:
+  - build:orig
+  - build:package
+  - test
+  - publish
+
+# NOTE: To add distributions, modify first the matrix in mender-test-containers repository
+.mender-dist-packages-image-matrix:
+  parallel:
+    matrix:
+      - DISTRO: debian
+        RELEASE: [buster, bullseye]
+        ARCH: [amd64, armhf, arm64]
+      - DISTRO: ubuntu
+        RELEASE: [focal, jammy]
+        ARCH: [amd64, armhf, arm64]
+
+build:orig:debian:buster:amd64:
+  stage: build:orig
+  image: docker:git
+  tags:
+    - mender-qa-worker-generic
+  services:
+    - docker:dind
+  variables:
+    DISTRO: "debian"
+    RELEASE: "buster"
+    ARCH: "amd64"
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+  script:
+    - apk --update --no-cache add bash
+    - ./docker-build-package $DISTRO $RELEASE $ARCH $TMPL_PACKAGE_NAME $TMPL_PACKAGE_VERSION true
+    - find output -type f
+  artifacts:
+    paths:
+      - output/orig
+
+build:package:
+  stage: build:package
+  image: docker:git
+  tags:
+    - hetzner-amd-beefy
+  services:
+    - docker:dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+  script:
+    - apk --update --no-cache add bash
+    - ./docker-build-package $DISTRO $RELEASE $ARCH $TMPL_PACKAGE_NAME $TMPL_PACKAGE_VERSION
+    - find output -type f
+  artifacts:
+    paths:
+      - output/commercial
+      - output/opensource
+  parallel: !reference [.mender-dist-packages-image-matrix, parallel]
+
+test:acceptance:
+  stage: test
+  image: docker:dind
+  tags:
+    - mender-qa-worker-generic
+  dependencies:
+    # Note that we are only testing packages from Debian buster
+    - "build:package: [debian, buster, amd64]"
+    - "build:package: [debian, buster, armhf]"
+    - "build:package: [debian, buster, arm64]"
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    PYTEST_FILTER: "$TMPL_PYTEST_FILTER"
+  before_script:
+    # DinD setup in Mender CI runners
+    - unset DOCKER_HOST
+    - unset DOCKER_TLS_VERIFY
+    - unset DOCKER_CERT_PATH
+    # Start dockerd in the background
+    - /usr/local/bin/dockerd &
+    # Wait for dockerd to start
+    - |-
+      MAX_WAIT=30
+      while [ ! -e "/var/run/docker.sock" ] && [ $MAX_WAIT -gt 0 ]; do
+        MAX_WAIT=$(($MAX_WAIT - 1))
+        sleep 1
+      done
+    # Verify that the docker server is up and running
+    - docker version
+    # Git submodules
+    - apk --update --no-cache add git
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+    # Log in to pull test image from registry.gitlab.com
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+  script:
+    - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
+      libffi-dev libc-dev python3-dev bash musl-dev rust cargo
+    - cd tests
+    - pip3 install --break-system-packages -r requirements.txt
+    - REFERENCE_DIST=debian-buster-amd64
+    - |-
+        commercial_tests_flags=""
+        if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] &&
+           [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
+          commercial_tests_flags="--commercial-tests"
+          commercial_tests_flags="$commercial_tests_flags --mender-gateway-version $MENDER_GATEWAY_VERSION"
+          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
+          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version)"
+        fi
+    - python3 -m pytest -v
+      --mender-client-version "$MENDER_VERSION"
+      --mender-client-deb-version "$(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client*-deb-version)"
+      --mender-connect-version "$MENDER_CONNECT_VERSION"
+      --mender-connect-deb-version "$(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)"
+      --mender-configure-version "$MENDER_CONFIGURE_VERSION"
+      --mender-configure-deb-version "$(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)"
+      --mender-artifact-version "$MENDER_ARTIFACT_VERSION"
+      --mender-artifact-deb-version "$(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)"
+      --mender-app-update-module-version "$MENDER_APP_UPDATE_MODULE_VERSION"
+      --mender-app-update-module-deb-version "$(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)"
+      --mender-setup-version "$MENDER_SETUP_VERSION"
+      --mender-setup-deb-version "$(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)"
+      --mender-snapshot-version "$MENDER_SNAPSHOT_VERSION"
+      --mender-snapshot-deb-version "$(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)"
+      --mender-flash-version "$MENDER_FLASH_VERSION"
+      --mender-flash-deb-version "$(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)"
+      -k "${PYTEST_FILTER}"
+      ${commercial_tests_flags}
+      --junit-xml results.xml
+  artifacts:
+    reports:
+      junit: tests/results.xml
+
+# test:acceptance:golang:
+#   rules:
+#     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
+#   extends: .test:acceptance
+#   variables:
+#     PYTEST_FILTER: "not cppclient"
+
+# test:acceptance:cpp:
+#   rules:
+#     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
+#     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
+#   extends: .test:acceptance
+#   variables:
+#     PYTEST_FILTER: "not golangclient"
