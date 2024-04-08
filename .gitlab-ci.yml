@@ -55,7 +55,8 @@ variables:
   # Workaround for GitLab intermittent networking
   FF_NETWORK_PER_BUILD: 1
   # Builder image version
-  IMAGE_VERSION: "master"
+  # Use the images created in the mender-test-containers feature branch
+  IMAGE_VERSION: "feature-armhf-native"
   # Debian suffix
   OVERRIDE_DEBIAN_SUFFIX:
     value: ""
@@ -126,7 +127,7 @@ build:packages:
   stage: build:packages
   image: docker:git
   tags:
-    - mender-qa-worker-generic
+    - hetzner-amd-beefy
   services:
     - docker:dind
   before_script:

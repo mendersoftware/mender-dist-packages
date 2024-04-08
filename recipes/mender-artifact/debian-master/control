@@ -8,8 +8,6 @@ Build-Depends: debhelper (>= 9)
 Package: mender-artifact
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-# debian bullseye Depends: libc6 (>= 2.14), liblzma5 (>= 5.1.1alpha+20120614), libssl1.1 (>= 1.1.1)
-# debian buster Depends: libc6 (>= 2.14), liblzma5 (>= 5.1.1alpha+20120614), libssl1.1 (>= 1.1.1)
 Description: Mender client
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
  mender-artifact is a cli tool that creates, signs, reads or modify a Mender artifact, which is a

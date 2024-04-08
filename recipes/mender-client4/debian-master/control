@@ -12,7 +12,6 @@ Conflicts: mender, mender-client
 Replaces: mender-client, mender-auth, mender-update, mender-snapshot, mender-setup
 Architecture: any
 Depends: mender-auth, mender-update, mender-snapshot, mender-setup, mender-flash
-# debian buster Depends: mender-auth, mender-update, mender-snapshot, mender-setup, mender-flash
 Description: Mender client
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
 
@@ -20,7 +19,6 @@ Package: mender-update
 Conflicts: mender, mender-client
 Architecture: any
 Depends: mender-auth, ${shlibs:Depends}, ${misc:Depends}
-# debian buster Depends: mender-auth, libarchive13 (>= 3.3.3), libc6 (>= 2.28), libdbus-1-3 (>= 1.9.14), libgcc1 (>= 1:3.5), liblmdb0 (>= 0.9.7), libssl1.1 (>= 1.1.1), libstdc++6 (>= 7)
 Recommends: mender-flash, mender-setup
 Description: Mender update
  Mender-update is an open source over-the-air (OTA) software updater for embedded Linux devices.
@@ -29,7 +27,6 @@ Package: mender-auth
 Conflicts: mender, mender-client
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-# debian buster Depends: libc6 (>= 2.28), libdbus-1-3 (>= 1.9.14), libgcc1 (>= 1:3.5), libssl1.1 (>= 1.1.1), libstdc++6 (>= 7)
 Recommends: mender-setup
 Description: Mender auth
  Mender-auth enables centralized authentication against a Mender server.
@@ -37,7 +34,6 @@ Description: Mender auth
 Package: mender-client4-dev
 Architecture: all
 Depends: mender-client4 (= ${binary:Version}), ${misc:Depends}
-# debian buster Depends: mender-client4 (= ${binary:Version})
 Description: Mender client development files
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
  .
