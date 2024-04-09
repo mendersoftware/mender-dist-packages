@@ -6,7 +6,7 @@
 	dh $@
 
 override_dh_auto_configure:
-	dh_auto_configure -- -D CMAKE_BUILD_TYPE=Release
+	dh_auto_configure -- -D CMAKE_BUILD_TYPE=Release -D FETCHCONTENT_FULLY_DISCONNECTED=OFF
 
 override_dh_auto_test:
 	true
