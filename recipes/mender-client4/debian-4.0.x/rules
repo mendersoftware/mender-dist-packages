@@ -1,0 +1,40 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --with systemd
+
+override_dh_auto_configure:
+	dh_auto_configure -- -D CMAKE_BUILD_TYPE=Release
+
+override_dh_auto_test:
+	true
+
+override_dh_auto_install:
+	# Standard Debian install
+	dh_auto_install
+
+	# Install scripts/version file
+	install -d -m 755 debian/tmp/etc/mender/scripts/
+	echo -n "3" > debian/tmp/etc/mender/scripts/version
+
+	# MEN-6060: Make identity and inventory scripts into conf files so that
+	# they can be modified without risking that they get lost during an
+	# upgrade. To follow Debian policy, we must then put them in /etc and
+	# symlink to them, we can not simply mark them as conffiles:
+	# https://www.debian.org/doc/debian-policy/ch-files.html#location
+	install -d -m 755 debian/tmp/etc/mender/identity
+	mv debian/tmp/usr/share/mender/identity/* debian/tmp/etc/mender/identity/
+	for file in debian/tmp/etc/mender/identity/*; do \
+		ln -sf /etc/mender/identity/"$$(basename "$$file")" debian/tmp/usr/share/mender/identity/; \
+	done
+
+	install -d -m 755 debian/tmp/etc/mender/inventory
+	mv debian/tmp/usr/share/mender/inventory/* debian/tmp/etc/mender/inventory/
+	for file in debian/tmp/etc/mender/inventory/*; do \
+		ln -sf /etc/mender/inventory/"$$(basename "$$file")" debian/tmp/usr/share/mender/inventory/; \
+	done
+
+# Do not build debug symbols packages
+# See https://northerntech.atlassian.net/browse/MEN-6915
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym
