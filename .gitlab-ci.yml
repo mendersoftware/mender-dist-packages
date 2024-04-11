@@ -174,7 +174,7 @@ test:check-python3-formatting:
   image: docker:dind
   tags:
     - mender-qa-worker-generic
-  dependencies:
+  needs:
     # Note that we are only testing packages from Debian buster
     - "build:packages: [debian, buster, amd64]"
     - "build:packages: [debian, buster, armhf]"
@@ -262,7 +262,7 @@ test:acceptance:script:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   extends: .test:acceptance
-  dependencies: []
+  needs: []
   script:
     - apk --update --no-cache add python3 py3-pip
     - pip3 install --break-system-packages -r tests/requirements.txt
