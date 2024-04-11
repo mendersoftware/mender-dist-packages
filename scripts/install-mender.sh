@@ -570,6 +570,9 @@ check_dist_and_version() {
         debian|raspbian)
             DIST_VERSION="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
             case "$DIST_VERSION" in
+                12)
+                    DIST_VERSION="bookworm"
+                ;;
                 11)
                     DIST_VERSION="bullseye"
                     select_mender_client_legacy
@@ -616,6 +619,9 @@ check_dist_and_version() {
                 fi
                 DIST_VERSION="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
                 case "$DIST_VERSION" in
+                    12)
+                        DIST_VERSION="bookworm"
+                    ;;
                     11)
                         DIST_VERSION="bullseye"
                         select_mender_client_legacy
