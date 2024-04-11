@@ -92,6 +92,10 @@ stages:
 
 build:orig:debian:buster:amd64:
   stage: build:orig
+  rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
+    - when: on_success
   image: docker:git
   tags:
     - mender-qa-worker-generic
@@ -124,6 +128,10 @@ build:orig:debian:buster:amd64:
 
 build:packages:
   stage: build:packages
+  rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
+    - when: on_success
   image: docker:git
   tags:
     - hetzner-amd-beefy
@@ -245,6 +253,8 @@ test:check-python3-formatting:
 
 test:acceptance:golang:
   rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
   extends: .test:acceptance
   variables:
@@ -252,6 +262,8 @@ test:acceptance:golang:
 
 test:acceptance:cpp:
   rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   extends: .test:acceptance
