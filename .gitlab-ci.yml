@@ -68,7 +68,7 @@ variables:
   parallel:
     matrix:
       - DISTRO: debian
-        RELEASE: [buster, bullseye]
+        RELEASE: [buster, bullseye, bookworm]
         ARCH: [amd64, armhf, arm64]
       - DISTRO: ubuntu
         RELEASE: [focal, jammy]
@@ -92,6 +92,10 @@ stages:
 
 build:orig:debian:buster:amd64:
   stage: build:orig
+  rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
+    - when: on_success
   image: docker:git
   tags:
     - mender-qa-worker-generic
@@ -124,9 +128,13 @@ build:orig:debian:buster:amd64:
 
 build:packages:
   stage: build:packages
+  rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
+    - when: on_success
   image: docker:git
   tags:
-    - mender-qa-worker-generic
+    - hetzner-amd-beefy
   services:
     - docker:dind
   before_script:
@@ -174,7 +182,7 @@ test:check-python3-formatting:
   image: docker:dind
   tags:
     - mender-qa-worker-generic
-  dependencies:
+  needs:
     # Note that we are only testing packages from Debian buster
     - "build:packages: [debian, buster, amd64]"
     - "build:packages: [debian, buster, armhf]"
@@ -245,6 +253,8 @@ test:check-python3-formatting:
 
 test:acceptance:golang:
   rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
   extends: .test:acceptance
   variables:
@@ -252,11 +262,27 @@ test:acceptance:golang:
 
 test:acceptance:cpp:
   rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not golangclient"
+
+test:acceptance:script:
+  rules:
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
+  extends: .test:acceptance
+  needs: []
+  script:
+    - apk --update --no-cache add python3 py3-pip
+    - pip3 install --break-system-packages -r tests/requirements.txt
+    - cd scripts/tests
+    - python3 -m pytest -v --junit-xml results.xml
+  artifacts:
+    reports:
+      junit: scripts/tests/results.xml
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
