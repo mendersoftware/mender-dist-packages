@@ -218,7 +218,7 @@ build_packages() {
 
   skip_patches_flag="--source-option=--skip-patches"
   if [ "$OS_DISTRO" = "debian" -a "$OS_CODENAME" = "buster" -a "$ARCH" != "armhf" ]; then
-    echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/buster-backports_deps.list
+    echo "deb http://archive.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/buster-backports_deps.list
     cat <<EOF> /etc/apt/preferences.d/prefer_backports.pref
 Package: cmake*
 Pin: release a=buster-backports
