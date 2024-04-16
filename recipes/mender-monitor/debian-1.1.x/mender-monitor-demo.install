@@ -1,0 +1,4 @@
+/etc/mender-monitor/monitor.d/available/*
+/etc/mender-monitor/monitor.d/diskusage.sh
+/etc/mender-monitor/monitor.d/connectivity.sh
+/etc/mender-monitor/monitor.d/enabled/
