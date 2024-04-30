@@ -404,7 +404,7 @@ do_install_open() {
        -o Dpkg::Options::="--force-confold" \
        $selected_components_open
 
-    echo "  Success! Please run \``mender_setup_cli`\` to configure the client."
+    echo "  Success! Please run \``mender_setup_cli`\` as superuser to configure the client."
 }
 
 do_install_commercial() {
