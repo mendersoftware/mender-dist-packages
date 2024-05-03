@@ -69,10 +69,20 @@ variables:
     matrix:
       - DISTRO: debian
         RELEASE: [buster, bullseye, bookworm]
+        ARCH: [amd64, arm64]
+      - DISTRO: debian # cannot build this with arm64 host
+        RELEASE: [buster]
         ARCH: [amd64, armhf, arm64]
       - DISTRO: ubuntu
         RELEASE: [focal, jammy]
         ARCH: [amd64, armhf, arm64]
+
+.mender-dist-packages-image-matrix-armhf:
+  parallel:
+    matrix:
+      - DISTRO: debian
+        RELEASE: [bullseye, bookworm]
+        ARCH: [armhf]
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -163,6 +173,12 @@ build:packages:
       - output/commercial
       - output/opensource
   parallel: !reference [.mender-dist-packages-image-matrix, parallel]
+
+build:packages:armhf:
+  extends: build:packages
+  tags:
+    - hetzner-arm
+  parallel: !reference [.mender-dist-packages-image-matrix-armhf, parallel]
 
 test:check-commits:
   only:
