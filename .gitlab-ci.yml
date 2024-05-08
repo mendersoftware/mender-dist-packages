@@ -81,6 +81,10 @@ variables:
         RELEASE: [bullseye, bookworm]
         ARCH: [armhf]
 
+.dind-login: &dind-login
+  - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
+  - docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
 include:
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-check-commits-signoffs.yml'
@@ -103,17 +107,18 @@ build:orig:debian:bullseye:amd64:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:26-cli
   tags:
     - mender-qa-worker-generic
   services:
-    - docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:26-dind
+      alias: docker
   variables:
     DISTRO: "debian"
     RELEASE: "bullseye"
     ARCH: "amd64"
   before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - *dind-login
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
@@ -139,13 +144,14 @@ build:packages:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:26-cli
   tags:
     - hetzner-amd-beefy
   services:
-    - docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:26-dind
+      alias: docker
   before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - *dind-login
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
@@ -192,7 +198,7 @@ test:check-python3-formatting:
 
 .test:acceptance:
   stage: test
-  image: docker:dind
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/docker:dind
   tags:
     - mender-qa-worker-generic
   needs:
@@ -310,7 +316,7 @@ test:acceptance:script:
 
 .template:publish:s3:apt-repo:
   stage: publish
-  image: debian:12
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/debian:12
   tags:
     - hetzner-amd-beefy
   before_script:
@@ -352,7 +358,7 @@ publish:s3:apt-repo:automatic:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  image: debian:12
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/debian:12
   before_script:
     - apt update && apt install -yyq awscli
   only:
@@ -381,7 +387,7 @@ publish:production:s3:scripts:install-mender-sh:
 
 .template:publish:s3:
   stage: publish
-  image: debian:12
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/debian:12
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
