@@ -319,6 +319,15 @@ init() {
 
     parse_args "$@"
 
+    echo "  Detected distribution:"
+    printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
+
+    if [[ "$LSB_DIST" == "raspbian" ]]; then
+        LSB_DIST="debian"
+        echo "  Raspbian detected. Using compatible distribution:"
+        printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
+    fi
+
     ARCH=$(dpkg --print-architecture)
     echo "  Detected architecture:"
     printf "\t%s\n" "$ARCH"
@@ -638,15 +647,6 @@ check_dist_and_version() {
                 esac
             fi
         fi
-    fi
-
-    echo "  Detected distribution:"
-    printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
-
-    if [[ "$LSB_DIST" == "raspbian" ]]; then
-        LSB_DIST="debian"
-        echo "  Raspbian detected. Using compatible distribution:"
-        printf "\t%s/%s\n" "$LSB_DIST" "$DIST_VERSION"
     fi
 }
 
