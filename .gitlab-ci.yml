@@ -292,7 +292,7 @@ test:acceptance:script:
   extends: .test:acceptance
   needs: []
   script:
-    - apk --update --no-cache add python3 py3-pip
+    - apk --update --no-cache add python3 py3-pip gcc make openssh-client openssl-dev python3-dev musl-dev libffi-dev
     - pip3 install --break-system-packages -r tests/requirements.txt
     - cd scripts/tests
     - python3 -m pytest -v --junit-xml results.xml
