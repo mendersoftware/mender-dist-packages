@@ -650,8 +650,8 @@ check_dist_and_version() {
     fi
 }
 
-check_dist_and_version
 banner
+check_dist_and_version
 init "$@"
 print_components
 get_deps
