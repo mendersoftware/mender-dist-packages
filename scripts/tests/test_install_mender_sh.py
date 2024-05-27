@@ -175,6 +175,10 @@ class TestInstallMenderScript:
     ):
         """Default, no arg install installs mender-client and add-ons (stable)."""
 
+        client_package = (
+            "mender-client4" if channel == "experimental" else "mender-client"
+        )
+
         if channel != "":
             channel = "-c " + channel
 
@@ -182,7 +186,7 @@ class TestInstallMenderScript:
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- {channel}"
         )
 
-        for pkg in ["mender-client", "mender-configure", "mender-connect"]:
+        for pkg in [client_package, "mender-configure", "mender-connect"]:
             check_installed(generic_debian_container, pkg)
 
         # piggyback misc cmdline tests to save an extra container run
