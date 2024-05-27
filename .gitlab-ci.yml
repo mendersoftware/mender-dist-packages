@@ -227,11 +227,12 @@ test:check-python3-formatting:
     - git submodule update --init --recursive
     # Log in to pull test image from registry.gitlab.com
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-  script:
+    # Install dependencies
     - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
       libffi-dev libc-dev python3-dev bash musl-dev rust cargo
+    - pip3 install --break-system-packages -r tests/requirements.txt
+  script:
     - cd tests
-    - pip3 install --break-system-packages -r requirements.txt
     - REFERENCE_DIST=debian-buster-amd64
     - |-
         commercial_tests_flags=""
@@ -292,8 +293,6 @@ test:acceptance:script:
   extends: .test:acceptance
   needs: []
   script:
-    - apk --update --no-cache add python3 py3-pip
-    - pip3 install --break-system-packages -r tests/requirements.txt
     - cd scripts/tests
     - python3 -m pytest -v --junit-xml results.xml
   artifacts:
