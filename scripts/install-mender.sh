@@ -15,6 +15,9 @@
 set -e
 
 CHANNEL="stable"
+if [[ "$*" == *"experimental"* ]]; then
+    CHANNEL="experimental"
+fi
 
 # All available components
 AVAILABLE_COMPONENTS="\
@@ -518,7 +521,7 @@ command_exists() {
 }
 
 select_mender_client_legacy() {
-    if [ "$FORCE_MENDER_CLIENT4" -ne 1 ]; then
+    if [ "$FORCE_MENDER_CLIENT4" -ne 1 ] && [ "$CHANNEL" != "experimental" ]; then
         DEFAULT_COMPONENTS="$DEFAULT_COMPONENTS_LEGACY"
         SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
         MENDER_SETUP_CLI="mender setup"
@@ -650,8 +653,8 @@ check_dist_and_version() {
     fi
 }
 
-check_dist_and_version
 banner
+check_dist_and_version
 init "$@"
 print_components
 get_deps
