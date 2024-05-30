@@ -313,7 +313,7 @@ test:acceptance:script:
 
 .template:publish:s3:apt-repo:
   stage: publish
-  image: debian:buster
+  image: debian:12
   before_script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
@@ -347,7 +347,7 @@ publish:s3:apt-repo:automatic:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  image: debian:buster
+  image: debian:12
   before_script:
     - apt update && apt install -yyq awscli
   only:
@@ -376,7 +376,7 @@ publish:production:s3:scripts:install-mender-sh:
 
 .template:publish:s3:
   stage: publish
-  image: debian:buster
+  image: debian:12
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
