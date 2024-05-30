@@ -27,7 +27,7 @@ SCRIPT_SERVER_ADDR = "localhost"
 SCRIPT_SERVER_PORT = 8000
 SCRIPT_SERVER_PATH = os.path.join(os.path.dirname(__file__), "..")
 
-DEBIAN_REF_DISTRO = "buster"
+DEBIAN_REF_DISTRO = "bullseye"
 DEBIAN_REF_PACKAGES = os.path.join(
     os.path.join(os.path.dirname(__file__), "..", "..", "output"),
     f"opensource/debian-{DEBIAN_REF_DISTRO}-amd64",

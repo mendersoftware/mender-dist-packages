@@ -100,7 +100,7 @@ stages:
   - test
   - publish
 
-build:orig:debian:buster:amd64:
+build:orig:debian:bullseye:amd64:
   stage: build:orig
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
@@ -113,7 +113,7 @@ build:orig:debian:buster:amd64:
     - docker:dind
   variables:
     DISTRO: "debian"
-    RELEASE: "buster"
+    RELEASE: "bullseye"
     ARCH: "amd64"
   before_script:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
@@ -199,10 +199,10 @@ test:check-python3-formatting:
   tags:
     - mender-qa-worker-generic
   needs:
-    # Note that we are only testing packages from Debian buster
-    - "build:packages: [debian, buster, amd64]"
-    - "build:packages: [debian, buster, armhf]"
-    - "build:packages: [debian, buster, arm64]"
+    # Note that we are only testing packages from Debian bullseye
+    - "build:packages: [debian, bullseye, amd64]"
+    - "build:packages:armhf: [debian, bullseye, armhf]"
+    - "build:packages: [debian, bullseye, arm64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -233,7 +233,7 @@ test:check-python3-formatting:
     - pip3 install --break-system-packages -r tests/requirements.txt
   script:
     - cd tests
-    - REFERENCE_DIST=debian-buster-amd64
+    - REFERENCE_DIST=debian-bullseye-amd64
     - |-
         commercial_tests_flags=""
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] &&
