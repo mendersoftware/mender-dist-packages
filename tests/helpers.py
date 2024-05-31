@@ -31,9 +31,9 @@ COMMERCIAL_PACKAGES = [
 def packages_path(package, package_arch="armhf"):
     if package_arch == "all":
         package_arch = "amd64"
-    subdir = "opensource/debian-buster-" + package_arch
+    subdir = "opensource/debian-bullseye-" + package_arch
     if package in COMMERCIAL_PACKAGES:
-        subdir = "commercial/debian-buster-" + package_arch
+        subdir = "commercial/debian-bullseye-" + package_arch
     return os.path.join(output_path, subdir)
 
 

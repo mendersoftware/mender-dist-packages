@@ -18,14 +18,14 @@ import re
 
 def verify_package_version(version, deb_version):
     if version == "master":
-        # For master, expect something like: "0.0~git20191022.dade697-1+debian+buster+b279517265"
+        # For master, expect something like: "0.0~git20191022.dade697-1+debian+something+b279517265"
         m = re.match(
-            r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-[1-9][0-9]*\+debian\+buster\+builder([0-9]+|LOCAL)",
+            r"[0-9]+\.[0-9]+\.[0-9]+~git[0-9]+\.([a-z0-9]+)-[1-9][0-9]*\+debian\+bullseye\+builder([0-9]+|LOCAL)",
             deb_version,
         )
         assert m is not None, "Cannot match %s" % deb_version
     else:
-        m = re.match(fr"{version}-[1-9][0-9]*\+debian\+buster", deb_version)
+        m = re.match(fr"{version}-[1-9][0-9]*\+debian\+bullseye", deb_version)
         assert m is not None, "Cannot match %s" % deb_version
 
 
