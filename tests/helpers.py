@@ -15,7 +15,7 @@
 
 import os.path
 
-from fabric import Result as FabricResult
+from mender_test_containers.helpers import Result as SSHResult
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
 output_path = os.path.normpath(os.path.join(tests_path, "..", "output"))
@@ -64,7 +64,7 @@ def check_installed(conn, pkg, installed=True):
     and other status like removed but not purged (deinstall ok config-files)"""
 
     res = conn.run(f"dpkg --status {pkg}", warn=True)
-    if isinstance(res, FabricResult):
+    if isinstance(res, SSHResult):
         retcode = res.return_code
         output = res.stdout
     else:

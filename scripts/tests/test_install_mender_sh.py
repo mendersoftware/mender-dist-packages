@@ -21,7 +21,8 @@ import subprocess
 import threading
 
 import pytest
-from fabric import Result as FabricResult
+
+from tests.mender_test_containers.helpers import Result as SSHResult
 
 SCRIPT_SERVER_ADDR = "localhost"
 SCRIPT_SERVER_PORT = 8000
@@ -40,7 +41,7 @@ def check_installed(conn, pkg, installed=True):
     and other status like removed but not purged (deinstall ok config-files)"""
 
     res = conn.run(f"dpkg --status {pkg}", warn=True)
-    if isinstance(res, FabricResult):
+    if isinstance(res, SSHResult):
         retcode = res.return_code
         output = res.stdout
     else:
