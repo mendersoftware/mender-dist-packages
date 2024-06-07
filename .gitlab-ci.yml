@@ -315,10 +315,15 @@ test:acceptance:script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
     - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
-    -   echo "$S3_BUCKET_REPO_PATH locked, waiting..."
+    -   rm -f /tmp/lock.in
+    -   aws s3 cp s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock /tmp/lock.in
+    -   echo "$S3_BUCKET_REPO_PATH locked by:"
+    -   cat /tmp/lock.in
+    -   echo "waiting 10s"
     -   sleep 10
     - done
-    - touch lock
+    - rm -f /tmp/lock.in lock
+    - echo "${CI_PIPELINE_ID}.${CI_PROJECT_NAME}" >> lock
     - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
   script:
     # Upload files: first .buildinfo and .deb, then .changes
