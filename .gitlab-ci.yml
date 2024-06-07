@@ -331,6 +331,7 @@ test:acceptance:script:
     -   done
     - done
   after_script:
+    - apt update && apt install -yyq awscli
     - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 publish:s3:apt-repo:manual:
