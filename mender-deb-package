@@ -177,7 +177,7 @@ prepare_recipe() {
 
   # For legacy OS, patch the debian/rules file for mender-client
   if [[ "${DEB_PACKAGE}" =~ ^mender-client(4)?$ && -f "debian/rules.legacy.patch" ]]; then
-    if [[ "$OS_CODENAME" == "buster" || "$OS_CODENAME" = "focal" ]]; then
+    if [[ "$OS_CODENAME" = "focal" ]]; then
       patch debian/rules debian/rules.legacy.patch
     fi
   fi
@@ -215,22 +215,6 @@ build_packages() {
   fi
 
   dpkg_build_ignore_flag="--diff-ignore=(.git|vendor)"
-
-  skip_patches_flag="--source-option=--skip-patches"
-  if [ "$OS_DISTRO" = "debian" -a "$OS_CODENAME" = "buster" -a "$ARCH" != "armhf" ]; then
-    echo "deb http://archive.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/buster-backports_deps.list
-    cat <<EOF> /etc/apt/preferences.d/prefer_backports.pref
-Package: cmake*
-Pin: release a=buster-backports
-Pin-Priority: 999
-EOF
-    # We want the patches applied for Debian Buster
-    rm -f debian/source/local-options
-    skip_patches_flag=
-  else
-    # Skip applying the patches
-    rm -f debian/patches/series
-  fi
 
   # Install the dependencies from the debian/control file
   apt-get update
@@ -272,7 +256,6 @@ EOF
                      --target-arch armhf \
                      ${sign_flags} \
                      ${dpkg_build_ignore_flag} \
-                     ${skip_patches_flag} \
                      --build=$DEB_BUILD_TYPE
       fi
       ;;
@@ -287,7 +270,6 @@ EOF
                    --target-arch arm64 \
                    ${sign_flags} \
                    ${dpkg_build_ignore_flag} \
-                   ${skip_patches_flag} \
                    --build=$DEB_BUILD_TYPE
       ;;
   esac
