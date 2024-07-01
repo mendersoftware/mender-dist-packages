@@ -103,11 +103,11 @@ build:orig:debian:bullseye:amd64:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: docker:git
+  image: docker:26-cli
   tags:
     - mender-qa-worker-generic
   services:
-    - docker:dind
+    - docker:26-dind
   variables:
     DISTRO: "debian"
     RELEASE: "bullseye"
@@ -139,11 +139,11 @@ build:packages:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: docker:git
+  image: docker:26-cli
   tags:
     - hetzner-amd-beefy
   services:
-    - docker:dind
+    - docker:26-dind
   before_script:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
   script:
