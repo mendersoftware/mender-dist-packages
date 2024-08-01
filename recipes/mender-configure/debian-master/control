@@ -14,7 +14,7 @@ Description: Mender Configure
 
 Package: mender-configure-timezone
 Architecture: all
-Depends: mender-configure (= ${binary:Version}), jq, ${misc:Depends}
+Depends: mender-configure (= ${binary:Version}), jq, tzdata, ${misc:Depends}
 Description: Mender Configure Timezone
  Mender Configure Timezone is an add-on to Mender Configure which enables configuration
  of timezone on the device
