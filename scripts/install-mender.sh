@@ -555,6 +555,9 @@ check_dist_and_version() {
                 DIST_VERSION="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
             fi
             case "$DIST_VERSION" in
+                noble)
+                    DIST_VERSION="noble"
+                ;;
                 jammy)
                     DIST_VERSION="jammy"
                     select_mender_client_legacy
