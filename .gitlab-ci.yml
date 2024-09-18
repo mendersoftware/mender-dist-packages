@@ -47,9 +47,15 @@ variables:
   GPG_PRIV_KEY_BUILD: ""
   TEST_MENDER_DIST_PACKAGES:
     value: "true"
+    options:
+      - "true"
+      - "false"
     description: "Whether to run acceptance tests"
   PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC:
     value: "false"
+    options:
+      - "true"
+      - "false"
     description: |-
       Whether to publish packages automatically - they can always be published manually
   # Workaround for GitLab intermittent networking
