@@ -68,6 +68,8 @@ variables:
     description: |-
       Overrides Debian suffix, which by default is "-1". Use it to manually build (and publish)
       a new version of a package from already released (git tagged) software.
+  # Don't slow down aws cli commands with connections to IMDS: we're not in AWS
+  AWS_EC2_METADATA_DISABLED: "true"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix:
