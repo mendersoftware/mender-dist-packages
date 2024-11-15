@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 9)
 
 Package: mender-monitor
 Architecture: all
-Depends: bash, lmdb-utils, mender-auth | mender-client (>=2.5.0), ${misc:Depends}
+Depends: dbus, bash, lmdb-utils, mender-auth | mender-client (>=2.5.0), ${misc:Depends}
 Description: Mender Monitor client
  Mender Monitor is a Mender add-on which enables the reporting of certain
  device events to the Mender server, such as log events, service files statuses
