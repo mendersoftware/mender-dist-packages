@@ -31,10 +31,17 @@ COMMERCIAL_PACKAGES = [
 def packages_path(package, package_arch="armhf"):
     if package_arch == "all":
         package_arch = "amd64"
-    subdir = "opensource/debian-bullseye-" + package_arch
+
+    distro = "debian"
+    if package_arch == "armhf":
+        # For armhf, we test only on Raspberry Pi OS, so it safe to assume distro here
+        distro = "raspberrypios"
+
+    basedir = "opensource"
     if package in COMMERCIAL_PACKAGES:
-        subdir = "commercial/debian-bullseye-" + package_arch
-    return os.path.join(output_path, subdir)
+        basedir = "commercial"
+
+    return os.path.join(output_path, basedir, f"{distro}-bullseye-{package_arch}")
 
 
 def package_filename(package_version, package_name, package_arch="armhf"):

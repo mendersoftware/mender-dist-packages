@@ -104,16 +104,17 @@ declare -a packages=(
 )
 
 # Parse args
-if [ $# -lt 4 ]; then
-    echo "usage: $0 distro release arch package [version]"
+if [ $# -lt 5 ]; then
+    echo "usage: $0 build distro release arch package [version]"
     exit 1
 fi
-DISTRO="${1}"
-RELEASE="${2}"
-ARCH="${3}"
-RECIPE_NAME="${4}"
-RECIPE_VERSION="${5:-master}"
-SAVE_ORIG="$6"
+BUILD="${1}"
+DISTRO="${2}"
+RELEASE="${3}"
+ARCH="${4}"
+RECIPE_NAME="${5}"
+RECIPE_VERSION="${6:-master}"
+SAVE_ORIG="$7"
 
 # Look for the recipe
 recipe_found=0
@@ -173,7 +174,7 @@ fi
 
 PLATFORM=""
 
-if [ "$ARCH" = "armhf" -a "$DISTRO" = "debian" ]; then
+if [ "$ARCH" = "armhf" -a "$DISTRO" = "raspberrypios" ]; then
     PLATFORM="--platform=linux/arm/v6"
 fi
 
@@ -188,7 +189,7 @@ docker run --rm \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
         --env OVERRIDE_DEBIAN_SUFFIX \
         ${PLATFORM} \
-        ${IMAGE_NAME_PREFIX}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
+        ${IMAGE_NAME_PREFIX}-${BUILD}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \
         ${BUILD_TYPE} \
