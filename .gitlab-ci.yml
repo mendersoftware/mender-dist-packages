@@ -61,7 +61,9 @@ variables:
   # Workaround for GitLab intermittent networking
   FF_NETWORK_PER_BUILD: 1
   # Builder image version
-  IMAGE_VERSION: "master"
+  IMAGE_VERSION:
+    value: "master"
+    description: "Builder images version. Useful in combination with PRs from mender-test-containers"
   # Debian suffix
   OVERRIDE_DEBIAN_SUFFIX:
     value: ""
