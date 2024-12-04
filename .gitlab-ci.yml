@@ -329,8 +329,8 @@ test:acceptance:script:
 
 .template:publish:s3:apt-repo:
   ################ MEN-7731 Debian armhf packages #####################
-  # We have support for building Debian armhf packages but the APT repositories are not ready
-  # so we cannot publish these packages. For the time being, we have explicitly here the dependencies
+  # We have support for building Debian armhf packages but the APT repositories and S3 buckets
+  # are not ready to publish these packages. For the time being, we explicitly set dependencies
   # so that the jobs: [crosscompile, debian, bullseye/bookworm, armhf]' are not pulled into the
   # publish stage. Remove the whole dependencies section when working on MEN-7754
   dependencies:
@@ -421,6 +421,27 @@ publish:production:s3:scripts:install-mender-sh:
       - production
 
 .template:publish:s3:
+  ################ MEN-7731 Debian armhf packages #####################
+  # We have support for building Debian armhf packages but the APT repositories and S3 buckets
+  # are not ready to publish these packages. For the time being, we explicitly set dependencies
+  # so that the jobs: [crosscompile, debian, bullseye/bookworm, armhf]' are not pulled into the
+  # publish stage. Remove the whole dependencies section when working on MEN-7754
+  dependencies:
+    - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
+    - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
+    - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
+    - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, amd64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:packages:sim: [simulated, raspberrypios, bullseye, armhf]'
+    - 'build:packages:sim: [simulated, raspberrypios, bookworm, armhf]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   before_script:
