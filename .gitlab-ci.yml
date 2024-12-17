@@ -297,7 +297,7 @@ test:acceptance:cpp:
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   extends: .test:acceptance
   variables:
