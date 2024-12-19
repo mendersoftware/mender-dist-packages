@@ -26,7 +26,7 @@ Description: Mender update
 Package: mender-auth
 Conflicts: mender, mender-client
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: dbus, ${shlibs:Depends}, ${misc:Depends}
 Recommends: mender-setup
 Description: Mender auth
  Mender-auth enables centralized authentication against a Mender server.

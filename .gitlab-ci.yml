@@ -47,39 +47,55 @@ variables:
   GPG_PRIV_KEY_BUILD: ""
   TEST_MENDER_DIST_PACKAGES:
     value: "true"
+    options:
+      - "true"
+      - "false"
     description: "Whether to run acceptance tests"
   PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC:
     value: "false"
+    options:
+      - "true"
+      - "false"
     description: |-
       Whether to publish packages automatically - they can always be published manually
   # Workaround for GitLab intermittent networking
   FF_NETWORK_PER_BUILD: 1
   # Builder image version
-  IMAGE_VERSION: "master"
+  IMAGE_VERSION:
+    value: "master"
+    description: "Builder images version. Useful in combination with PRs from mender-test-containers"
   # Debian suffix
   OVERRIDE_DEBIAN_SUFFIX:
     value: ""
     description: |-
       Overrides Debian suffix, which by default is "-1". Use it to manually build (and publish)
       a new version of a package from already released (git tagged) software.
+  # Don't slow down aws cli commands with connections to IMDS: we're not in AWS
+  AWS_EC2_METADATA_DISABLED: "true"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
-.mender-dist-packages-image-matrix:
+.mender-dist-packages-image-matrix-cross:
   parallel:
     matrix:
-      - DISTRO: debian
+      - BUILD: crosscompile
+        DISTRO: debian
         RELEASE: [bullseye, bookworm]
-        ARCH: [amd64, arm64]
-      - DISTRO: ubuntu
+        ARCH: [amd64, armhf, arm64]
+      - BUILD: crosscompile
+        DISTRO: ubuntu
         RELEASE: [focal, jammy, noble]
         ARCH: [amd64, armhf, arm64]
-
-.mender-dist-packages-image-matrix-armhf:
+.mender-dist-packages-image-matrix-sim:
   parallel:
     matrix:
-      - DISTRO: debian
+      - BUILD: simulated
+        DISTRO: raspberrypios
         RELEASE: [bullseye, bookworm]
         ARCH: [armhf]
+
+.dind-login: &dind-login
+  - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
+  - docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
 include:
   - project: 'Northern.tech/Mender/mendertesting'
@@ -103,79 +119,82 @@ build:orig:debian:bullseye:amd64:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
   tags:
     - mender-qa-worker-generic
   services:
-    - docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+      alias: docker
   variables:
+    BUILD: "crosscompile"
     DISTRO: "debian"
     RELEASE: "bullseye"
     ARCH: "amd64"
   before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - *dind-login
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
     - else
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION true
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION true
     - fi
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
     - find output -type f
   artifacts:
     paths:
       - output/orig
 
-build:packages:
+build:packages:cross:
   stage: build:packages
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
   tags:
     - hetzner-amd-beefy
   services:
-    - docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+      alias: docker
   before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - *dind-login
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - else
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
     - fi
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
     - fi
     - find output -type f
   artifacts:
     paths:
       - output/commercial
       - output/opensource
-  parallel: !reference [.mender-dist-packages-image-matrix, parallel]
+  parallel: !reference [.mender-dist-packages-image-matrix-cross, parallel]
 
-build:packages:armhf:
-  extends: build:packages
+build:packages:sim:
+  extends: build:packages:cross
   tags:
     - hetzner-arm
-  parallel: !reference [.mender-dist-packages-image-matrix-armhf, parallel]
+  parallel: !reference [.mender-dist-packages-image-matrix-sim, parallel]
 
 test:check-commits:
   only:
@@ -192,14 +211,14 @@ test:check-python3-formatting:
 
 .test:acceptance:
   stage: test
-  image: docker:dind
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:dind
   tags:
     - mender-qa-worker-generic
   needs:
     # Note that we are only testing packages from Debian bullseye
-    - "build:packages: [debian, bullseye, amd64]"
-    - "build:packages:armhf: [debian, bullseye, armhf]"
-    - "build:packages: [debian, bullseye, arm64]"
+    - "build:packages:cross: [crosscompile, debian, bullseye, amd64]"
+    - "build:packages:sim: [simulated, raspberrypios, bullseye, armhf]"
+    - "build:packages:cross: [crosscompile, debian, bullseye, arm64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -278,7 +297,7 @@ test:acceptance:cpp:
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^4\.[0-9x]\.[0-9x]/'
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   extends: .test:acceptance
   variables:
@@ -309,8 +328,32 @@ test:acceptance:script:
   }
 
 .template:publish:s3:apt-repo:
+  ################ MEN-7731 Debian armhf packages #####################
+  # We have support for building Debian armhf packages but the APT repositories and S3 buckets
+  # are not ready to publish these packages. For the time being, we explicitly set dependencies
+  # so that the jobs: [crosscompile, debian, bullseye/bookworm, armhf]' are not pulled into the
+  # publish stage. Remove the whole dependencies section when working on MEN-7754
+  dependencies:
+    - 'build:orig:debian:bullseye:amd64'
+    - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
+    - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
+    - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
+    - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, amd64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:packages:sim: [simulated, raspberrypios, bullseye, armhf]'
+    - 'build:packages:sim: [simulated, raspberrypios, bookworm, armhf]'
   stage: publish
-  image: debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  tags:
+    - hetzner-amd-beefy
   before_script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
@@ -350,7 +393,7 @@ publish:s3:apt-repo:automatic:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  image: debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   before_script:
     - apt update && apt install -yyq awscli
   only:
@@ -378,8 +421,29 @@ publish:production:s3:scripts:install-mender-sh:
       - production
 
 .template:publish:s3:
+  ################ MEN-7731 Debian armhf packages #####################
+  # We have support for building Debian armhf packages but the APT repositories and S3 buckets
+  # are not ready to publish these packages. For the time being, we explicitly set dependencies
+  # so that the jobs: [crosscompile, debian, bullseye/bookworm, armhf]' are not pulled into the
+  # publish stage. Remove the whole dependencies section when working on MEN-7754
+  dependencies:
+    - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
+    - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
+    - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
+    - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, amd64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, focal, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
+    - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:packages:sim: [simulated, raspberrypios, bullseye, armhf]'
+    - 'build:packages:sim: [simulated, raspberrypios, bookworm, armhf]'
   stage: publish
-  image: debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions

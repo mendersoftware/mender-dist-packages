@@ -79,12 +79,8 @@ all_files = [
     # Update modules
     #
     {"name": "/usr/share/mender/modules/v3/", "type": "directory",},
-    {"name": "/usr/share/mender/modules/v3/deb", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/directory", "type": "executable",},
-    {"name": "/usr/share/mender/modules/v3/docker", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/rootfs-image", "type": "executable",},
-    {"name": "/usr/share/mender/modules/v3/rpm", "type": "executable",},
-    {"name": "/usr/share/mender/modules/v3/script", "type": "executable",},
     {"name": "/usr/share/mender/modules/v3/single-file", "type": "executable",},
     #
     # device identity files
