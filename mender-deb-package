@@ -177,13 +177,6 @@ prepare_recipe() {
     cp support/mender-monitor.service debian/
   fi
 
-  # For legacy OS, patch the debian/rules file for mender-client
-  if [[ "${DEB_PACKAGE}" =~ ^mender-client(4)?$ && -f "debian/rules.legacy.patch" ]]; then
-    if [[ "$OS_CODENAME" = "focal" ]]; then
-      patch debian/rules debian/rules.legacy.patch
-    fi
-  fi
-
   dch --create \
     --newversion ${DEB_VERSION} \
     --distribution ${DEB_DISTRIBUTION} \
