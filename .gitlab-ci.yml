@@ -83,7 +83,7 @@ variables:
         ARCH: [amd64, armhf, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
-        RELEASE: [focal, jammy, noble]
+        RELEASE: [jammy, noble]
         ARCH: [amd64, armhf, arm64]
 .mender-dist-packages-image-matrix-sim:
   parallel:
@@ -339,9 +339,6 @@ test:acceptance:script:
     - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
     - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
     - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, focal, amd64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, focal, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, focal, arm64]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
@@ -431,9 +428,6 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
     - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
     - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, focal, amd64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, focal, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, focal, arm64]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
