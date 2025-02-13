@@ -208,7 +208,8 @@ test:check-python3-formatting:
   stage: test
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:dind
   tags:
-    - mender-qa-worker-generic
+    #- mender-qa-worker-generic
+    - hetzner-amd-beefy
   needs:
     # Note that we are only testing packages from Debian bullseye
     - "build:packages: [debian, bullseye, amd64]"
