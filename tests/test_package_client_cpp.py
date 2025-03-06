@@ -160,6 +160,7 @@ class PackageMenderClientChecker:
 
 
 @pytest.mark.cppclient
+@pytest.mark.mender_client
 class TestPackageMenderClientDefaults(PackageMenderClientChecker):
     """Tests installation, setup, start, removal and purge of mender-client deb
     package with the non-interactive method (i.e. default configuration).

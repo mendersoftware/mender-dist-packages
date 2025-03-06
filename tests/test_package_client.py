@@ -22,6 +22,7 @@ from mender_test_containers.helpers import *
 
 
 @pytest.mark.golangclient
+@pytest.mark.mender_client
 class PackageMenderClientChecker:
 
     expected_update_modules = ["deb", "directory", "rpm", "script", "single-file"]

@@ -13,9 +13,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+import pytest
+
 from helpers import package_filename, upload_deb_package, check_installed
 
 
+@pytest.mark.mender_artifact
 class TestPackageArtifact:
     def test_mender_artifact(
         self, setup_tester_ssh_connection, mender_dist_packages_versions

@@ -44,6 +44,7 @@ class PackageMenderAppUpdateModuleChecker:
             ssh_connection.run("test ! -x {mod}".format(mod=module_path))
 
 
+@pytest.mark.mender_app_update_module
 class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
     """Tests installation, and removal of mender-app-update-module deb package.
     """
