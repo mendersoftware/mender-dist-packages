@@ -23,32 +23,30 @@ from mender_test_containers.conftest import *
 TEST_CONTAINER_LIST = [MenderTestRaspbian]
 
 
+TEST_PACKAGES = [
+    "mender-client",
+    "mender-connect",
+    "mender-configure",
+    "mender-artifact",
+    "mender-app-update-module",
+    "mender-setup",
+    "mender-snapshot",
+    "mender-flash",
+    "mender-gateway",
+    "mender-monitor",
+]
+
+
 @pytest.fixture(scope="session", params=TEST_CONTAINER_LIST)
 def setup_test_container_props(request):
     return request.param
 
 
 def pytest_addoption(parser):
-    parser.addoption("--mender-client-version", required=False)
-    parser.addoption("--mender-client-deb-version", required=False)
-    parser.addoption("--mender-connect-version", required=False)
-    parser.addoption("--mender-connect-deb-version", required=False)
-    parser.addoption("--mender-configure-version", required=False)
-    parser.addoption("--mender-configure-deb-version", required=False)
-    parser.addoption("--mender-artifact-version", required=False)
-    parser.addoption("--mender-artifact-deb-version", required=False)
-    parser.addoption("--mender-app-update-module-version", required=False)
-    parser.addoption("--mender-app-update-module-deb-version", required=False)
-    parser.addoption("--mender-setup-version", required=False)
-    parser.addoption("--mender-setup-deb-version", required=False)
-    parser.addoption("--mender-snapshot-version", required=False)
-    parser.addoption("--mender-snapshot-deb-version", required=False)
-    parser.addoption("--mender-flash-version", required=False)
-    parser.addoption("--mender-flash-deb-version", required=False)
-    parser.addoption("--mender-gateway-version", required=False)
-    parser.addoption("--mender-gateway-deb-version", required=False)
-    parser.addoption("--mender-monitor-version", required=False)
-    parser.addoption("--mender-monitor-deb-version", required=False)
+    for pkg in TEST_PACKAGES:
+        parser.addoption(f"--{pkg}-version", required=False)
+        parser.addoption(f"--{pkg}-deb-version", required=False)
+
     parser.addoption(
         "--commercial-tests", action="store_true", required=False, default=False
     )
@@ -134,20 +132,8 @@ def mender_dist_packages_versions(request):
     """Returns dict matching package names and current versions"""
 
     return {
-        "mender-client": request.config.getoption("--mender-client-deb-version"),
-        "mender-client4": request.config.getoption("--mender-client-deb-version"),
-        "mender-connect": request.config.getoption("--mender-connect-deb-version"),
-        "mender-configure": request.config.getoption("--mender-configure-deb-version"),
-        "mender-artifact": request.config.getoption("--mender-artifact-deb-version"),
-        "mender-app-update-module": request.config.getoption(
-            "--mender-app-update-module-deb-version"
-        ),
-        "mender-setup": request.config.getoption("--mender-setup-deb-version"),
-        "mender-snapshot": request.config.getoption("--mender-snapshot-deb-version"),
-        "mender-flash": request.config.getoption("--mender-flash-deb-version"),
-        "mender-gateway": request.config.getoption("--mender-gateway-deb-version"),
-        "mender-monitor": request.config.getoption("--mender-monitor-deb-version"),
-    }
+        pkg: request.config.getoption(f"--{pkg}-deb-version") for pkg in TEST_PACKAGES
+    } | {"mender-client4": request.config.getoption("--mender-client-deb-version")}
 
 
 # Required for mender_test_containers/conftest.py::setup_mender_configured, which
