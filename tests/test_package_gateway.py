@@ -18,6 +18,7 @@ import pytest
 from helpers import package_filename, upload_deb_package, check_installed
 
 
+@pytest.mark.mender_gateway
 class TestPackageGateway:
     @pytest.mark.commercial
     def test_mender_gateway(

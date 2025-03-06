@@ -44,7 +44,9 @@ def setup_test_container_props(request):
 
 def pytest_addoption(parser):
     for pkg in TEST_PACKAGES:
-        parser.addoption(f"--{pkg}-version", required=False)
+        parser.addoption(
+            f"--{pkg}-version", required=False, help=f"Leave empty to skip {pkg} tests"
+        )
         parser.addoption(f"--{pkg}-deb-version", required=False)
 
     parser.addoption(
@@ -117,6 +119,12 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "commercial" in item.keywords:
                 item.add_marker(skip_commercial)
+
+    for pkg in TEST_PACKAGES:
+        if not config.getoption(f"--{pkg}-version"):
+            for item in items:
+                if pkg.replace("-", "_") in item.keywords:
+                    item.add_marker(pytest.mark.skip(reason=f"Skip {pkg} tests"))
 
 
 @pytest.fixture(scope="session")
