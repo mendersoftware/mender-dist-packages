@@ -21,6 +21,7 @@ from helpers import package_filename, upload_deb_package, check_installed
 
 @pytest.mark.usefixtures("setup_mender_configured")
 class TestPackageAddons:
+    @pytest.mark.mender_connect
     def test_mender_connect(
         self,
         setup_tester_ssh_connection,
@@ -50,6 +51,7 @@ class TestPackageAddons:
             "test -f /lib/systemd/system/mender-connect.service"
         )
 
+    @pytest.mark.mender_configure
     def test_mender_configure(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
@@ -81,6 +83,7 @@ class TestPackageAddons:
         )
 
     @pytest.mark.commercial
+    @pytest.mark.mender_monitor
     def test_mender_monitor(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
