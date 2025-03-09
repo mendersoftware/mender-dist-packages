@@ -336,7 +336,7 @@ init() {
         VERSION="latest"
     fi
 
-    echo " Installing commercial components from source:"
+    echo "  Installing commercial components from source:"
     printf "\t%s\n" "$VERSION"
 }
 
