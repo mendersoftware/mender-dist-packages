@@ -261,7 +261,7 @@ test:check-python3-formatting:
           commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
           commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version)"
         fi
-    - python3 -m pytest -v
+    - python3 -m pytest -s
       --mender-client-version $MENDER_VERSION
       --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client*-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
