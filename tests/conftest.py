@@ -111,6 +111,10 @@ def mender_monitor_version(request):
     return request.config.getoption("--mender-monitor-version")
 
 
+def did_not_boot(err, *args):
+    return issubclass(err[0], TestContainerDidNotboot)
+
+
 def pytest_collection_modifyitems(config, items):
     if not config.getoption("--commercial-tests"):
         skip_commercial = pytest.mark.skip(
@@ -119,6 +123,10 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "commercial" in item.keywords:
                 item.add_marker(skip_commercial)
+
+    flaky_marker = pytest.mark.flaky(max_runs=3, rerun_filter=did_not_boot)
+    for item in items:
+        item.add_marker(flaky_marker)
 
 
 @pytest.fixture(scope="session")
