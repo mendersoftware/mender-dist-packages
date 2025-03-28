@@ -60,7 +60,7 @@ checkout_repo() {
 }
 
 install_go() {
-  local GOLANG_VERSION=1.21.1
+  local GOLANG_VERSION=1.22.12
   local GOLANG_ARCH=amd64
   local golang_version_set
   if [ $ARCH = "armhf" -a $OS_DISTRO = "raspbian" ]; then
@@ -175,13 +175,6 @@ prepare_recipe() {
     cp support/mender-gateway.service debian/
   elif [ "${DEB_PACKAGE}" = "mender-monitor" ]; then
     cp support/mender-monitor.service debian/
-  fi
-
-  # For legacy OS, patch the debian/rules file for mender-client
-  if [[ "${DEB_PACKAGE}" =~ ^mender-client(4)?$ && -f "debian/rules.legacy.patch" ]]; then
-    if [[ "$OS_CODENAME" = "focal" ]]; then
-      patch debian/rules debian/rules.legacy.patch
-    fi
   fi
 
   dch --create \
