@@ -166,6 +166,20 @@ build:packages:cross:
   before_script:
     - *dind-login
   script:
+    - DOCKER_RETRIES=4
+    - DOCKER_RETRY_SLEEP_S=1
+    - DOCKER_RUNNING=false
+    - while [[ $DOCKER_RETRIES -gt 0 ]]; do
+    -  docker ps && DOCKER_RUNNING=true
+    -  if [[ "${DOCKER_RUNNING}" == "true" ]]; then
+    -   break
+    -  fi
+    -  sleep "${DOCKER_RETRY_SLEEP_S}"
+    -  let DOCKER_RETRIES--
+    - done
+    - if [[ "${DOCKER_RUNNING}" != "true" ]]; then
+    -  exit 192
+    - fi
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
@@ -189,6 +203,11 @@ build:packages:cross:
       - output/commercial
       - output/opensource
   parallel: !reference [.mender-dist-packages-image-matrix-cross, parallel]
+  retry:
+    max: 2
+    exit_codes:
+      - 137
+      - 192
 
 build:packages:sim:
   extends: build:packages:cross
