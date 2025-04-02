@@ -19,6 +19,7 @@ from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
 
+@pytest.mark.mender_snapshot
 class TestPackageSnapshot:
     """Tests installation of mender-snapshot deb package.
     """

@@ -19,6 +19,7 @@ from helpers import package_filename, upload_deb_package, check_installed
 
 
 @pytest.mark.usefixtures("setup_mender_configured")
+@pytest.mark.mender_client
 class TestPackageDev:
     @pytest.mark.min_mender_client_version("3.0.0")
     def test_mender_client_dev(
