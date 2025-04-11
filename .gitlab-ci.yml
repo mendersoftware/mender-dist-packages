@@ -76,6 +76,16 @@ variables:
   # Don't slow down aws cli commands with connections to IMDS: we're not in AWS
   AWS_EC2_METADATA_DISABLED: "true"
 
+include:
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-commits-signoffs.yml'
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-license.yml'
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-python3-format.yml'
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-github-status-updates.yml'
+
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix-cross:
   parallel:
@@ -100,15 +110,29 @@ variables:
   - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
   - for retry in 1 2 3 4 5; do docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY && break || sleep $retry; done
 
-include:
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-commits-signoffs.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-license.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-python3-format.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-github-status-updates.yml'
+.requires-docker: &requires-docker
+  - DOCKER_RETRY_SLEEP_S=2
+  - DOCKER_RUNNING=false
+  - for try in 4 3 2 1; do
+  -  docker ps && DOCKER_RUNNING=true
+  -  if [ "${DOCKER_RUNNING}" == "true" ]; then
+  -   break
+  -  fi
+  -  sleep "${DOCKER_RETRY_SLEEP_S}"
+  - done
+  - if [ "${DOCKER_RUNNING}" != "true" ]; then
+  -  exit 192
+  - fi
+
+.build:base:
+  before_script:
+    - *dind-login
+    - *requires-docker
+  retry:
+    max: 2
+    exit_codes:
+      - 137
+      - 192
 
 stages:
   - build:orig
@@ -118,6 +142,7 @@ stages:
 
 build:orig:debian:bullseye:amd64:
   stage: build:orig
+  extends: .build:base
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -133,8 +158,6 @@ build:orig:debian:bullseye:amd64:
     DISTRO: "debian"
     RELEASE: "bullseye"
     ARCH: "amd64"
-  before_script:
-    - *dind-login
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
@@ -156,6 +179,7 @@ build:orig:debian:bullseye:amd64:
 
 build:packages:cross:
   stage: build:packages
+  extends: .build:base
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -166,8 +190,6 @@ build:packages:cross:
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
       alias: docker
-  before_script:
-    - *dind-login
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
