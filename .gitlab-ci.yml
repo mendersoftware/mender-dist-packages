@@ -1,4 +1,7 @@
 variables:
+  GOLANG_VERSION:
+    value: "1.24.2"
+    description: "Go version to build the packages with. The toolchain is downloaded at build time from https://dl.google.com/go"
   # Packages versions
   # NOTE: when adding variables here update also trigger from mender-qa:
   # https://github.com/mendersoftware/mender-qa/blob/master/gitlab-pipeline/stage/trigger-packages.yml

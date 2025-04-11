@@ -187,6 +187,7 @@ docker run --rm \
         --volume $(pwd)/mender-deb-package:/script \
         --env MENDER_PRIVATE_REPO_ACCESS_USER \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
+        --env GOLANG_VERSION \
         --env OVERRIDE_DEBIAN_SUFFIX \
         ${PLATFORM} \
         ${IMAGE_NAME_PREFIX}-${BUILD}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \

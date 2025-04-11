@@ -60,7 +60,6 @@ checkout_repo() {
 }
 
 install_go() {
-  local GOLANG_VERSION=1.22.12
   local GOLANG_ARCH=amd64
   local golang_version_set
   if [ $ARCH = "armhf" -a $OS_DISTRO = "raspbian" ]; then
