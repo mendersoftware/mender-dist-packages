@@ -376,7 +376,7 @@ test:acceptance:script:
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   tags:
-    - hetzner-amd-beefy
+    - hetzner-amd-beefy-privileged
   before_script:
     - apt update && apt install -yyq awscli
     # Lock the bucket to block concurrent jobs
