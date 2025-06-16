@@ -29,7 +29,7 @@ class TestPackageArtifact:
 
         # Install
         setup_tester_ssh_connection.run(
-            "sudo dpkg --install "
+            "sudo apt -y install ./"
             + package_filename(
                 mender_dist_packages_versions["mender-artifact"], "mender-artifact",
             )
