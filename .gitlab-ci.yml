@@ -149,7 +149,7 @@ build:orig:debian:bullseye:amd64:
     - when: on_success
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
   tags:
-    - mender-qa-worker-generic
+    - oslo-xps
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
       alias: docker
@@ -186,7 +186,7 @@ build:packages:cross:
     - when: on_success
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
   tags:
-    - hetzner-amd-beefy
+    - oslo-xps
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
       alias: docker
