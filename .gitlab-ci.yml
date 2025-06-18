@@ -17,6 +17,9 @@ variables:
   MENDER_ARTIFACT_VERSION:
     value: "master"
     description: "Version of mender-artifact repository"
+  MENDER_CLI_VERSION:
+    value: "master"
+    description: "Version of mender-cli repository"
   MENDER_APP_UPDATE_MODULE_VERSION:
     value: "master"
     description: "Version of mender-app-update-module repository"
@@ -209,6 +212,7 @@ build:orig:debian:bullseye:amd64:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
@@ -277,6 +281,7 @@ build:packages:workstation_tools:cross:
   script:
     - apk --update --no-cache add bash
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION
     - find output -type f
   artifacts:
     paths:
@@ -358,6 +363,8 @@ test:check-python3-formatting:
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
       --mender-artifact-version $MENDER_ARTIFACT_VERSION
       --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
+      --mender-cli-version $MENDER_CLI_VERSION
+      --mender-cli-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-cli-deb-version)
       --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION
       --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)
       --mender-setup-version $MENDER_SETUP_VERSION
@@ -421,6 +428,9 @@ test:acceptance:workstation_tools:packages:
     - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-artifact*.deb
     - test -x /usr/bin/mender-artifact
     - mender-artifact --version
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-cli*.deb
+    - test -x /usr/bin/mender-cli
+    - mender-cli --version
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag

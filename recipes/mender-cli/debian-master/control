@@ -1,0 +1,15 @@
+Source: mender-cli
+Maintainer: Mender Team <mender@northern.tech>
+Section: devel
+Priority: optional
+Standards-Version: 1.0
+Build-Depends: debhelper (>= 9)
+
+Package: mender-cli
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Mender CLI
+ Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
+ mender-cli is a standalone tool that makes it much easier to work with the Mender
+ server management API. This tool allows to simplify integration between
+ the Mender server and cloud services like continuous integration (CI)/build automation.

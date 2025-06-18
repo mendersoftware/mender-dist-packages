@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	make CGO_CFLAGS="${CGO_CFLAGS}" CGO_LDFLAGS="${CGO_LDFLAGS}" CC="${CC}" \
+	GOOS=linux CGO_ENABLED=0 build
+
+override_dh_auto_install:
+	install -d debian/mender-cli/usr/bin
+	install -m 0755 mender-cli debian/mender-cli/usr/bin/mender-cli
+
+override_dh_auto_test:
+	true
+
+override_dh_strip:
+	${CROSS_COMPILE}-strip --remove-section=.comment --remove-section=.note \
+	debian/mender-cli/usr/bin/mender-cli
