@@ -28,5 +28,5 @@ requests==2.32.4
     # via -r requirements.in
 tomli==2.0.1
     # via pytest
-urllib3==2.2.2
+urllib3==2.5.0
     # via requests
