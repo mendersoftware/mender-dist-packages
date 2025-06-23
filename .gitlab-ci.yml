@@ -135,6 +135,36 @@ include:
   -  exit 192
   - fi
 
+.wait-for-s3-lock: &wait-for-s3-lock
+  - apt update && apt install -yyq awscli
+  # Lock the bucket to block concurrent jobs
+  - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
+  -   rm -f /tmp/lock.in
+  -   aws s3 cp s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock /tmp/lock.in
+  -   echo "$S3_BUCKET_REPO_PATH locked by:"
+  -   cat /tmp/lock.in
+  -   echo "waiting 10s"
+  -   sleep 10
+  - done
+  - rm -f /tmp/lock.in lock
+  - echo "${CI_PIPELINE_ID}.${CI_PROJECT_NAME}" >> lock
+  - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+
+.release-s3-lock: &release-s3-lock
+  - apt update && apt install -yyq awscli
+  - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+
+.upload-packages-to-s3: &upload-packages-to-s3
+  # Upload files: first .buildinfo and .deb, then .changes
+  - for d in output/opensource/*; do
+  -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.ddeb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
+  -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
+  -   done
+  -   find "$d" -name '*.changes' | while read -r file; do
+  -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
+  -   done
+  - done
+
 .build:base:
   before_script:
     - *dind-login
@@ -275,6 +305,7 @@ test:check-python3-formatting:
   needs:
     # Note that we are only testing packages from Debian bullseye
     - "build:packages:cross: [crosscompile, debian, bullseye, amd64]"
+    - "build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]"
     - "build:packages:sim: [simulated, raspberrypios, bullseye, armhf]"
     - "build:packages:cross: [crosscompile, debian, bullseye, arm64]"
   variables:
@@ -410,32 +441,11 @@ test:acceptance:script:
   tags:
     - hetzner-amd-beefy-privileged
   before_script:
-    - apt update && apt install -yyq awscli
-    # Lock the bucket to block concurrent jobs
-    - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
-    -   rm -f /tmp/lock.in
-    -   aws s3 cp s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock /tmp/lock.in
-    -   echo "$S3_BUCKET_REPO_PATH locked by:"
-    -   cat /tmp/lock.in
-    -   echo "waiting 10s"
-    -   sleep 10
-    - done
-    - rm -f /tmp/lock.in lock
-    - echo "${CI_PIPELINE_ID}.${CI_PROJECT_NAME}" >> lock
-    - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+    - *wait-for-s3-lock
   script:
-    # Upload files: first .buildinfo and .deb, then .changes
-    - for d in output/opensource/*; do
-    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.ddeb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
-    -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
-    -   done
-    -   find "$d" -name '*.changes' | while read -r file; do
-    -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
-    -   done
-    - done
+    - *upload-packages-to-s3
   after_script:
-    - apt update && apt install -yyq awscli
-    - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+    - *release-s3-lock
 
 publish:s3:apt-repo:manual:
   when: manual
@@ -445,6 +455,35 @@ publish:s3:apt-repo:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
   extends: .template:publish:s3:apt-repo
+
+.template:publish:s3:apt-repo:workstation_tools:
+  dependencies:
+    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]'
+    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
+    - 'build:packages:workstation_tools:cross: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:packages:workstation_tools:cross: [crosscompile, ubuntu, noble, amd64]'
+  stage: publish
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  tags:
+    - hetzner-amd-beefy-privileged
+  variables:
+    # APT repo path for incoming workstation-tools packages
+    S3_BUCKET_REPO_PATH: "repos/workstation-tools/incoming"
+  before_script:
+    - *wait-for-s3-lock
+  script:
+    - *upload-packages-to-s3
+  after_script:
+    - *release-s3-lock
+
+publish:s3:apt-repo:workstation_tools:manual:
+  when: manual
+  extends: .template:publish:s3:apt-repo:workstation_tools
+
+publish:s3:apt-repo:workstation_tools:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:apt-repo:workstation_tools
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
