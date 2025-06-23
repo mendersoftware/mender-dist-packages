@@ -105,6 +105,17 @@ include:
         DISTRO: raspberrypios
         RELEASE: [bullseye, bookworm]
         ARCH: [armhf]
+.mender-dist-packages-workstation_tools-image-matrix-cross:
+  parallel:
+    matrix:
+      - BUILD: crosscompile
+        DISTRO: debian
+        RELEASE: [bullseye, bookworm]
+        ARCH: amd64
+      - BUILD: crosscompile
+        DISTRO: ubuntu
+        RELEASE: [jammy, noble]
+        ARCH: amd64
 
 .dind-login: &dind-login
   - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
@@ -199,7 +210,6 @@ build:packages:cross:
     - fi
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
@@ -220,6 +230,28 @@ build:packages:sim:
   tags:
     - hetzner-arm
   parallel: !reference [.mender-dist-packages-image-matrix-sim, parallel]
+
+build:packages:workstation_tools:cross:
+  stage: build:packages
+  extends: .build:base
+  rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
+    - when: on_success
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
+  tags:
+    - hetzner-amd-beefy
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+      alias: docker
+  script:
+    - apk --update --no-cache add bash
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
+    - find output -type f
+  artifacts:
+    paths:
+      - output/opensource
+  parallel: !reference [.mender-dist-packages-workstation_tools-image-matrix-cross, parallel]
 
 test:check-commits:
   only:
