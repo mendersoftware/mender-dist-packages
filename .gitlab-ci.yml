@@ -404,6 +404,24 @@ test:acceptance:script:
     reports:
       junit: scripts/tests/results.xml
 
+test:acceptance:workstation_tools:packages:
+  stage: test
+  tags:
+    - hetzner-amd-beefy
+  dependencies:
+    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
+  rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  script:
+    - apt-get update
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-artifact*.deb
+    - test -x /usr/bin/mender-artifact
+    - mender-artifact --version
+
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
   function is_final_tag () {
