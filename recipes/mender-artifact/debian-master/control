@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 9)
 
 Package: mender-artifact
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ssh, e2fsprogs, mtools, dosfstools
+Depends: ${shlibs:Depends}, ${misc:Depends}, openssh-client, e2fsprogs, mtools, dosfstools
 Description: Mender client
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
  mender-artifact is a cli tool that creates, signs, reads or modify a Mender artifact, which is a
