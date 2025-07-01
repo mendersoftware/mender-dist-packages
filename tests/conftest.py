@@ -37,6 +37,8 @@ def pytest_addoption(parser):
     parser.addoption("--mender-configure-deb-version", required=False)
     parser.addoption("--mender-artifact-version", required=False)
     parser.addoption("--mender-artifact-deb-version", required=False)
+    parser.addoption("--mender-cli-version", required=False)
+    parser.addoption("--mender-cli-deb-version", required=False)
     parser.addoption("--mender-app-update-module-version", required=False)
     parser.addoption("--mender-app-update-module-deb-version", required=False)
     parser.addoption("--mender-setup-version", required=False)
@@ -79,6 +81,11 @@ def mender_configure_version(request):
 @pytest.fixture(scope="session")
 def mender_artifact_version(request):
     return request.config.getoption("--mender-artifact-version")
+
+
+@pytest.fixture(scope="session")
+def mender_cli_version(request):
+    return request.config.getoption("--mender-cli-version")
 
 
 @pytest.fixture(scope="session")
@@ -139,6 +146,7 @@ def mender_dist_packages_versions(request):
         "mender-connect": request.config.getoption("--mender-connect-deb-version"),
         "mender-configure": request.config.getoption("--mender-configure-deb-version"),
         "mender-artifact": request.config.getoption("--mender-artifact-deb-version"),
+        "mender-cli": request.config.getoption("--mender-cli-deb-version"),
         "mender-app-update-module": request.config.getoption(
             "--mender-app-update-module-deb-version"
         ),
@@ -203,6 +211,15 @@ def min_mender_artifact_version(request):
         request,
         "min_mender_artifact_version",
         request.config.getoption("--mender-artifact-version"),
+    )
+
+
+@pytest.fixture(autouse=True)
+def min_mender_cli_version(request):
+    min_version_impl(
+        request,
+        "min_mender_cli_version",
+        request.config.getoption("--mender-cli-version"),
     )
 
 
