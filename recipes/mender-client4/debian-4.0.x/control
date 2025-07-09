@@ -11,7 +11,7 @@ Package: mender-client4
 Conflicts: mender, mender-client
 Replaces: mender-client, mender-auth, mender-update, mender-snapshot, mender-setup
 Architecture: any
-Depends: mender-auth, mender-update, mender-snapshot, mender-setup, mender-flash
+Depends: mender-auth (= ${source:Version}), mender-update (= ${source:Version}), mender-snapshot, mender-setup, mender-flash
 Description: Mender client
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
 
