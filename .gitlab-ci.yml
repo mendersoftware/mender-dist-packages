@@ -45,8 +45,10 @@ variables:
   S3_BUCKET_SUBPATH: "dist-packages/debian"
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
-  # APT repo path for incoming packages
-  S3_BUCKET_REPO_PATH: "repos/debian/incoming"
+  # APT repo path for incoming packages (must be set/overwritten by individual
+  # jobs, only listed here for reference/documentation and nicer errors in case
+  # of not overwritten)
+  S3_BUCKET_REPO_PATH: "invalid"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
   # GPG key for build, to be set by CI/CD variables
@@ -468,6 +470,9 @@ test:acceptance:workstation_tools:packages:
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   tags:
     - hetzner-amd-beefy-privileged
+  variables:
+    # APT repo path for incoming device-components packages
+    S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
   before_script:
     - *wait-for-s3-lock
   script:
