@@ -45,8 +45,10 @@ variables:
   S3_BUCKET_SUBPATH: "dist-packages/debian"
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
-  # APT repo path for incoming packages
-  S3_BUCKET_REPO_PATH: "repos/debian/incoming"
+  # APT repo path for incoming packages (must be set/overwritten by individual
+  # jobs, only listed here for reference/documentation and nicer errors in case
+  # of not overwritten)
+  S3_BUCKET_REPO_PATH: "invalid"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
   # GPG key for build, to be set by CI/CD variables
@@ -444,7 +446,7 @@ test:acceptance:workstation_tools:packages:
     [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-build[0-9]+$ ]] && return 0 || return $?
   }
 
-.template:publish:s3:apt-repo:
+.template:publish:s3:device-components:
   ################ MEN-7731 Debian armhf packages #####################
   # We have support for building Debian armhf packages but the APT repositories and S3 buckets
   # are not ready to publish these packages. For the time being, we explicitly set dependencies
@@ -468,6 +470,9 @@ test:acceptance:workstation_tools:packages:
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   tags:
     - hetzner-amd-beefy-privileged
+  variables:
+    # APT repo path for incoming device-components packages
+    S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
   before_script:
     - *wait-for-s3-lock
   script:
@@ -475,16 +480,16 @@ test:acceptance:workstation_tools:packages:
   after_script:
     - *release-s3-lock
 
-publish:s3:apt-repo:manual:
+publish:s3:device-components:manual:
   when: manual
-  extends: .template:publish:s3:apt-repo
+  extends: .template:publish:s3:device-components
 
-publish:s3:apt-repo:automatic:
+publish:s3:device-components:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
-  extends: .template:publish:s3:apt-repo
+  extends: .template:publish:s3:device-components
 
-.template:publish:s3:apt-repo:workstation_tools:
+.template:publish:s3:workstation_tools:
   dependencies:
     - 'build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]'
     - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
@@ -504,14 +509,14 @@ publish:s3:apt-repo:automatic:
   after_script:
     - *release-s3-lock
 
-publish:s3:apt-repo:workstation_tools:manual:
+publish:s3:workstation_tools:manual:
   when: manual
-  extends: .template:publish:s3:apt-repo:workstation_tools
+  extends: .template:publish:s3:workstation_tools
 
-publish:s3:apt-repo:workstation_tools:automatic:
+publish:s3:workstation_tools:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
-  extends: .template:publish:s3:apt-repo:workstation_tools
+  extends: .template:publish:s3:workstation_tools
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
