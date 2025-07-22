@@ -101,13 +101,6 @@ include:
         DISTRO: ubuntu
         RELEASE: [jammy, noble]
         ARCH: [amd64, armhf, arm64]
-.mender-dist-packages-image-matrix-sim:
-  parallel:
-    matrix:
-      - BUILD: simulated
-        DISTRO: raspberrypios
-        RELEASE: [bullseye, bookworm]
-        ARCH: [armhf]
 .mender-dist-packages-workstation_tools-image-matrix-cross:
   parallel:
     matrix:
@@ -259,12 +252,6 @@ build:packages:cross:
       - output/opensource
   parallel: !reference [.mender-dist-packages-image-matrix-cross, parallel]
 
-build:packages:sim:
-  extends: build:packages:cross
-  tags:
-    - hetzner-arm
-  parallel: !reference [.mender-dist-packages-image-matrix-sim, parallel]
-
 build:packages:workstation_tools:cross:
   stage: build:packages
   extends: .build:base
@@ -311,7 +298,6 @@ test:check-python3-formatting:
     # Note that we are only testing packages from Debian bullseye
     - "build:packages:cross: [crosscompile, debian, bullseye, amd64]"
     - "build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]"
-    - "build:packages:sim: [simulated, raspberrypios, bullseye, armhf]"
     - "build:packages:cross: [crosscompile, debian, bullseye, arm64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -471,8 +457,6 @@ test:acceptance:workstation_tools:packages:
     - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
     - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
-    - 'build:packages:sim: [simulated, raspberrypios, bullseye, armhf]'
-    - 'build:packages:sim: [simulated, raspberrypios, bookworm, armhf]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   tags:
@@ -571,8 +555,6 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
     - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
-    - 'build:packages:sim: [simulated, raspberrypios, bullseye, armhf]'
-    - 'build:packages:sim: [simulated, raspberrypios, bookworm, armhf]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   before_script:
