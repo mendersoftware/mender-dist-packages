@@ -318,7 +318,7 @@ function get_latest_version_of_commercial_component() {
 }
 
 init() {
-    REPO_URL=https://downloads.mender.io/repos/debian
+    REPO_URL=https://downloads.mender.io/repos/device-components
 
     parse_args "$@"
 
