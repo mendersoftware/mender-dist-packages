@@ -7,8 +7,6 @@ Mender is an open source over-the-air (OTA) software updater for embedded Linux 
 
 This repository contains mender-dist-packages, which is used to create distribution packages of the mender client software
 
-Currently only supports creation of a single `.deb` for `arm` architecture suitable for Raspberry Pi 3.
-
 ![Mender logo](https://mender.io/user/pages/resources/06.digital-assets/mender.io.png)
 
 ## Getting started

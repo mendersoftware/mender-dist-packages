@@ -179,12 +179,6 @@ if [ "$commercial" != "true" -a "$ARCH" = "amd64" ]; then
     BUILD_TYPE="source,${BUILD_TYPE}"
 fi
 
-PLATFORM=""
-
-if [ "$ARCH" = "armhf" -a "$DISTRO" = "raspberrypios" ]; then
-    PLATFORM="--platform=linux/arm/v6"
-fi
-
 echo
 
 docker run --rm \
@@ -196,7 +190,6 @@ docker run --rm \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
         --env GOLANG_VERSION \
         --env OVERRIDE_DEBIAN_SUFFIX \
-        ${PLATFORM} \
         ${IMAGE_NAME_PREFIX}-${BUILD}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \
