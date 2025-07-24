@@ -51,8 +51,6 @@ variables:
   S3_BUCKET_REPO_PATH: "invalid"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
-  # GPG key for build, to be set by CI/CD variables
-  GPG_PRIV_KEY_BUILD: ""
   TEST_MENDER_DIST_PACKAGES:
     value: "true"
     options:
