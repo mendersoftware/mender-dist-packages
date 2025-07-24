@@ -25,9 +25,6 @@ class TestPackageSetup:
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_install(self, setup_tester_ssh_connection, mender_dist_packages_versions):
-        result = setup_tester_ssh_connection.run("uname -a")
-        assert "raspberrypi" in result.stdout
-
         upload_deb_package(
             setup_tester_ssh_connection,
             mender_dist_packages_versions["mender-setup"],
@@ -51,9 +48,10 @@ class TestPackageSetup:
         assert '"ServerURL": "https://hosted.mender.io"' in result.stdout
 
         # Device type
+        uname_n = setup_tester_ssh_connection.run("uname -n").stdout
         setup_tester_ssh_connection.run("test -f /var/lib/mender/device_type")
         result = setup_tester_ssh_connection.run("cat /var/lib/mender/device_type")
-        assert "device_type=raspberrypi" in result.stdout
+        assert ("device_type=" + uname_n) in result.stdout
 
         result = setup_tester_ssh_connection.run("sudo dpkg --remove mender-setup")
         assert (

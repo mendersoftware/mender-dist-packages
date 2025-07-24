@@ -20,7 +20,7 @@ import pytest
 from mender_test_containers.container_props import *
 from mender_test_containers.conftest import *
 
-TEST_CONTAINER_LIST = [MenderTestRaspbian]
+TEST_CONTAINER_LIST = [MenderTestNoContainer]
 
 
 @pytest.fixture(scope="session", params=TEST_CONTAINER_LIST)

@@ -390,14 +390,23 @@ test:acceptance:golang:
     PYTEST_FILTER: "not cppclient"
 
 test:acceptance:cpp:
+  extends: .test:acceptance
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:bullseye
+  tags:
+    - hetzner-arm
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not golangclient"
+  before_script:
+    - apt-get update
+    - apt-get -yyq install bash git python3-pip wget sudo
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+    - pip3 install -r tests/requirements.txt
 
 test:acceptance:script:
   rules:

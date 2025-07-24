@@ -50,9 +50,6 @@ class TestPackageMenderAppUpdateModule(PackageMenderAppUpdateModuleChecker):
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_install(self, setup_tester_ssh_connection, mender_dist_packages_versions):
-        result = setup_tester_ssh_connection.run("uname -a")
-        assert "raspberrypi" in result.stdout
-
         upload_deb_package(
             setup_tester_ssh_connection,
             mender_dist_packages_versions["mender-app-update-module"],

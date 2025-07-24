@@ -36,7 +36,7 @@ class TestPackageAddons:
 
         # Install
         setup_tester_ssh_connection.run(
-            "sudo dpkg --install "
+            "sudo apt -y install --fix-broken ./"
             + package_filename(
                 mender_dist_packages_versions["mender-connect"], "mender-connect"
             )
@@ -63,7 +63,7 @@ class TestPackageAddons:
 
         # Install
         setup_tester_ssh_connection.run(
-            "sudo dpkg --install "
+            "sudo apt -y install --fix-broken ./"
             + package_filename(
                 mender_dist_packages_versions["mender-configure"],
                 "mender-configure",
