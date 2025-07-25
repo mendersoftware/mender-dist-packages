@@ -440,17 +440,14 @@ test:acceptance:workstation_tools:packages:
   }
 
 .template:publish:s3:device-components:
-  ################ MEN-7731 Debian armhf packages #####################
-  # We have support for building Debian armhf packages but the APT repositories and S3 buckets
-  # are not ready to publish these packages. For the time being, we explicitly set dependencies
-  # so that the jobs: [crosscompile, debian, bullseye/bookworm, armhf]' are not pulled into the
-  # publish stage. Remove the whole dependencies section when working on MEN-7754
   dependencies:
     - 'build:orig:debian:bullseye:amd64'
     - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
     - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
+    - 'build:packages:cross: [crosscompile, debian, bullseye, armhf]'
     - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
     - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
+    - 'build:packages:cross: [crosscompile, debian, bookworm, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
@@ -539,16 +536,13 @@ publish:production:s3:scripts:install-mender-sh:
       - production
 
 .template:publish:s3:
-  ################ MEN-7731 Debian armhf packages #####################
-  # We have support for building Debian armhf packages but the APT repositories and S3 buckets
-  # are not ready to publish these packages. For the time being, we explicitly set dependencies
-  # so that the jobs: [crosscompile, debian, bullseye/bookworm, armhf]' are not pulled into the
-  # publish stage. Remove the whole dependencies section when working on MEN-7754
   dependencies:
     - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
     - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
+    - 'build:packages:cross: [crosscompile, debian, bullseye, armhf]'
     - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
     - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
+    - 'build:packages:cross: [crosscompile, debian, bookworm, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
