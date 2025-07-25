@@ -60,12 +60,8 @@ checkout_repo() {
 }
 
 install_go() {
-  local GOLANG_VERSION=1.22.12
   local GOLANG_ARCH=amd64
   local golang_version_set
-  if [ $ARCH = "armhf" -a $OS_DISTRO = "raspbian" ]; then
-    local GOLANG_ARCH=armv6l
-  fi
 
   golang_version_set=$(sed -n '/[^ ]*GOLANG_VERSION:[ "0-9]/{s/.*GOLANG_VERSION:[ ]*\(["0-9\.]*\).*/\1/p;q}' .gitlab-ci.yml)
   golang_version_set=${golang_version_set//\"/}
@@ -108,14 +104,8 @@ get_deb_version() {
   if [ -n "${OVERRIDE_DEBIAN_SUFFIX}" ]; then
     debian_suffix="${OVERRIDE_DEBIAN_SUFFIX}"
   fi
-  if [ $OS_DISTRO = "raspbian" ]; then
-    ################ MEN-7731 Debian armhf packages #####################
-    # For the raspbian builds, use the old "Debian armhf" for the time being. We need to redesign
-    # the APT repositories in order to separate these two armhf builds. Rework this with MEN-7754
-    debian_suffix="$debian_suffix+debian+$OS_CODENAME"
-  else
-    debian_suffix="$debian_suffix+$OS_DISTRO+$OS_CODENAME"
-  fi
+  debian_suffix="$debian_suffix+$OS_DISTRO+$OS_CODENAME"
+
   if [ "$VERSION" != "master" ] && git describe --tags --exact-match 2>/dev/null; then
     DEB_VERSION="$(git describe --tags --exact-match)"
     DEB_VERSION_NO_REV="${DEB_VERSION}"
@@ -235,24 +225,16 @@ build_packages() {
       ;;
 
     armhf)
-      if [ "$OS_DISTRO" = "raspbian" ]; then
-        # Native build (emulated ARM v6)
-        dpkg-buildpackage \
-          ${sign_flags} \
-          ${dpkg_build_ignore_flag} \
-          --build=$DEB_BUILD_TYPE
-      else
-        # Debian ARM 32bit toolchain
-        CROSS_COMPILE="arm-linux-gnueabihf" \
-                     CC="$CROSS_COMPILE-gcc" \
-                     PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig/" \
-                     GOARCH=arm \
-                     dpkg-buildpackage \
-                     --target-arch armhf \
-                     ${sign_flags} \
-                     ${dpkg_build_ignore_flag} \
-                     --build=$DEB_BUILD_TYPE
-      fi
+      # Debian ARM 32bit toolchain
+      CROSS_COMPILE="arm-linux-gnueabihf" \
+                   CC="$CROSS_COMPILE-gcc" \
+                   PKG_CONFIG_PATH="/usr/lib/arm-linux-gnueabihf/pkgconfig/" \
+                   GOARCH=arm \
+                   dpkg-buildpackage \
+                   --target-arch armhf \
+                   ${sign_flags} \
+                   ${dpkg_build_ignore_flag} \
+                   --build=$DEB_BUILD_TYPE
       ;;
 
     arm64)

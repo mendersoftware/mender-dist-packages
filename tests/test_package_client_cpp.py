@@ -152,11 +152,12 @@ class PackageMenderClientChecker:
         assert result.stdout.split(" ")[0] == expected_copyright_from_l2_md5sum
 
     def check_systemd_service(self, ssh_connection):
-        result = ssh_connection.run("systemctl is-enabled mender-authd")
-        assert result.stdout.strip() == "enabled"
-
-        result = ssh_connection.run("systemctl is-enabled mender-updated")
-        assert result.stdout.strip() == "enabled"
+        ssh_connection.run(
+            "test -f /etc/systemd/system/multi-user.target.wants/mender-authd.service"
+        )
+        ssh_connection.run(
+            "test -f /etc/systemd/system/multi-user.target.wants/mender-updated.service"
+        )
 
 
 @pytest.mark.cppclient
@@ -170,9 +171,6 @@ class TestPackageMenderClientDefaults(PackageMenderClientChecker):
     def test_install_configure_start(
         self, setup_tester_ssh_connection, mender_dist_packages_versions, mender_version
     ):
-        result = setup_tester_ssh_connection.run("uname -a")
-        assert "raspberrypi" in result.stdout
-
         # First things first
         # Explicitly accept suite change from "stable" to "oldstable"
         setup_tester_ssh_connection.run(

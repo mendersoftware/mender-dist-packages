@@ -48,6 +48,12 @@ declare -A mender_artifact_props=(
     [arch_indep]="false"
     [commercial]="false"
 )
+declare -A mender_cli_props=(
+    [recipe_name]="mender-cli"
+    [src_url]="https://github.com/mendersoftware/mender-cli"
+    [arch_indep]="false"
+    [commercial]="false"
+)
 declare -A mender_flash_props=(
     [recipe_name]="mender-flash"
     [src_url]="https://github.com/mendersoftware/mender-flash"
@@ -95,6 +101,7 @@ declare -a packages=(
     mender_connect_props
     mender_configure_props
     mender_artifact_props
+    mender_cli_props
     mender_flash_props
     mender_gateway_props
     mender_monitor_props
@@ -172,12 +179,6 @@ if [ "$commercial" != "true" -a "$ARCH" = "amd64" ]; then
     BUILD_TYPE="source,${BUILD_TYPE}"
 fi
 
-PLATFORM=""
-
-if [ "$ARCH" = "armhf" -a "$DISTRO" = "raspberrypios" ]; then
-    PLATFORM="--platform=linux/arm/v6"
-fi
-
 echo
 
 docker run --rm \
@@ -187,8 +188,8 @@ docker run --rm \
         --volume $(pwd)/mender-deb-package:/script \
         --env MENDER_PRIVATE_REPO_ACCESS_USER \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
+        --env GOLANG_VERSION \
         --env OVERRIDE_DEBIAN_SUFFIX \
-        ${PLATFORM} \
         ${IMAGE_NAME_PREFIX}-${BUILD}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \

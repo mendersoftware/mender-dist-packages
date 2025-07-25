@@ -1,4 +1,7 @@
 variables:
+  GOLANG_VERSION:
+    value: "1.24.2"
+    description: "Go version to build the packages with. The toolchain is downloaded at build time from https://dl.google.com/go"
   # Packages versions
   # NOTE: when adding variables here update also trigger from mender-qa:
   # https://github.com/mendersoftware/mender-qa/blob/master/gitlab-pipeline/stage/trigger-packages.yml
@@ -14,6 +17,9 @@ variables:
   MENDER_ARTIFACT_VERSION:
     value: "master"
     description: "Version of mender-artifact repository"
+  MENDER_CLI_VERSION:
+    value: "master"
+    description: "Version of mender-cli repository"
   MENDER_APP_UPDATE_MODULE_VERSION:
     value: "master"
     description: "Version of mender-app-update-module repository"
@@ -39,12 +45,12 @@ variables:
   S3_BUCKET_SUBPATH: "dist-packages/debian"
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
-  # APT repo path for incoming packages
-  S3_BUCKET_REPO_PATH: "repos/debian/incoming"
+  # APT repo path for incoming packages (must be set/overwritten by individual
+  # jobs, only listed here for reference/documentation and nicer errors in case
+  # of not overwritten)
+  S3_BUCKET_REPO_PATH: "invalid"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
-  # GPG key for build, to be set by CI/CD variables
-  GPG_PRIV_KEY_BUILD: ""
   TEST_MENDER_DIST_PACKAGES:
     value: "true"
     options:
@@ -73,6 +79,16 @@ variables:
   # Don't slow down aws cli commands with connections to IMDS: we're not in AWS
   AWS_EC2_METADATA_DISABLED: "true"
 
+include:
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-commits-signoffs.yml'
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-license.yml'
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-check-python3-format.yml'
+  - project: 'Northern.tech/Mender/mendertesting'
+    file: '.gitlab-ci-github-status-updates.yml'
+
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix-cross:
   parallel:
@@ -85,27 +101,75 @@ variables:
         DISTRO: ubuntu
         RELEASE: [jammy, noble]
         ARCH: [amd64, armhf, arm64]
-.mender-dist-packages-image-matrix-sim:
+.mender-dist-packages-workstation_tools-image-matrix-cross:
   parallel:
     matrix:
-      - BUILD: simulated
-        DISTRO: raspberrypios
+      - BUILD: crosscompile
+        DISTRO: debian
         RELEASE: [bullseye, bookworm]
-        ARCH: [armhf]
+        ARCH: amd64
+      - BUILD: crosscompile
+        DISTRO: ubuntu
+        RELEASE: [jammy, noble]
+        ARCH: amd64
 
 .dind-login: &dind-login
   - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
   - for retry in 1 2 3 4 5; do docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY && break || sleep $retry; done
 
-include:
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-commits-signoffs.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-license.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-python3-format.yml'
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-github-status-updates.yml'
+.requires-docker: &requires-docker
+  - DOCKER_RETRY_SLEEP_S=2
+  - DOCKER_RUNNING=false
+  - for try in 4 3 2 1; do
+  -  docker ps && DOCKER_RUNNING=true
+  -  if [ "${DOCKER_RUNNING}" == "true" ]; then
+  -   break
+  -  fi
+  -  sleep "${DOCKER_RETRY_SLEEP_S}"
+  - done
+  - if [ "${DOCKER_RUNNING}" != "true" ]; then
+  -  exit 192
+  - fi
+
+.wait-for-s3-lock: &wait-for-s3-lock
+  - apt update && apt install -yyq awscli
+  # Lock the bucket to block concurrent jobs
+  - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
+  -   rm -f /tmp/lock.in
+  -   aws s3 cp s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock /tmp/lock.in
+  -   echo "$S3_BUCKET_REPO_PATH locked by:"
+  -   cat /tmp/lock.in
+  -   echo "waiting 10s"
+  -   sleep 10
+  - done
+  - rm -f /tmp/lock.in lock
+  - echo "${CI_PIPELINE_ID}.${CI_PROJECT_NAME}" >> lock
+  - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+
+.release-s3-lock: &release-s3-lock
+  - apt update && apt install -yyq awscli
+  - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+
+.upload-packages-to-s3: &upload-packages-to-s3
+  # Upload files: first .buildinfo and .deb, then .changes
+  - for d in output/opensource/*; do
+  -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.ddeb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
+  -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
+  -   done
+  -   find "$d" -name '*.changes' | while read -r file; do
+  -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
+  -   done
+  - done
+
+.build:base:
+  before_script:
+    - *dind-login
+    - *requires-docker
+  retry:
+    max: 2
+    exit_codes:
+      - 137
+      - 192
 
 stages:
   - build:orig
@@ -115,6 +179,7 @@ stages:
 
 build:orig:debian:bullseye:amd64:
   stage: build:orig
+  extends: .build:base
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -130,8 +195,6 @@ build:orig:debian:bullseye:amd64:
     DISTRO: "debian"
     RELEASE: "bullseye"
     ARCH: "amd64"
-  before_script:
-    - *dind-login
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
@@ -142,6 +205,7 @@ build:orig:debian:bullseye:amd64:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
@@ -153,6 +217,7 @@ build:orig:debian:bullseye:amd64:
 
 build:packages:cross:
   stage: build:packages
+  extends: .build:base
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -163,8 +228,6 @@ build:packages:cross:
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
       alias: docker
-  before_script:
-    - *dind-login
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
@@ -174,7 +237,6 @@ build:packages:cross:
     - fi
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
@@ -190,11 +252,28 @@ build:packages:cross:
       - output/opensource
   parallel: !reference [.mender-dist-packages-image-matrix-cross, parallel]
 
-build:packages:sim:
-  extends: build:packages:cross
+build:packages:workstation_tools:cross:
+  stage: build:packages
+  extends: .build:base
+  rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
+    - when: on_success
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
   tags:
-    - hetzner-arm
-  parallel: !reference [.mender-dist-packages-image-matrix-sim, parallel]
+    - hetzner-amd-beefy
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+      alias: docker
+  script:
+    - apk --update --no-cache add bash
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION
+    - find output -type f
+  artifacts:
+    paths:
+      - output/opensource
+  parallel: !reference [.mender-dist-packages-workstation_tools-image-matrix-cross, parallel]
 
 test:check-commits:
   only:
@@ -218,7 +297,7 @@ test:check-python3-formatting:
   needs:
     # Note that we are only testing packages from Debian bullseye
     - "build:packages:cross: [crosscompile, debian, bullseye, amd64]"
-    - "build:packages:sim: [simulated, raspberrypios, bullseye, armhf]"
+    - "build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]"
     - "build:packages:cross: [crosscompile, debian, bullseye, arm64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -270,6 +349,8 @@ test:check-python3-formatting:
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
       --mender-artifact-version $MENDER_ARTIFACT_VERSION
       --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
+      --mender-cli-version $MENDER_CLI_VERSION
+      --mender-cli-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-cli-deb-version)
       --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION
       --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)
       --mender-setup-version $MENDER_SETUP_VERSION
@@ -295,14 +376,23 @@ test:acceptance:golang:
     PYTEST_FILTER: "not cppclient"
 
 test:acceptance:cpp:
+  extends: .test:acceptance
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:bullseye
+  tags:
+    - hetzner-arm
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  extends: .test:acceptance
   variables:
     PYTEST_FILTER: "not golangclient"
+  before_script:
+    - apt-get update
+    - apt-get -yyq install bash git python3-pip wget sudo
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+    - pip3 install -r tests/requirements.txt
 
 test:acceptance:script:
   rules:
@@ -316,6 +406,27 @@ test:acceptance:script:
     reports:
       junit: scripts/tests/results.xml
 
+test:acceptance:workstation_tools:packages:
+  stage: test
+  tags:
+    - hetzner-amd-beefy
+  dependencies:
+    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
+  rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
+    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  script:
+    - apt-get update
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-artifact*.deb
+    - test -x /usr/bin/mender-artifact
+    - mender-artifact --version
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-cli*.deb
+    - test -x /usr/bin/mender-cli
+    - mender-cli --version
+
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
   function is_final_tag () {
@@ -328,7 +439,7 @@ test:acceptance:script:
     [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-build[0-9]+$ ]] && return 0 || return $?
   }
 
-.template:publish:s3:apt-repo:
+.template:publish:s3:device-components:
   ################ MEN-7731 Debian armhf packages #####################
   # We have support for building Debian armhf packages but the APT repositories and S3 buckets
   # are not ready to publish these packages. For the time being, we explicitly set dependencies
@@ -346,48 +457,57 @@ test:acceptance:script:
     - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
     - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
-    - 'build:packages:sim: [simulated, raspberrypios, bullseye, armhf]'
-    - 'build:packages:sim: [simulated, raspberrypios, bookworm, armhf]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   tags:
-    - hetzner-amd-beefy
+    - hetzner-amd-beefy-privileged
+  variables:
+    # APT repo path for incoming device-components packages
+    S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
   before_script:
-    - apt update && apt install -yyq awscli
-    # Lock the bucket to block concurrent jobs
-    - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
-    -   rm -f /tmp/lock.in
-    -   aws s3 cp s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock /tmp/lock.in
-    -   echo "$S3_BUCKET_REPO_PATH locked by:"
-    -   cat /tmp/lock.in
-    -   echo "waiting 10s"
-    -   sleep 10
-    - done
-    - rm -f /tmp/lock.in lock
-    - echo "${CI_PIPELINE_ID}.${CI_PROJECT_NAME}" >> lock
-    - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+    - *wait-for-s3-lock
   script:
-    # Upload files: first .buildinfo and .deb, then .changes
-    - for d in output/opensource/*; do
-    -   find "$d" -name '*.buildinfo' -o -name '*.deb' -o -name '*.ddeb' -o -name '*.orig.tar.*' -o -name '*.debian.tar.*' -o -name '*.dsc' | while read -r file; do
-    -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
-    -   done
-    -   find "$d" -name '*.changes' | while read -r file; do
-    -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
-    -   done
-    - done
+    - *upload-packages-to-s3
   after_script:
-    - apt update && apt install -yyq awscli
-    - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
+    - *release-s3-lock
 
-publish:s3:apt-repo:manual:
+publish:s3:device-components:manual:
   when: manual
-  extends: .template:publish:s3:apt-repo
+  extends: .template:publish:s3:device-components
 
-publish:s3:apt-repo:automatic:
+publish:s3:device-components:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
-  extends: .template:publish:s3:apt-repo
+  extends: .template:publish:s3:device-components
+
+.template:publish:s3:workstation_tools:
+  dependencies:
+    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]'
+    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
+    - 'build:packages:workstation_tools:cross: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:packages:workstation_tools:cross: [crosscompile, ubuntu, noble, amd64]'
+  stage: publish
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  tags:
+    - hetzner-amd-beefy-privileged
+  variables:
+    # APT repo path for incoming workstation-tools packages
+    S3_BUCKET_REPO_PATH: "repos/workstation-tools/incoming"
+  before_script:
+    - *wait-for-s3-lock
+  script:
+    - *upload-packages-to-s3
+  after_script:
+    - *release-s3-lock
+
+publish:s3:workstation_tools:manual:
+  when: manual
+  extends: .template:publish:s3:workstation_tools
+
+publish:s3:workstation_tools:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:workstation_tools
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
@@ -435,8 +555,6 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
     - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
     - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
-    - 'build:packages:sim: [simulated, raspberrypios, bullseye, armhf]'
-    - 'build:packages:sim: [simulated, raspberrypios, bookworm, armhf]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   before_script:
