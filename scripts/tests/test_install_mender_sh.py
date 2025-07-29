@@ -150,19 +150,33 @@ def local_apt_repo_from_built_packages(container):
     prepare_local_apt_repo(container, "/packages")
 
 
-def local_apt_repo_from_upstream_packages(container, pool_paths, dest):
+def local_apt_repo_from_stable_packages(container, pool_paths, dest):
     container.run(f"mkdir {dest}")
     for path in pool_paths:
-        url = f"https://downloads.mender.io/repos/debian/pool/main/{path}"
+        url = f""
+        # There are two repositories: workstation-tools and device-components
+        # workstation-tools contains only: mender-artifact, mender-cli
+        # device-components contains everything else 
+        if "mender-artifact" in str(path) or "mender-cli" in str(path):
+            url = f"https://downloads.mender.io/repos/workstation-tools/pool/main/{path}"
+        else:
+            url = f"https://downloads.mender.io/repos/device-components/pool/main/{path}"
         container.run(f"cd {dest} && curl --remote-name {url}")
 
     prepare_local_apt_repo(container, dest)
 
 
-def local_apt_repo_from_test_packages(container, pool_paths, dest):
+def local_apt_repo_from_experimental_packages(container, pool_paths, dest):
     container.run(f"mkdir {dest}")
     for path in pool_paths:
-        url = f"https://downloads.mender.io/repos/debian/pool/test-packages/{path}"
+        url = f""
+        # There are two repositories: workstation-tools and device-components
+        # workstation-tools contains only: mender-artifact, mender-cli
+        # device-components contains everything else
+        if "mender-artifact" in str(path) or "mender-cli" in str(path):
+            url = f"https://downloads.mender.io/repos/workstation-tools/pool/experimental/{path}"
+        else:
+            url = f"https://downloads.mender.io/repos/device-components/pool/experimental/{path}"
         container.run(f"cd {dest} && curl --remote-name {url}")
 
     prepare_local_apt_repo(container, dest)
@@ -376,7 +390,7 @@ class TestUpgradeMenderV4:
         self, generic_debian_container,
     ):
         # Install mender-client 3.5.1 (epoch 0:)
-        local_apt_repo_from_upstream_packages(
+        local_apt_repo_from_stable_packages(
             generic_debian_container,
             [
                 f"m/mender-client/mender-client_3.5.1-1+debian+{DEBIAN_REF_DISTRO}_amd64.deb",
@@ -394,7 +408,7 @@ class TestUpgradeMenderV4:
         check_installed(generic_debian_container, "mender-configure")
 
         # Upgrade to mender-client 4.0.0
-        local_apt_repo_from_test_packages(
+        local_apt_repo_from_experimental_packages(
             generic_debian_container,
             [
                 f"mender-client_4.0.0-1+debian+{DEBIAN_REF_DISTRO}_amd64.deb",
@@ -435,7 +449,7 @@ class TestUpgradeMenderV4:
         self, generic_debian_container,
     ):
         # Install mender-client 3.5.2 (epoch 1:)
-        local_apt_repo_from_upstream_packages(
+        local_apt_repo_from_stable_packages(
             generic_debian_container,
             [
                 f"m/mender-client/mender-client_3.5.2-1+debian+{DEBIAN_REF_DISTRO}_amd64.deb",
@@ -462,7 +476,7 @@ class TestUpgradeMenderV4:
         self, generic_debian_container,
     ):
         # Install mender-client 4.0.0
-        local_apt_repo_from_test_packages(
+        local_apt_repo_from_experimental_packages(
             generic_debian_container,
             [
                 f"mender-client_4.0.0-1+debian+{DEBIAN_REF_DISTRO}_amd64.deb",

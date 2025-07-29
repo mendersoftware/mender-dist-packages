@@ -318,7 +318,12 @@ function get_latest_version_of_commercial_component() {
 }
 
 init() {
-    REPO_URL=https://downloads.mender.io/repos/device-components
+    # This is a deprecated package repository, but we use it for:
+    # * getting GPG key
+    # * detecting deprecated repository link :)
+    REPO_URL=https://downloads.mender.io/repos/debian
+    WORKSTATION_REPO_URL=https://downloads.mender.io/repos/workstation-tools
+    COMPONENTS_REPO_URL=https://downloads.mender.io/repos/device-components
 
     parse_args "$@"
 
@@ -331,9 +336,9 @@ init() {
 
     # Translate Debian "channel" into Mender version for commercial packages
     if [ "$CHANNEL" = "experimental" ]; then
-        VERSION="master"
+        VERSION="stable"
     else
-        VERSION="latest"
+        VERSION="experimental"
     fi
 
     echo "  Installing commercial components from source:"
@@ -380,9 +385,15 @@ add_repo() {
         exit 1
     fi
 
-    local repo="deb [arch=$ARCH] $REPO_URL $LSB_DIST/$DIST_VERSION/$CHANNEL main"
-    echo "Installing Mender APT repository at $MENDER_APT_SOURCES_LIST..."
+    # Add workstation-tools repository
+    local repo="deb [arch=$ARCH] $WORKSTATION_REPO_URL $LSB_DIST/$DIST_VERSION/$CHANNEL main"
+    echo "Installing Mender workstation-tools APT repository at $MENDER_APT_SOURCES_LIST..."
     echo "$repo" > "$MENDER_APT_SOURCES_LIST"
+
+    # Add device-components repository
+    repo="deb [arch=$ARCH] $COMPONENTS_REPO_URL $LSB_DIST/$DIST_VERSION/$CHANNEL main"
+    echo "Installing Mender device-components APT repository at $MENDER_APT_SOURCES_LIST..."
+    echo "$repo" >> "$MENDER_APT_SOURCES_LIST"
 }
 
 do_install_open() {
@@ -431,7 +442,7 @@ do_install_commercial() {
     local url
     for c in $selected_components_commercial; do
         local component_version="$VERSION"
-        [ "$component_version" = "latest" ] && component_version="$(get_latest_version_of_commercial_component ${c})"
+        [ "$component_version" = "stable" ] && component_version="$(get_latest_version_of_commercial_component ${c})"
         echo "Installing ${c} (${component_version})"
         url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${COMMERCIAL_COMP_TO_URL_PATH_F[$c]} $component_version $component_version $LSB_DIST $DIST_VERSION)"
         if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
@@ -498,7 +509,7 @@ EOF
         if [ "$DEMO" -eq 1 ]; then
             echo "  Setting up mender-gateway with demo configuration, certificates and key"
             local gateway_version="$VERSION"
-            [ "$gateway_version" = "latest" ] && gateway_version="$(get_latest_version_of_commercial_component mender-gateway)"
+            [ "$gateway_version" = "stable" ] && gateway_version="$(get_latest_version_of_commercial_component mender-gateway)"
             local url="${MENDER_COMMERCIAL_DOWNLOAD_URL}$(printf ${MENDER_GATEWAY_EXAMPLES_URL_PATH_F} $gateway_version $gateway_version)"
             if ! curl -fLsS -H "Authorization: Bearer $JWT_TOKEN" -O "$url"; then
                 echo "ERROR: Cannot get mender-gateway-examples from $url"
