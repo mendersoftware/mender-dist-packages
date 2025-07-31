@@ -297,8 +297,8 @@ test:check-python3-formatting:
   needs:
     # Note that we are only testing packages from Debian bullseye
     - "build:packages:cross: [crosscompile, debian, bullseye, amd64]"
+    - "build:packages:cross: [crosscompile, debian, bullseye, armhf]"
     - "build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]"
-    - "build:packages:cross: [crosscompile, debian, bullseye, arm64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -377,7 +377,7 @@ test:acceptance:golang:
 
 test:acceptance:cpp:
   extends: .test:acceptance
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:bullseye
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:bullseye
   tags:
     - hetzner-arm
   rules:
