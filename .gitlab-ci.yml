@@ -215,7 +215,7 @@ build:orig:debian:bullseye:amd64:
     paths:
       - output/orig
 
-build:packages:cross:
+build:pkgs:device-components:
   stage: build:packages
   extends: .build:base
   rules:
@@ -252,7 +252,7 @@ build:packages:cross:
       - output/opensource
   parallel: !reference [.mender-dist-packages-image-matrix-cross, parallel]
 
-build:packages:workstation_tools:cross:
+build:pkgs:workstation-tools:
   stage: build:packages
   extends: .build:base
   rules:
@@ -288,7 +288,7 @@ test:check-python3-formatting:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
-.test:acceptance:
+.test:pkgs:
   stage: test
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:dind
   tags:
@@ -296,9 +296,9 @@ test:check-python3-formatting:
     - hetzner-amd-beefy
   needs:
     # Note that we are only testing packages from Debian bullseye
-    - "build:packages:cross: [crosscompile, debian, bullseye, amd64]"
-    - "build:packages:cross: [crosscompile, debian, bullseye, armhf]"
-    - "build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -366,17 +366,17 @@ test:check-python3-formatting:
     reports:
       junit: tests/results.xml
 
-test:acceptance:golang:
+test:pkgs:golang:
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
-  extends: .test:acceptance
+  extends: .test:pkgs
   variables:
     PYTEST_FILTER: "not cppclient"
 
-test:acceptance:cpp:
-  extends: .test:acceptance
+test:pkgs:device-components:
+  extends: .test:pkgs
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:bullseye
   tags:
     - hetzner-arm
@@ -394,10 +394,10 @@ test:acceptance:cpp:
     - git submodule update --init --recursive
     - pip3 install -r tests/requirements.txt
 
-test:acceptance:script:
+test:install-script:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
-  extends: .test:acceptance
+  extends: .test:pkgs
   needs: []
   script:
     - cd scripts/tests
@@ -406,12 +406,12 @@ test:acceptance:script:
     reports:
       junit: scripts/tests/results.xml
 
-test:acceptance:workstation_tools:packages:
+test:pkgs:workstation-tools:
   stage: test
   tags:
     - hetzner-amd-beefy
   dependencies:
-    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -442,18 +442,18 @@ test:acceptance:workstation_tools:packages:
 .template:publish:s3:device-components:
   dependencies:
     - 'build:orig:debian:bullseye:amd64'
-    - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
-    - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
-    - 'build:packages:cross: [crosscompile, debian, bullseye, armhf]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, amd64]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   tags:
@@ -479,10 +479,10 @@ publish:s3:device-components:automatic:
 
 .template:publish:s3:workstation_tools:
   dependencies:
-    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]'
-    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
-    - 'build:packages:workstation_tools:cross: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:packages:workstation_tools:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, amd64]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   tags:
@@ -537,18 +537,18 @@ publish:production:s3:scripts:install-mender-sh:
 
 .template:publish:s3:
   dependencies:
-    - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
-    - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
-    - 'build:packages:cross: [crosscompile, debian, bullseye, armhf]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, amd64]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   before_script:
