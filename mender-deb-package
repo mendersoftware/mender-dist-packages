@@ -167,6 +167,38 @@ prepare_recipe() {
     cp support/mender-monitor.service debian/
   fi
 
+  # 'armhf' can mean both ARMv7 (usually and in Debian, in particular) and ARMv6
+  # (looking at you, Raspberry Pi!). To prevent mismatch of the CPU architecture
+  # and the architecture our package was built for, add a check ensuring our
+  # 'armhf' packages (ARMv7) are only installed to ARMv7 devices.
+  # HOWEVER: Both ARMv6 and ARMv7 containers running on an ARM64/ARMv8/aarch64
+  #          device report 'aarch64' **and** they actually do run ARMv6 and
+  #          ARMv7 binaries just fine! So 'aarch64' is fine as well.
+  # 'Architecture: any' means the package is arch-specific.
+  if [[ "$ARCH" = "armhf" ]] &&
+       grep -qF 'Architecture: any' debian/control; then
+    # If there is no preinst scriptlet, create one.
+    if ! ls debian/*preinst >/dev/null 2>&1; then
+      echo "exit 0" > debian/preinst
+    fi
+    cat <<EOF > $$.preinst_check
+if ! uname -m | grep -Eq "(armv7|aarch64)"; then
+  echo "ERROR: This ${DEB_PACKAGE} package was built for ARMv7 and is not compatible with \$(uname -m)"
+  exit 1
+fi
+exit 0
+EOF
+    # Some recipes produce multiple packages which have their own scriptlets so
+    # there can be multiple we need to patch.
+    # We need to replace the unindented, and thus unconditional (because we are
+    # good guys), exit 0 with the check followed by a exit 0.
+    while read file; do
+      sed -ie "/^exit 0/ { r $$.preinst_check
+                         ; d }" "$file"
+    done < <(find debian -name '*preinst')
+    rm $$.preinst_check
+  fi
+
   dch --create \
     --newversion ${DEB_VERSION} \
     --distribution ${DEB_DISTRIBUTION} \
