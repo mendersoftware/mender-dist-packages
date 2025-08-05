@@ -449,7 +449,6 @@ test:pkgs:workstation-tools:
 
 .template:publish:s3:device-components:
   dependencies:
-    - 'build:orig:debian:bullseye:amd64'
     - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
