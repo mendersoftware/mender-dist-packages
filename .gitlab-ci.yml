@@ -178,7 +178,7 @@ stages:
   - test
   - publish
 
-build:orig:debian:bullseye:amd64:
+build:orig:all:
   stage: build:orig
   extends: .build:base
   needs: []
