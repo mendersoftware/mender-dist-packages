@@ -418,7 +418,7 @@ test:pkgs:workstation-tools:
   stage: test
   tags:
     - hetzner-amd-beefy
-  dependencies:
+  needs:
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
