@@ -172,6 +172,7 @@ include:
       - 192
 
 stages:
+  - test:static
   - build:orig
   - build:packages
   - test
@@ -180,6 +181,7 @@ stages:
 build:orig:debian:bullseye:amd64:
   stage: build:orig
   extends: .build:base
+  needs: []
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -276,15 +278,21 @@ build:pkgs:workstation-tools:
   parallel: !reference [.mender-dist-packages-workstation_tools-image-matrix-cross, parallel]
 
 test:check-commits:
+  stage: test:static
   only:
     variables:
       - '$TEST_MENDER_DIST_PACKAGES == "true"'
 
 test:check-license:
+  stage: test:static
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
+test:check-license-source:
+  stage: test:static
+
 test:check-python3-formatting:
+  stage: test:static
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
