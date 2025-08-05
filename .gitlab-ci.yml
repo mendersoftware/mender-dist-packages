@@ -41,8 +41,6 @@ variables:
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
-  # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
-  S3_BUCKET_SUBPATH: "dist-packages/debian"
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
   # APT repo path for incoming packages (must be set/overwritten by individual
@@ -367,7 +365,6 @@ test:check-python3-formatting:
       --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
       --mender-flash-version $MENDER_FLASH_VERSION
       --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
-      -m "${PYTEST_FILTER}"
       ${commercial_tests_flags}
       --junit-xml results.xml
   artifacts:
@@ -384,8 +381,6 @@ test:pkgs:device-components:
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  variables:
-    PYTEST_FILTER: "not golangclient"
   before_script:
     - apt-get update
     - apt-get -yyq install bash git python3-pip wget sudo

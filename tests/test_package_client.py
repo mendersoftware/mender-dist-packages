@@ -14,254 +14,241 @@
 #    limitations under the License.
 
 import pytest
-import time
-import os.path
 
 from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
+expected_copyright_from_l2_md5sum = "39a30292da940b7ce011150e8c8d5e4f"
 
-@pytest.mark.golangclient
+
+def verify_file_exists(ssh_conn, files):
+    for file in files:
+        file_name = file["name"]
+        if file["type"] == "executable":
+            ssh_conn.run(f"test -x {file_name}")
+        elif file["type"] == "directory":
+            ssh_conn.run(f"test -d {file_name}")
+        elif file["type"] == "file":
+            ssh_conn.run(f"test -f {file_name}")
+        elif file.get("contents", False):
+            result = ssh_conn.run(f"cat {file_name}")
+            assert file["contents"] == result.stdout
+        else:
+            raise Exception("Unknown file type check")
+
+
+all_files = [
+    {"name": "/usr/bin/mender-update", "type": "executable",},
+    {"name": "/usr/bin/mender-auth", "type": "executable",},
+    {"name": "/usr/share/mender/modules/v3/", "type": "directory",},
+    #
+    # Inventory scripts symlinked to /etc/ as conf files
+    #
+    {"name": "/usr/share/mender/inventory", "type": "directory",},
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-bootloader-integration",
+        "type": "file",
+    },
+    {"name": "/usr/share/mender/inventory/mender-inventory-hostinfo", "type": "file",},
+    {"name": "/usr/share/mender/inventory/mender-inventory-network", "type": "file",},
+    {"name": "/usr/share/mender/inventory/mender-inventory-os", "type": "file",},
+    {"name": "/usr/share/mender/inventory/mender-inventory-provides", "type": "file",},
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-rootfs-type",
+        "type": "file",
+    },
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-update-modules",
+        "type": "file",
+    },
+    {"name": "/etc/mender/inventory", "type": "directory",},
+    {
+        "name": "/etc/mender/inventory/mender-inventory-bootloader-integration",
+        "type": "file",
+    },
+    {"name": "/etc/mender/inventory/mender-inventory-hostinfo", "type": "executable",},
+    {"name": "/etc/mender/inventory/mender-inventory-network", "type": "executable",},
+    {"name": "/etc/mender/inventory/mender-inventory-os", "type": "executable",},
+    {"name": "/etc/mender/inventory/mender-inventory-provides", "type": "file",},
+    {
+        "name": "/etc/mender/inventory/mender-inventory-rootfs-type",
+        "type": "executable",
+    },
+    {"name": "/etc/mender/inventory/mender-inventory-update-modules", "type": "file",},
+    #
+    # Update modules
+    #
+    {"name": "/usr/share/mender/modules/v3/", "type": "directory",},
+    {"name": "/usr/share/mender/modules/v3/directory", "type": "executable",},
+    {"name": "/usr/share/mender/modules/v3/rootfs-image", "type": "executable",},
+    {"name": "/usr/share/mender/modules/v3/single-file", "type": "executable",},
+    #
+    # device identity files
+    #
+    {"name": "/usr/share/mender/identity", "type": "directory",},
+    {
+        "name": "/usr/share/mender/identity/mender-device-identity",
+        "type": "executable",
+    },
+    #
+    # Configuration files
+    # Installed by mender-setup
+    #
+    # {
+    #     "name": "/etc/mender/",
+    #     "type": "directory",
+    # },
+    # {
+    #     "name": "/etc/mender/mender.conf",
+    #     "type": "file",
+    # },
+    {"name": "/etc/mender/scripts", "type": "directory",},
+    {"name": "/etc/mender/scripts/version", "type": "file", "contents": "3",},
+    #
+    # Systemd services
+    #
+    {"name": "/lib/systemd/system/mender-updated.service", "type": "file",},
+    {"name": "/lib/systemd/system/mender-authd.service", "type": "file",},
+    #
+    # D-Bus policy files
+    #
+    {
+        "name": "/usr/share/dbus-1/system.d/io.mender.AuthenticationManager.conf",
+        "type": "file",
+    },
+    #
+    # Demo certificate
+    #
+    {"name": "/usr/share/doc/mender-auth/examples/demo.crt", "type": "file",},
+    #
+    # Device type file
+    # Installed by mender-setup
+    #
+    # {
+    #     "name": "/var/lib/mender/device_type",
+    #     "type": "file",
+    #     "contents": "device_type=unknown",
+    # },
+]
+
+
 class PackageMenderClientChecker:
-
-    expected_update_modules = ["deb", "directory", "rpm", "script", "single-file"]
-    expected_inventory_files = [
-        "mender-inventory-bootloader-integration",
-        "mender-inventory-hostinfo",
-        "mender-inventory-network",
-        "mender-inventory-os",
-        "mender-inventory-rootfs-type",
-    ]
-    expected_indentity_files = ["mender-device-identity"]
-
-    expected_copyright_from_l2_md5sum = "39a30292da940b7ce011150e8c8d5e4f"
-
     def check_mender_client_version(self, ssh_connection, mender_version):
+        result = ssh_connection.run("mender-auth --version")
         if mender_version != "master":
-            result = ssh_connection.run("mender -version")
+            assert mender_version in result.stdout
+
+        result = ssh_connection.run("mender-update --version")
+        if mender_version != "master":
             assert mender_version in result.stdout
 
     def check_installed_files(self, ssh_connection):
-        ssh_connection.run("test -x /usr/bin/mender")
-        ssh_connection.run("test -d /usr/share/mender/modules/v3")
-        for module in self.expected_update_modules:
-            module_path = os.path.join("/usr/share/mender/modules/v3", module)
-            ssh_connection.run("test -x {mod}".format(mod=module_path))
-        ssh_connection.run("test -d /usr/share/mender/modules/v3")
-        for inventory in self.expected_inventory_files:
-            inventory_path = os.path.join("/usr/share/mender/inventory", inventory)
-            ssh_connection.run("test -x {invent}".format(invent=inventory_path))
-        for identity in self.expected_indentity_files:
-            identity_path = os.path.join("/usr/share/mender/identity", identity)
-            ssh_connection.run("test -x {ident}".format(ident=identity_path))
-        ssh_connection.run("test -d /etc/mender")
-        ssh_connection.run("test -f /etc/mender/scripts/version")
-        result = ssh_connection.run("cat /etc/mender/scripts/version")
-        assert "3" == result.stdout
-        ssh_connection.run("test -f /lib/systemd/system/mender-client.service")
-        ssh_connection.run(
-            "test -f /etc/systemd/system/multi-user.target.wants/mender-client.service"
-        )
-        ssh_connection.run("test -f /usr/share/doc/mender-client/examples/demo.crt")
-
+        verify_file_exists(ssh_connection, all_files)
         # Northern.tech copyright file
-        ssh_connection.run("test -f /usr/share/doc/mender-client/copyright")
+        ssh_connection.run("test -f /usr/share/doc/mender-client4/copyright")
         result = ssh_connection.run(
-            "tail -n +2 /usr/share/doc/mender-client/copyright | md5sum"
+            "tail -n +2 /usr/share/doc/mender-client4/copyright | md5sum"
         )
-        assert result.stdout.split(" ")[0] == self.expected_copyright_from_l2_md5sum
+        assert result.stdout.split(" ")[0] == expected_copyright_from_l2_md5sum
 
-    def configure_mender_client(self, ssh_connection):
-        """
-        Manually configures the mender-client for the rest of the test. Before mender-client 4.0
-        this was done by mender setup command and now it is handled by the mender-setup tool.
-        """
-
-        default_configuration = """
-{
-    "HttpsClient": {},
-    "Security": {},
-    "Connectivity": {},
-    "DeviceTypeFile": "/var/lib/mender/device_type",
-    "DBus": {
-        "Enabled": true
-    },
-    "UpdatePollIntervalSeconds": 1800,
-    "InventoryPollIntervalSeconds": 28800,
-    "RetryPollIntervalSeconds": 300,
-    "TenantToken": "Paste your Hosted Mender token here",
-    "Servers": [
-        {
-            "ServerURL": "https://hosted.mender.io"
-        }
-    ]
-}
-"""
+    def check_systemd_service(self, ssh_connection):
         ssh_connection.run(
-            "echo '" + default_configuration + "' | sudo tee /etc/mender/mender.conf"
+            "test -f /etc/systemd/system/multi-user.target.wants/mender-authd.service"
         )
-        ssh_connection.run("sudo mkdir -p /var/lib/mender/")
         ssh_connection.run(
-            "echo device_type=raspberrypi | sudo tee /var/lib/mender/device_type"
+            "test -f /etc/systemd/system/multi-user.target.wants/mender-updated.service"
         )
-        ssh_connection.run("sudo systemctl restart mender-client")
-
-    def check_systemd_start_full_cycle(self, ssh_connection):
-        """
-        Verifies that the Mender state machine starts, and reports the expected
-        output as it's transitioning through a full cycle.
-
-        There is three possible outputs to expect here. One for the older clients, and one for
-        3.2.x, which has the Authorization states removed and authorizes upon requests to the
-        backend if it finds it is unauthorized upon a request, and one for 3.3.x and newer for which
-        the client may attempt inventory-update before update-check.
-        """
-        # Check first that mender process is running
-        result = ssh_connection.run("pgrep mender")
-        assert result.exited == 0
-
-        # Detect of a full cycle in 4 min timeout (~2 min to generate device keys + 30 secs full cycle)
-        start_time = time.time()
-        timeout = 4 * 60
-        while time.time() - start_time < timeout:
-            result = ssh_connection.run("sudo journalctl -u mender-client --no-pager")
-            if any(
-                [
-                    expected_output in result.stdout
-                    for expected_output in [
-                        "State transition: authorize [Sync] -> authorize-wait [Idle]",
-                        "State transition: check-wait [Idle] -> update-check [Sync]",
-                        "State transition: check-wait [Idle] -> inventory-update [Sync]",
-                    ]
-                ]
-            ):
-                break
-            time.sleep(10)
-        else:
-            pytest.fail(
-                "Did not detect a full cycle in %d seconds. Output follows:\n%s"
-                % (timeout, result.stdout)
-            )
-
-        # Check correct boot
-        assert "Started Mender OTA update service." in result.stdout, result.stdout
-        assert "Loaded configuration file" in result.stdout, result.stdout
-        assert "No dual rootfs configuration present" in result.stdout, result.stdout
-
-        while time.time() - start_time < timeout:
-            result = ssh_connection.run("sudo journalctl -u mender-client --no-pager")
-            if any(
-                [
-                    expected_output in result.stdout
-                    for expected_output in [
-                        "Reauthorization failed with error: transient error: authorization request failed",
-                        "Authorize failed: transient error: authorization request failed",
-                    ]
-                ]
-            ):
-                break
-        else:
-            pytest.fail(
-                "Did not detect a full cycle in %d seconds. Output follows:\n%s"
-                % (timeout, result.stdout)
-            )
-
-    def check_removed_files(self, ssh_connection, purge):
-        # Check first that mender process has been stopped
-        result = ssh_connection.run("pgrep mender", warn=True)
-        assert result.exited == 1
-
-        ssh_connection.run("test ! -f /usr/bin/mender")
-        ssh_connection.run("test ! -e /usr/share/mender")
-        ssh_connection.run("test ! -f /lib/systemd/system/mender-client.service")
-        ssh_connection.run(
-            "test ! -f /etc/systemd/system/multi-user.target.wants/mender-client.service"
-        )
-        ssh_connection.run("test ! -f /usr/share/doc/mender-client/examples/demo.crt")
-        ssh_connection.run("test -d /var/lib/mender/")
-        if purge:
-            ssh_connection.run("test ! -f /etc/mender/scripts/version")
-        else:
-            ssh_connection.run("test -f /etc/mender/scripts/version")
-            # Purging mender-client removes the configuration, even if it was created externally
-            ssh_connection.run("test -f /etc/mender/mender.conf")
-            ssh_connection.run("test -f /var/lib/mender/device_type")
-
-        result = ssh_connection.run("sudo journalctl -u mender-client --no-pager")
-        assert "Stopping Mender OTA update service..." in result.stdout
-        assert "Stopped Mender OTA update service." in result.stdout
 
 
-@pytest.mark.golangclient
 class TestPackageMenderClientDefaults(PackageMenderClientChecker):
-    """Tests installation, setup, start, removal and purge of mender-client deb package with
-    in non-interactive method (i.e. default configuration).
+    """Tests installation, setup, start, removal and purge of mender-client deb
+    package with the non-interactive method (i.e. default configuration).
+
     """
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_install_configure_start(
         self, setup_tester_ssh_connection, mender_dist_packages_versions, mender_version
     ):
-        result = setup_tester_ssh_connection.run("uname -a")
-        assert "raspberrypi" in result.stdout
-
-        upload_deb_package(
-            setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-client"],
-            package_name="mender-client",
+        # First things first
+        # Explicitly accept suite change from "stable" to "oldstable"
+        setup_tester_ssh_connection.run(
+            "sudo apt-get update --allow-releaseinfo-change-suite"
         )
 
-        # Install the deb package. On failure, install the missing dependencies.
+        # Client meta package
+        upload_deb_package(
+            setup_tester_ssh_connection,
+            mender_dist_packages_versions["mender-client4"],
+            package_name="mender-client4",
+        )
+        # Upload mender-auth
+        upload_deb_package(
+            setup_tester_ssh_connection,
+            mender_dist_packages_versions["mender-client4"],
+            package_name="mender-auth",
+        )
+        # Upload mender-update
+        upload_deb_package(
+            setup_tester_ssh_connection,
+            mender_dist_packages_versions["mender-client4"],
+            package_name="mender-update",
+        )
+
+        # Install the deb packages. On failure, install the missing dependencies.
         setup_tester_ssh_connection.run(
-            "sudo DEBIAN_FRONTEND=noninteractive dpkg --install "
+            "sudo apt install --yes ./"
             + package_filename(
                 mender_dist_packages_versions["mender-client"],
                 package_name="mender-client",
-            )
-            + "|| sudo apt-get --fix-broken --assume-yes install"
+            ).replace("client", "auth")
         )
-        check_installed(setup_tester_ssh_connection, "mender-client")
+        check_installed(setup_tester_ssh_connection, "mender-auth")
 
-        self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
+        setup_tester_ssh_connection.run(
+            "sudo apt install --yes ./"
+            + package_filename(
+                mender_dist_packages_versions["mender-client"],
+                package_name="mender-client",
+            ).replace("client", "update")
+        )
+        check_installed(setup_tester_ssh_connection, "mender-update")
+
+        # Install the client meta-package also
+        setup_tester_ssh_connection.run(
+            "sudo dpkg --install --ignore-depends=mender-snapshot,mender-setup,mender-flash ./"
+            + package_filename(
+                mender_dist_packages_versions["mender-client4"],
+                package_name="mender-client4",
+            )
+        )
+        check_installed(setup_tester_ssh_connection, "mender-client4")
 
         self.check_installed_files(setup_tester_ssh_connection)
 
-        self.configure_mender_client(setup_tester_ssh_connection)
+        self.check_mender_client_version(setup_tester_ssh_connection, mender_version)
 
-        self.check_systemd_start_full_cycle(setup_tester_ssh_connection)
-
-    def test_service_starts_after_reboot(
-        self, setup_test_container, setup_tester_ssh_connection,
-    ):
-        # Reboot in the background, so that SSH can exit properly
-        setup_tester_ssh_connection.run("sleep 1 && sudo reboot &")
-
-        # Wait for the reboot to actually start before calling wait_for_container_boot
-        time.sleep(10)
-        wait_for_container_boot(setup_test_container.container_id)
-
-        # Check first that mender process is running
-        result = setup_tester_ssh_connection.run("pgrep mender")
-        assert result.exited == 0
-
-        result = setup_tester_ssh_connection.run(
-            "sudo journalctl -u mender-client --no-pager"
-        )
-
-        # Check Mender service start after device reboot
-        assert "Started Mender OTA update service." in result.stdout
-        assert "Loaded configuration file" in result.stdout
-        assert "No dual rootfs configuration present" in result.stdout
+        self.check_systemd_service(setup_tester_ssh_connection)
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_remove_stop(self, setup_tester_ssh_connection):
-        setup_tester_ssh_connection.run("sudo dpkg --remove mender-client")
-
-        self.check_removed_files(setup_tester_ssh_connection, purge=False)
+        setup_tester_ssh_connection.run("sudo dpkg --remove mender-client4")
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_purge(self, setup_tester_ssh_connection):
-        setup_tester_ssh_connection.run("sudo dpkg --purge mender-client")
-        check_installed(setup_tester_ssh_connection, "mender-client", installed=False)
+        # Dummy configuration
+        setup_tester_ssh_connection.run("sudo mkdir --parents /etc/mender/")
+        setup_tester_ssh_connection.run(
+            "echo 'config' | sudo tee /etc/mender/mender.conf"
+        )
+        setup_tester_ssh_connection.run("sudo mkdir --parents /var/lib/mender/")
+        setup_tester_ssh_connection.run(
+            "echo 'device' | sudo tee /var/lib/mender/device_type"
+        )
 
-        self.check_removed_files(setup_tester_ssh_connection, purge=True)
+        # Purging mender-client removes the configuration
+        result = setup_tester_ssh_connection.run("sudo dpkg --purge mender-client4")
+        assert result.return_code == 0
+        check_installed(setup_tester_ssh_connection, "mender-client4", installed=False)
+        setup_tester_ssh_connection.run("test ! -f /etc/mender/mender.conf")
+        setup_tester_ssh_connection.run("test ! -f /var/lib/mender/device_type")
