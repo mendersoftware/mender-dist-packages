@@ -374,15 +374,6 @@ test:check-python3-formatting:
     reports:
       junit: tests/results.xml
 
-test:pkgs:golang:
-  rules:
-    - if: $CI_COMMIT_BRANCH == "production"
-      when: never
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
-  extends: .test:pkgs
-  variables:
-    PYTEST_FILTER: "not cppclient"
-
 test:pkgs:device-components:
   extends: .test:pkgs
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:bullseye
