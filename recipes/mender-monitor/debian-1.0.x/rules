@@ -1,9 +1,0 @@
-#!/usr/bin/make -f
-
-# DH_VERBOSE=1
-
-%:
-	dh $@
-
-override_dh_link:
-	true
