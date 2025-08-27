@@ -105,11 +105,11 @@ include:
       - BUILD: crosscompile
         DISTRO: debian
         RELEASE: [bullseye, bookworm]
-        ARCH: amd64
+        ARCH: [amd64, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
         RELEASE: [jammy, noble]
-        ARCH: amd64
+        ARCH: [amd64, arm64]
 
 .dind-login: &dind-login
   - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
@@ -473,9 +473,13 @@ publish:s3:device-components:automatic:
 .template:publish:s3:workstation_tools:
   dependencies:
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, arm64]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
   tags:
