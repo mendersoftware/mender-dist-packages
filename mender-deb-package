@@ -48,7 +48,7 @@ checkout_repo_clean_local_path() {
   local -r repo_url="$1"
   local repo_path="${repo_url#https://}"
   if [[ "$repo_url" == *"${MENDER_PRIVATE_REPO_ACCESS_USER:-none}"* ]]; then
-    repo_path="${REPO_URL//${MENDER_PRIVATE_REPO_ACCESS_USER}:*@/}"
+    repo_path="${repo_path//${MENDER_PRIVATE_REPO_ACCESS_USER}:*@/}"
   fi
   echo "${repo_path}"
 }
