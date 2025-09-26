@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- -D CMAKE_BUILD_TYPE=Release -D BUILD_TESTS=OFF
+
+override_dh_auto_test:
+	true
+
+# Do not build debug symbols packages
+# See https://northerntech.atlassian.net/browse/MEN-6915
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym

@@ -74,6 +74,8 @@ names correspond to the Mender components:
 - `mender-monitor`
 - `mender-setup`
 - `mender-snapshot`
+- `mender-orchestrator`
+- `mender-orchestrator-support`
 
 The default value for `version` is `master`. An exact version of a package
 (usually a tag in the component's repository) can be specified. The `version`

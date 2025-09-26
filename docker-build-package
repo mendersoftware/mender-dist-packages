@@ -89,6 +89,20 @@ declare -A mender_snapshot_props=(
     [commercial]="false"
 )
 
+declare -A mender_orchestrator_props=(
+    [recipe_name]="mender-orchestrator"
+    [src_url]="https://${MENDER_PRIVATE_REPO_ACCESS_USER}:${MENDER_PRIVATE_REPO_ACCESS_TOKEN}@github.com/mendersoftware/mender-orchestrator"
+    [arch_indep]="false"
+    [commercial]="true"
+)
+
+declare -A mender_orchestrator_support_props=(
+    [recipe_name]="mender-orchestrator-support"
+    [src_url]="https://github.com/mendersoftware/mender-orchestrator-support"
+    [arch_indep]="true"
+    [commercial]="false"
+)
+
 declare -a packages=(
     mender_client4_props
     mender_connect_props
@@ -101,6 +115,8 @@ declare -a packages=(
     mender_app_update_module_props
     mender_setup_props
     mender_snapshot_props
+    mender_orchestrator_props
+    mender_orchestrator_support_props
 )
 
 # Parse args

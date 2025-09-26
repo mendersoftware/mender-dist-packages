@@ -1,0 +1,26 @@
+Source: mender-orchestrator-support
+Maintainer: Mender Team <mender@northern.tech>
+Section: admin
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: mender-orchestrator-support
+Architecture: all
+Depends: dbus, curl, mender-orchestrator-core, mender-update, mender-auth, ${misc:Depends}
+Description: Mender Orchestrator Support
+ Mender Orchestrator orchestrates updates across multiple Components in a
+ System, to ensure software consistency across the System as a whole. This
+ package contains the support files such as rootfs-image Update Interface,
+ mender-orchestrator-manifest Update Module and a orchestrator-inventory
+ Inventory Script. These files are recommended for a seamless integration with
+ Mender Client and Mender Server.
+
+Package: mender-orchestrator-demo
+Architecture: all
+Depends: mender-orchestrator-support (= ${binary:Version})
+Description: Mender Orchestrator Demo
+ Mender Orchestrator orchestrates updates across multiple Components in a
+ System, to ensure software consistency across the System as a whole. This
+ package contains mock interfaces and a demo topology file for easy evaluation
+ of the product.

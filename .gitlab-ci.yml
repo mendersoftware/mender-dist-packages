@@ -38,11 +38,19 @@ variables:
   MENDER_MONITOR_VERSION:
     value: "master"
     description: "Version of monitor-client repository"
+  MENDER_ORCHESTRATOR_VERSION:
+    value: "master"
+    description: "Version of mender-orchestrator repository"
+  MENDER_ORCHESTRATOR_SUPPORT_VERSION:
+    value: "main"
+    description: "Version of mender-orchestrator-support repository"
+
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
+  S3_BUCKET_SUBPATH_ORCHESTRATOR: "mender-orchestrator/debian"
   # APT repo path for incoming packages (must be set/overwritten by individual
   # jobs, only listed here for reference/documentation and nicer errors in case
   # of not overwritten)
@@ -210,6 +218,7 @@ build:orig:all:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -243,9 +252,11 @@ build:pkgs:device-components:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator $MENDER_ORCHESTRATOR_VERSION
     - fi
     - find output -type f
   artifacts:
@@ -620,3 +631,19 @@ publish:s3:mender-gateway:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
   extends: .template:publish:s3:mender-gateway
+
+.template:publish:s3:mender-orchestrator:
+  variables:
+    PUBLISH_PACKAGE_PREFIX: "mender-orchestrator"
+    PUBLISH_PACKAGE_VERSION: "$MENDER_ORCHESTRATOR_VERSION"
+    PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_ORCHESTRATOR"
+  extends: .template:publish:s3
+
+publish:s3:mender-orchestrator:manual:
+  when: manual
+  extends: .template:publish:s3:mender-orchestrator
+
+publish:s3:mender-orchestrator:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:mender-orchestrator
