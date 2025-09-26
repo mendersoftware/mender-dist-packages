@@ -24,6 +24,8 @@ output_path = os.path.normpath(os.path.join(tests_path, "..", "output"))
 COMMERCIAL_PACKAGES = [
     "mender-gateway",
     "mender-monitor",
+    "mender-orchestrator-core",
+    "mender-orchestrator",
 ]
 
 

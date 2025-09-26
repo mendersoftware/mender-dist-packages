@@ -360,6 +360,11 @@ test:check-python3-formatting:
           commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version)"
           commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
           commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-version $MENDER_ORCHESTRATOR_VERSION"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-orchestrator-deb-version)"
+          # NOTE: Although mender-orchestrator-support is built with no closed source secrets, it cannot be tested without mender-orchestrator so it belongs to "commercial tests"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-version $MENDER_ORCHESTRATOR_SUPPORT_VERSION"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-orchestrator-support-deb-version)"
         fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
