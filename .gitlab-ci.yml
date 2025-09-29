@@ -93,7 +93,7 @@ include:
     matrix:
       - BUILD: crosscompile
         DISTRO: debian
-        RELEASE: [bullseye, bookworm]
+        RELEASE: [bullseye, bookworm, trixie]
         ARCH: [amd64, armhf, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
@@ -104,7 +104,7 @@ include:
     matrix:
       - BUILD: crosscompile
         DISTRO: debian
-        RELEASE: [bullseye, bookworm]
+        RELEASE: [bullseye, bookworm, trixie]
         ARCH: [amd64, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
@@ -400,26 +400,45 @@ test:install-script:
     reports:
       junit: scripts/tests/results.xml
 
-test:pkgs:workstation-tools:
+.test:pkgs:workstation-tools:
+  variables:
+    DEBIAN_VERSION: 12
+    DEBIAN_VERSION_NAME: "bookworm"
   stage: test
   tags:
     - hetzner-amd-beefy
   needs:
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, amd64]'
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:${DEBIAN_VERSION}
   script:
     - apt-get update
-    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-artifact*.deb
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-artifact*.deb
     - test -x /usr/bin/mender-artifact
     - mender-artifact --version
-    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-cli*.deb
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-cli*.deb
     - test -x /usr/bin/mender-cli
     - mender-cli --version
+
+test:pkgs:workstation-tools:bookworm:
+  extends: .test:pkgs:workstation-tools
+  variables:
+    DEBIAN_VERSION: 12
+    DEBIAN_VERSION_NAME: "bookworm"
+  needs:
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
+
+test:pkgs:workstation-tools:trixie:
+  extends: .test:pkgs:workstation-tools
+  variables:
+    DEBIAN_VERSION: 13
+    DEBIAN_VERSION_NAME: "trixie"
+  needs:
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]'
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
@@ -441,6 +460,9 @@ test:pkgs:workstation-tools:
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, armhf]'
     - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, amd64]'
     - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, armhf]'
     - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, arm64]'
@@ -476,6 +498,8 @@ publish:s3:device-components:automatic:
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, arm64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, amd64]'
     - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, amd64]'
@@ -540,6 +564,9 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, armhf]'
     - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, amd64]'
     - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, armhf]'
     - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, arm64]'
