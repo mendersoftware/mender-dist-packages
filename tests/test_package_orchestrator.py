@@ -42,24 +42,30 @@ class TestPackageOrchestratorCore:
     def test_mender_orchestrator_standalone(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
-        # Remove mender-update to verify that mender-orchestrator-core can
-        # be installed with only mender-auth
-        setup_tester_ssh_connection.run(f"sudo dpkg --purge remove mender-update")
+        try:
+            # Remove mender-update to verify that mender-orchestrator-core can
+            # be installed with only mender-auth
+            setup_tester_ssh_connection.run(f"sudo dpkg --purge remove mender-update")
 
-        upload_deb_package(
-            setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-orchestrator"],
-            "mender-orchestrator-core",
-        )
-        setup_tester_ssh_connection.run(
-            "apt install --assume-yes ./"
-            + package_filename(
+            upload_deb_package(
+                setup_tester_ssh_connection,
                 mender_dist_packages_versions["mender-orchestrator"],
                 "mender-orchestrator-core",
             )
-        )
-        check_installed(setup_tester_ssh_connection, "mender-orchestrator-core")
-        setup_tester_ssh_connection.run("test -x /usr/bin/mender-orchestrator")
+            setup_tester_ssh_connection.run(
+                "apt install --assume-yes ./"
+                + package_filename(
+                    mender_dist_packages_versions["mender-orchestrator"],
+                    "mender-orchestrator-core",
+                )
+            )
+            check_installed(setup_tester_ssh_connection, "mender-orchestrator-core")
+            setup_tester_ssh_connection.run("test -x /usr/bin/mender-orchestrator")
+
+        finally:
+            setup_tester_ssh_connection.run(
+                f"sudo dpkg --purge remove mender-orchestrator-core"
+            )
 
 
 @pytest.mark.usefixtures("setup_mender_configured")
@@ -68,75 +74,81 @@ class TestPackageOrchestratorSplit:
     def test_mender_orchestrator_split(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
-        # mender-orchestrator-core
-        upload_deb_package(
-            setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-orchestrator"],
-            "mender-orchestrator-core",
-        )
-        setup_tester_ssh_connection.run(
-            "sudo dpkg --install "
-            + package_filename(
+        try:
+            # mender-orchestrator-core
+            upload_deb_package(
+                setup_tester_ssh_connection,
                 mender_dist_packages_versions["mender-orchestrator"],
                 "mender-orchestrator-core",
             )
-        )
+            setup_tester_ssh_connection.run(
+                "sudo dpkg --install "
+                + package_filename(
+                    mender_dist_packages_versions["mender-orchestrator"],
+                    "mender-orchestrator-core",
+                )
+            )
 
-        # mender-orchestrator-support
-        upload_deb_package(
-            setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-orchestrator-support"],
-            "mender-orchestrator-support",
-            "all",
-        )
-        setup_tester_ssh_connection.run(
-            "sudo dpkg --install "
-            + package_filename(
+            # mender-orchestrator-support
+            upload_deb_package(
+                setup_tester_ssh_connection,
                 mender_dist_packages_versions["mender-orchestrator-support"],
                 "mender-orchestrator-support",
                 "all",
-            ),
-        )
+            )
+            setup_tester_ssh_connection.run(
+                "sudo dpkg --install "
+                + package_filename(
+                    mender_dist_packages_versions["mender-orchestrator-support"],
+                    "mender-orchestrator-support",
+                    "all",
+                ),
+            )
 
-        check_installed(setup_tester_ssh_connection, "mender-orchestrator-support")
-        setup_tester_ssh_connection.run(
-            "test -x /usr/share/mender/inventory/mender-inventory-orchestrator-inventory"
-        )
-        setup_tester_ssh_connection.run(
-            "test -x /usr/share/mender/modules/v3/mender-orchestrator-manifest"
-        )
-        setup_tester_ssh_connection.run(
-            "test -x /usr/share/mender-orchestrator/interfaces/v1/rootfs-image"
-        )
+            check_installed(setup_tester_ssh_connection, "mender-orchestrator-support")
+            setup_tester_ssh_connection.run(
+                "test -x /usr/share/mender/inventory/mender-inventory-orchestrator-inventory"
+            )
+            setup_tester_ssh_connection.run(
+                "test -x /usr/share/mender/modules/v3/mender-orchestrator-manifest"
+            )
+            setup_tester_ssh_connection.run(
+                "test -x /usr/share/mender-orchestrator/interfaces/v1/rootfs-image"
+            )
 
-        # mender-orchestrator-demo
-        upload_deb_package(
-            setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-orchestrator-support"],
-            "mender-orchestrator-demo",
-            "all",
-        )
-        setup_tester_ssh_connection.run(
-            "sudo dpkg --install "
-            + package_filename(
+            # mender-orchestrator-demo
+            upload_deb_package(
+                setup_tester_ssh_connection,
                 mender_dist_packages_versions["mender-orchestrator-support"],
                 "mender-orchestrator-demo",
                 "all",
             )
-        )
-        check_installed(setup_tester_ssh_connection, "mender-orchestrator-support")
-        setup_tester_ssh_connection.run(
-            "test -f /data/mender-orchestrator/topology.yaml"
-        )
-        setup_tester_ssh_connection.run(
-            "test -d /data/mender-orchestrator/mock-instances/0"
-        )
-        setup_tester_ssh_connection.run(
-            "test -d /data/mender-orchestrator/mock-instances/1"
-        )
-        setup_tester_ssh_connection.run(
-            "test -d /data/mender-orchestrator/mock-instances/2"
-        )
+            setup_tester_ssh_connection.run(
+                "sudo dpkg --install "
+                + package_filename(
+                    mender_dist_packages_versions["mender-orchestrator-support"],
+                    "mender-orchestrator-demo",
+                    "all",
+                )
+            )
+            check_installed(setup_tester_ssh_connection, "mender-orchestrator-support")
+            setup_tester_ssh_connection.run(
+                "test -f /data/mender-orchestrator/topology.yaml"
+            )
+            setup_tester_ssh_connection.run(
+                "test -d /data/mender-orchestrator/mock-instances/0"
+            )
+            setup_tester_ssh_connection.run(
+                "test -d /data/mender-orchestrator/mock-instances/1"
+            )
+            setup_tester_ssh_connection.run(
+                "test -d /data/mender-orchestrator/mock-instances/2"
+            )
+
+        finally:
+            setup_tester_ssh_connection.run(
+                f"sudo dpkg --purge remove mender-orchestrator-demo mender-orchestrator-support mender-orchestrator-core ",
+            )
 
 
 @pytest.mark.usefixtures("setup_mender_configured")
@@ -145,38 +157,46 @@ class TestPackageOrchestratorMeta:
     def test_mender_orchestrator_meta_package(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
-        # Upload all the packages (including the demo one)
-        for pkg in [
-            "mender-orchestrator",
-            "mender-orchestrator-core",
-        ]:
-            upload_deb_package(
-                setup_tester_ssh_connection,
-                mender_dist_packages_versions["mender-orchestrator"],
-                pkg,
+        try:
+            # Upload all the packages (including the demo one)
+            for pkg in [
+                "mender-orchestrator",
+                "mender-orchestrator-core",
+            ]:
+                upload_deb_package(
+                    setup_tester_ssh_connection,
+                    mender_dist_packages_versions["mender-orchestrator"],
+                    pkg,
+                )
+            for pkg in [
+                "mender-orchestrator-support",
+                "mender-orchestrator-demo",
+            ]:
+                upload_deb_package(
+                    setup_tester_ssh_connection,
+                    mender_dist_packages_versions["mender-orchestrator-support"],
+                    pkg,
+                    "all",
+                )
+
+            setup_tester_ssh_connection.run("mkdir -p /packages; mv *.deb /packages/")
+            prepare_local_apt_repo(setup_tester_ssh_connection, "/packages")
+
+            # Install the meta-package only
+            setup_tester_ssh_connection.run(
+                "sudo apt install --assume-yes mender-orchestrator",
             )
-        for pkg in [
-            "mender-orchestrator-support",
-            "mender-orchestrator-demo",
-        ]:
-            upload_deb_package(
+
+            check_installed(setup_tester_ssh_connection, "mender-orchestrator")
+            check_installed(setup_tester_ssh_connection, "mender-orchestrator-core")
+            check_installed(setup_tester_ssh_connection, "mender-orchestrator-support")
+            check_installed(
                 setup_tester_ssh_connection,
-                mender_dist_packages_versions["mender-orchestrator-support"],
-                pkg,
-                "all",
+                "mender-orchestrator-demo",
+                installed=False,
             )
 
-        setup_tester_ssh_connection.run("mkdir -p /packages; mv *.deb /packages/")
-        prepare_local_apt_repo(setup_tester_ssh_connection, "/packages")
-
-        # Install the meta-package only
-        setup_tester_ssh_connection.run(
-            "sudo apt install --assume-yes mender-orchestrator",
-        )
-
-        check_installed(setup_tester_ssh_connection, "mender-orchestrator")
-        check_installed(setup_tester_ssh_connection, "mender-orchestrator-core")
-        check_installed(setup_tester_ssh_connection, "mender-orchestrator-support")
-        check_installed(
-            setup_tester_ssh_connection, "mender-orchestrator-demo", installed=False,
-        )
+        finally:
+            setup_tester_ssh_connection.run(
+                f"sudo dpkg --purge remove mender-orchestrator-support mender-orchestrator-core mender-orchestrator",
+            )
