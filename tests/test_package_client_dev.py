@@ -27,30 +27,38 @@ class TestPackageDev:
         mender_dist_packages_versions,
         mender_client_package_name,
     ):
-        # Upload
-        upload_deb_package(
-            setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-client"],
-            mender_client_package_name + "-dev",
-            package_arch="all",
-        )
-
-        # Install
-        setup_tester_ssh_connection.run(
-            "sudo dpkg --ignore-depends="
-            + mender_client_package_name
-            + " --install "
-            + package_filename(
+        try:
+            # Upload
+            upload_deb_package(
+                setup_tester_ssh_connection,
                 mender_dist_packages_versions["mender-client"],
                 mender_client_package_name + "-dev",
                 package_arch="all",
             )
-        )
-        check_installed(
-            setup_tester_ssh_connection, mender_client_package_name + "-dev"
-        )
 
-        # Check mender-client-dev files
-        setup_tester_ssh_connection.run(
-            "test -f /usr/share/dbus-1/interfaces/io.mender.Authentication1.xml"
-        )
+            # Install
+            setup_tester_ssh_connection.run(
+                "sudo dpkg --ignore-depends="
+                + mender_client_package_name
+                + " --install "
+                + package_filename(
+                    mender_dist_packages_versions["mender-client"],
+                    mender_client_package_name + "-dev",
+                    package_arch="all",
+                )
+            )
+            check_installed(
+                setup_tester_ssh_connection, mender_client_package_name + "-dev"
+            )
+
+            # Check mender-client-dev files
+            setup_tester_ssh_connection.run(
+                "test -f /usr/share/dbus-1/interfaces/io.mender.Authentication1.xml"
+            )
+
+        finally:
+            # Remove half-installed package.
+            # Otherwise "apt install" won't work anymore in further tests.
+            setup_tester_ssh_connection.run(
+                f"sudo dpkg --purge remove " + mender_client_package_name + "-dev"
+            )
