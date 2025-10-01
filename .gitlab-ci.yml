@@ -470,7 +470,7 @@ test:pkgs:workstation-tools:trixie:
     - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, arm64]'
     - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, amd64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   tags:
     - hetzner-amd-beefy-privileged
   variables:
@@ -505,7 +505,7 @@ publish:s3:device-components:automatic:
     - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, amd64]'
     - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, arm64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   tags:
     - hetzner-amd-beefy-privileged
   variables:
@@ -529,7 +529,7 @@ publish:s3:workstation_tools:automatic:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   before_script:
     - apt update && apt install -yyq awscli
   only:
@@ -574,7 +574,7 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, arm64]'
     - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, amd64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
