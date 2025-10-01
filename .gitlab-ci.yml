@@ -218,6 +218,8 @@ build:orig:all:
 build:pkgs:device-components:
   stage: build:packages
   extends: .build:base
+  needs:
+    - build:orig:all
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -255,6 +257,8 @@ build:pkgs:device-components:
 build:pkgs:workstation-tools:
   stage: build:packages
   extends: .build:base
+  needs:
+    - build:orig:all
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
