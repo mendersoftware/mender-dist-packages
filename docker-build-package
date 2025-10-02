@@ -129,7 +129,7 @@ DISTRO="${2}"
 RELEASE="${3}"
 ARCH="${4}"
 RECIPE_NAME="${5}"
-RECIPE_VERSION="${6:-master}"
+RECIPE_VERSION="${6}"
 SAVE_ORIG="$7"
 
 # Look for the recipe
