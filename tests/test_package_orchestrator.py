@@ -37,38 +37,6 @@ def prepare_local_apt_repo(container, packages_path):
 
 
 @pytest.mark.usefixtures("setup_mender_configured")
-class TestPackageOrchestratorCore:
-    @pytest.mark.commercial
-    def test_mender_orchestrator_standalone(
-        self, setup_tester_ssh_connection, mender_dist_packages_versions
-    ):
-        try:
-            # Remove mender-update to verify that mender-orchestrator-core can
-            # be installed with only mender-auth
-            setup_tester_ssh_connection.run(f"sudo dpkg --purge remove mender-update")
-
-            upload_deb_package(
-                setup_tester_ssh_connection,
-                mender_dist_packages_versions["mender-orchestrator"],
-                "mender-orchestrator-core",
-            )
-            setup_tester_ssh_connection.run(
-                "apt install --assume-yes ./"
-                + package_filename(
-                    mender_dist_packages_versions["mender-orchestrator"],
-                    "mender-orchestrator-core",
-                )
-            )
-            check_installed(setup_tester_ssh_connection, "mender-orchestrator-core")
-            setup_tester_ssh_connection.run("test -x /usr/bin/mender-orchestrator")
-
-        finally:
-            setup_tester_ssh_connection.run(
-                f"sudo dpkg --purge remove mender-orchestrator-core"
-            )
-
-
-@pytest.mark.usefixtures("setup_mender_configured")
 class TestPackageOrchestratorSplit:
     @pytest.mark.commercial
     def test_mender_orchestrator_split(
@@ -199,4 +167,41 @@ class TestPackageOrchestratorMeta:
         finally:
             setup_tester_ssh_connection.run(
                 f"sudo dpkg --purge remove mender-orchestrator-support mender-orchestrator-core mender-orchestrator",
+            )
+
+
+# Keep this test at the end. Due to reusing the environment through the tests,
+# after we remove a given version of mender-update (but keeping mender-auth)
+# further tests will refuse downgrading.
+@pytest.mark.usefixtures("setup_mender_configured")
+class TestPackageOrchestratorCore:
+    @pytest.mark.commercial
+    def test_mender_orchestrator_standalone(
+        self, setup_tester_ssh_connection, mender_dist_packages_versions
+    ):
+        try:
+            # Remove mender-update (and add-ons that depend on it) to verify
+            # that mender-orchestrator-core requires only mender-auth
+            setup_tester_ssh_connection.run(
+                f"sudo dpkg --purge remove mender-update mender-configure mender-connect"
+            )
+
+            upload_deb_package(
+                setup_tester_ssh_connection,
+                mender_dist_packages_versions["mender-orchestrator"],
+                "mender-orchestrator-core",
+            )
+            setup_tester_ssh_connection.run(
+                "apt install --assume-yes ./"
+                + package_filename(
+                    mender_dist_packages_versions["mender-orchestrator"],
+                    "mender-orchestrator-core",
+                )
+            )
+            check_installed(setup_tester_ssh_connection, "mender-orchestrator-core")
+            setup_tester_ssh_connection.run("test -x /usr/bin/mender-orchestrator")
+
+        finally:
+            setup_tester_ssh_connection.run(
+                f"sudo dpkg --purge remove mender-orchestrator-core"
             )
