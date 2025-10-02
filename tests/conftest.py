@@ -153,7 +153,7 @@ def mender_dist_packages_versions(request):
 # version < 4.0.
 @pytest.fixture(scope="session")
 def mender_deb_version(request):
-    return "3.5.3"
+    return "5.0.2"
 
 
 def min_version_impl(request, marker, min_version):
