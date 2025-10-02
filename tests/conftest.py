@@ -79,16 +79,6 @@ def mender_configure_version(request):
 
 
 @pytest.fixture(scope="session")
-def mender_artifact_version(request):
-    return request.config.getoption("--mender-artifact-version")
-
-
-@pytest.fixture(scope="session")
-def mender_cli_version(request):
-    return request.config.getoption("--mender-cli-version")
-
-
-@pytest.fixture(scope="session")
 def mender_app_update_module_version(request):
     return request.config.getoption("--mender-app-update-module-version")
 
@@ -203,24 +193,6 @@ def min_mender_configure_version(request):
         request,
         "min_mender_configure_version",
         request.config.getoption("--mender-configure-version"),
-    )
-
-
-@pytest.fixture(autouse=True)
-def min_mender_artifact_version(request):
-    min_version_impl(
-        request,
-        "min_mender_artifact_version",
-        request.config.getoption("--mender-artifact-version"),
-    )
-
-
-@pytest.fixture(autouse=True)
-def min_mender_cli_version(request):
-    min_version_impl(
-        request,
-        "min_mender_cli_version",
-        request.config.getoption("--mender-cli-version"),
     )
 
 
