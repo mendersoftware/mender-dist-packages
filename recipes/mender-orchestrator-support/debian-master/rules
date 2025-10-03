@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	dh_auto_install
+
+	# Install the update module
+	install -d -m 755 debian/tmp/usr/share/mender/modules/v3/
+	install -m 755 modules/mender-orchestrator-manifest/module/v3/mender-orchestrator-manifest \
+		debian/tmp/usr/share/mender/modules/v3/
+
+	# Install the inventory script
+	install -d -m 755 debian/tmp/usr/share/mender/inventory/
+	install -m 755 inventory/mender-inventory-mender-orchestrator \
+		debian/tmp/usr/share/mender/inventory/mender-inventory-orchestrator-inventory
+
+	# Install mock for the demo package
+	prefix=debian/tmp make install-mock-env
+
+override_dh_auto_test:
+	true

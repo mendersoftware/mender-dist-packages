@@ -24,18 +24,19 @@ output_path = os.path.normpath(os.path.join(tests_path, "..", "output"))
 COMMERCIAL_PACKAGES = [
     "mender-gateway",
     "mender-monitor",
+    "mender-orchestrator-core",
+    "mender-orchestrator",
 ]
 
 
+DEFAULT_PACKAGE_ARCH = "armhf"
+
 # Returns path were to find the package to install
-def packages_path(package, package_arch="arm64"):
+def packages_path(package, package_arch=DEFAULT_PACKAGE_ARCH):
     if package_arch == "all":
         package_arch = "amd64"
 
     distro = "debian"
-    if package_arch == "armhf":
-        # For armhf, we test only on Raspberry Pi OS, so it safe to assume distro here
-        distro = "raspberrypios"
 
     basedir = "opensource"
     if package in COMMERCIAL_PACKAGES:
@@ -44,13 +45,15 @@ def packages_path(package, package_arch="arm64"):
     return os.path.join(output_path, basedir, f"{distro}-bullseye-{package_arch}")
 
 
-def package_filename(package_version, package_name, package_arch="arm64"):
+def package_filename(package_version, package_name, package_arch=DEFAULT_PACKAGE_ARCH):
     return "{name}_{version}_{arch}.deb".format(
         name=package_name, version=package_version, arch=package_arch
     )
 
 
-def package_filename_path(package_version, package_name, package_arch="arm64"):
+def package_filename_path(
+    package_version, package_name, package_arch=DEFAULT_PACKAGE_ARCH
+):
     return os.path.join(
         packages_path(package_name, package_arch),
         package_filename(package_version, package_name, package_arch),
@@ -58,7 +61,7 @@ def package_filename_path(package_version, package_name, package_arch="arm64"):
 
 
 def upload_deb_package(
-    ssh_connection, package_version, package_name, package_arch="arm64"
+    ssh_connection, package_version, package_name, package_arch=DEFAULT_PACKAGE_ARCH
 ):
     ssh_connection.put(
         package_filename_path(package_version, package_name, package_arch)

@@ -1,0 +1,3 @@
+/usr/share/mender-orchestrator/interfaces/v1/rtos
+/data/mender-orchestrator/mock-instances
+/data/mender-orchestrator/topology.yaml

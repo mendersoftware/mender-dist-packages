@@ -38,13 +38,19 @@ variables:
   MENDER_MONITOR_VERSION:
     value: "master"
     description: "Version of monitor-client repository"
+  MENDER_ORCHESTRATOR_VERSION:
+    value: "master"
+    description: "Version of mender-orchestrator repository"
+  MENDER_ORCHESTRATOR_SUPPORT_VERSION:
+    value: "main"
+    description: "Version of mender-orchestrator-support repository"
+
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
-  # Legacy path for mender-client: <version>/$S3_BUCKET_SUBPATH/...
-  S3_BUCKET_SUBPATH: "dist-packages/debian"
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
+  S3_BUCKET_SUBPATH_ORCHESTRATOR: "mender-orchestrator/debian"
   # APT repo path for incoming packages (must be set/overwritten by individual
   # jobs, only listed here for reference/documentation and nicer errors in case
   # of not overwritten)
@@ -95,7 +101,7 @@ include:
     matrix:
       - BUILD: crosscompile
         DISTRO: debian
-        RELEASE: [bullseye, bookworm]
+        RELEASE: [bullseye, bookworm, trixie]
         ARCH: [amd64, armhf, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
@@ -106,12 +112,12 @@ include:
     matrix:
       - BUILD: crosscompile
         DISTRO: debian
-        RELEASE: [bullseye, bookworm]
-        ARCH: amd64
+        RELEASE: [bullseye, bookworm, trixie]
+        ARCH: [amd64, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
         RELEASE: [jammy, noble]
-        ARCH: amd64
+        ARCH: [amd64, arm64]
 
 .dind-login: &dind-login
   - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
@@ -172,14 +178,16 @@ include:
       - 192
 
 stages:
+  - test:static
   - build:orig
   - build:packages
   - test
   - publish
 
-build:orig:debian:bullseye:amd64:
+build:orig:all:
   stage: build:orig
   extends: .build:base
+  needs: []
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -210,14 +218,17 @@ build:orig:debian:bullseye:amd64:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION true
     - find output -type f
   artifacts:
     paths:
       - output/orig
 
-build:packages:cross:
+build:pkgs:device-components:
   stage: build:packages
   extends: .build:base
+  needs:
+    - build:orig:all
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -241,9 +252,11 @@ build:packages:cross:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator $MENDER_ORCHESTRATOR_VERSION
     - fi
     - find output -type f
   artifacts:
@@ -252,9 +265,11 @@ build:packages:cross:
       - output/opensource
   parallel: !reference [.mender-dist-packages-image-matrix-cross, parallel]
 
-build:packages:workstation_tools:cross:
+build:pkgs:workstation-tools:
   stage: build:packages
   extends: .build:base
+  needs:
+    - build:orig:all
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -276,19 +291,25 @@ build:packages:workstation_tools:cross:
   parallel: !reference [.mender-dist-packages-workstation_tools-image-matrix-cross, parallel]
 
 test:check-commits:
+  stage: test:static
   only:
     variables:
       - '$TEST_MENDER_DIST_PACKAGES == "true"'
 
 test:check-license:
+  stage: test:static
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
+
+test:check-license-source:
+  stage: test:static
 
 test:check-python3-formatting:
+  stage: test:static
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
-.test:acceptance:
+.test:pkgs:
   stage: test
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:dind
   tags:
@@ -296,9 +317,9 @@ test:check-python3-formatting:
     - hetzner-amd-beefy
   needs:
     # Note that we are only testing packages from Debian bullseye
-    - "build:packages:cross: [crosscompile, debian, bullseye, amd64]"
-    - "build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]"
-    - "build:packages:cross: [crosscompile, debian, bullseye, arm64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -339,6 +360,11 @@ test:check-python3-formatting:
           commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version)"
           commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
           commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-version $MENDER_ORCHESTRATOR_VERSION"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-orchestrator-deb-version)"
+          # NOTE: Although mender-orchestrator-support is built with no closed source secrets, it cannot be tested without mender-orchestrator so it belongs to "commercial tests"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-version $MENDER_ORCHESTRATOR_SUPPORT_VERSION"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-orchestrator-support-deb-version)"
         fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
@@ -347,10 +373,6 @@ test:check-python3-formatting:
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
-      --mender-artifact-version $MENDER_ARTIFACT_VERSION
-      --mender-artifact-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-artifact-deb-version)
-      --mender-cli-version $MENDER_CLI_VERSION
-      --mender-cli-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-cli-deb-version)
       --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION
       --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)
       --mender-setup-version $MENDER_SETUP_VERSION
@@ -359,25 +381,15 @@ test:check-python3-formatting:
       --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
       --mender-flash-version $MENDER_FLASH_VERSION
       --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
-      -m "${PYTEST_FILTER}"
       ${commercial_tests_flags}
       --junit-xml results.xml
   artifacts:
     reports:
       junit: tests/results.xml
 
-test:acceptance:golang:
-  rules:
-    - if: $CI_COMMIT_BRANCH == "production"
-      when: never
-    - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[32]\.[0-9x]+\.[0-9x]+/'
-  extends: .test:acceptance
-  variables:
-    PYTEST_FILTER: "not cppclient"
-
-test:acceptance:cpp:
-  extends: .test:acceptance
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:bullseye
+test:pkgs:device-components:
+  extends: .test:pkgs
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:bullseye
   tags:
     - hetzner-arm
   rules:
@@ -385,8 +397,6 @@ test:acceptance:cpp:
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  variables:
-    PYTEST_FILTER: "not golangclient"
   before_script:
     - apt-get update
     - apt-get -yyq install bash git python3-pip wget sudo
@@ -394,10 +404,10 @@ test:acceptance:cpp:
     - git submodule update --init --recursive
     - pip3 install -r tests/requirements.txt
 
-test:acceptance:script:
+test:install-script:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
-  extends: .test:acceptance
+  extends: .test:pkgs
   needs: []
   script:
     - cd scripts/tests
@@ -406,26 +416,45 @@ test:acceptance:script:
     reports:
       junit: scripts/tests/results.xml
 
-test:acceptance:workstation_tools:packages:
+.test:pkgs:workstation-tools:
+  variables:
+    DEBIAN_VERSION: 12
+    DEBIAN_VERSION_NAME: "bookworm"
   stage: test
   tags:
     - hetzner-amd-beefy
-  dependencies:
-    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
+  needs:
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, amd64]'
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:${DEBIAN_VERSION}
   script:
     - apt-get update
-    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-artifact*.deb
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-artifact*.deb
     - test -x /usr/bin/mender-artifact
     - mender-artifact --version
-    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-bookworm-amd64/mender-cli*.deb
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-cli*.deb
     - test -x /usr/bin/mender-cli
     - mender-cli --version
+
+test:pkgs:workstation-tools:bookworm:
+  extends: .test:pkgs:workstation-tools
+  variables:
+    DEBIAN_VERSION: 12
+    DEBIAN_VERSION_NAME: "bookworm"
+  needs:
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
+
+test:pkgs:workstation-tools:trixie:
+  extends: .test:pkgs:workstation-tools
+  variables:
+    DEBIAN_VERSION: 13
+    DEBIAN_VERSION_NAME: "trixie"
+  needs:
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]'
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
@@ -440,25 +469,24 @@ test:acceptance:workstation_tools:packages:
   }
 
 .template:publish:s3:device-components:
-  ################ MEN-7731 Debian armhf packages #####################
-  # We have support for building Debian armhf packages but the APT repositories and S3 buckets
-  # are not ready to publish these packages. For the time being, we explicitly set dependencies
-  # so that the jobs: [crosscompile, debian, bullseye/bookworm, armhf]' are not pulled into the
-  # publish stage. Remove the whole dependencies section when working on MEN-7754
   dependencies:
-    - 'build:orig:debian:bullseye:amd64'
-    - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
-    - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, amd64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   tags:
     - hetzner-amd-beefy-privileged
   variables:
@@ -482,12 +510,18 @@ publish:s3:device-components:automatic:
 
 .template:publish:s3:workstation_tools:
   dependencies:
-    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bullseye, amd64]'
-    - 'build:packages:workstation_tools:cross: [crosscompile, debian, bookworm, amd64]'
-    - 'build:packages:workstation_tools:cross: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:packages:workstation_tools:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, arm64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, arm64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, arm64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, arm64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, arm64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   tags:
     - hetzner-amd-beefy-privileged
   variables:
@@ -511,7 +545,7 @@ publish:s3:workstation_tools:automatic:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   before_script:
     - apt update && apt install -yyq awscli
   only:
@@ -539,24 +573,24 @@ publish:production:s3:scripts:install-mender-sh:
       - production
 
 .template:publish:s3:
-  ################ MEN-7731 Debian armhf packages #####################
-  # We have support for building Debian armhf packages but the APT repositories and S3 buckets
-  # are not ready to publish these packages. For the time being, we explicitly set dependencies
-  # so that the jobs: [crosscompile, debian, bullseye/bookworm, armhf]' are not pulled into the
-  # publish stage. Remove the whole dependencies section when working on MEN-7754
   dependencies:
-    - 'build:packages:cross: [crosscompile, debian, bullseye, amd64]'
-    - 'build:packages:cross: [crosscompile, debian, bullseye, arm64]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, amd64]'
-    - 'build:packages:cross: [crosscompile, debian, bookworm, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, jammy, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, armhf]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, arm64]'
-    - 'build:packages:cross: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, debian, trixie, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, amd64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, armhf]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, arm64]'
+    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, amd64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:12
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   before_script:
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
@@ -602,3 +636,19 @@ publish:s3:mender-gateway:automatic:
   rules:
     - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
   extends: .template:publish:s3:mender-gateway
+
+.template:publish:s3:mender-orchestrator:
+  variables:
+    PUBLISH_PACKAGE_PREFIX: "mender-orchestrator"
+    PUBLISH_PACKAGE_VERSION: "$MENDER_ORCHESTRATOR_VERSION"
+    PUBLISH_PACKAGE_S3_SUBPATH: "$S3_BUCKET_SUBPATH_ORCHESTRATOR"
+  extends: .template:publish:s3
+
+publish:s3:mender-orchestrator:manual:
+  when: manual
+  extends: .template:publish:s3:mender-orchestrator
+
+publish:s3:mender-orchestrator:automatic:
+  rules:
+    - if: '$PUBLISH_MENDER_DIST_PACKAGES_AUTOMATIC == "true"'
+  extends: .template:publish:s3:mender-orchestrator

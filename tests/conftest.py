@@ -51,6 +51,10 @@ def pytest_addoption(parser):
     parser.addoption("--mender-gateway-deb-version", required=False)
     parser.addoption("--mender-monitor-version", required=False)
     parser.addoption("--mender-monitor-deb-version", required=False)
+    parser.addoption("--mender-orchestrator-version", required=False)
+    parser.addoption("--mender-orchestrator-deb-version", required=False)
+    parser.addoption("--mender-orchestrator-support-version", required=False)
+    parser.addoption("--mender-orchestrator-support-deb-version", required=False)
     parser.addoption(
         "--commercial-tests", action="store_true", required=False, default=False
     )
@@ -76,16 +80,6 @@ def mender_connect_version(request):
 @pytest.fixture(scope="session")
 def mender_configure_version(request):
     return request.config.getoption("--mender-configure-version")
-
-
-@pytest.fixture(scope="session")
-def mender_artifact_version(request):
-    return request.config.getoption("--mender-artifact-version")
-
-
-@pytest.fixture(scope="session")
-def mender_cli_version(request):
-    return request.config.getoption("--mender-cli-version")
 
 
 @pytest.fixture(scope="session")
@@ -155,14 +149,21 @@ def mender_dist_packages_versions(request):
         "mender-flash": request.config.getoption("--mender-flash-deb-version"),
         "mender-gateway": request.config.getoption("--mender-gateway-deb-version"),
         "mender-monitor": request.config.getoption("--mender-monitor-deb-version"),
+        "mender-orchestrator": request.config.getoption(
+            "--mender-orchestrator-deb-version"
+        ),
+        "mender-orchestrator-support": request.config.getoption(
+            "--mender-orchestrator-support-deb-version"
+        ),
     }
 
 
-# Required for mender_test_containers/conftest.py::setup_mender_configured, which
-# is only used on addons packages tests. Use version 3.2.1 (mender-connect dependency)
+# Required for mender_test_containers/conftest.py::setup_mender_configured,
+# which is only used on addons packages tests. Use version 3.5.3 as the latest
+# version < 4.0.
 @pytest.fixture(scope="session")
 def mender_deb_version(request):
-    return "3.2.1"
+    return "5.0.2"
 
 
 def min_version_impl(request, marker, min_version):
@@ -202,24 +203,6 @@ def min_mender_configure_version(request):
         request,
         "min_mender_configure_version",
         request.config.getoption("--mender-configure-version"),
-    )
-
-
-@pytest.fixture(autouse=True)
-def min_mender_artifact_version(request):
-    min_version_impl(
-        request,
-        "min_mender_artifact_version",
-        request.config.getoption("--mender-artifact-version"),
-    )
-
-
-@pytest.fixture(autouse=True)
-def min_mender_cli_version(request):
-    min_version_impl(
-        request,
-        "min_mender_cli_version",
-        request.config.getoption("--mender-cli-version"),
     )
 
 

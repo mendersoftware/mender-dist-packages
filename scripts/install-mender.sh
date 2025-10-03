@@ -576,6 +576,9 @@ check_dist_and_version() {
         debian|raspbian)
             DIST_VERSION="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
             case "$DIST_VERSION" in
+                13)
+                    DIST_VERSION="trixie"
+                ;;
                 12)
                     DIST_VERSION="bookworm"
                 ;;
@@ -625,6 +628,9 @@ check_dist_and_version() {
                 fi
                 DIST_VERSION="$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')"
                 case "$DIST_VERSION" in
+                    13)
+                        DIST_VERSION="trixie"
+                    ;;
                     12)
                         DIST_VERSION="bookworm"
                     ;;

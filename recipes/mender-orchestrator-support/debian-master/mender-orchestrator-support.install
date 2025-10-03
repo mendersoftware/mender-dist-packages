@@ -1,0 +1,3 @@
+/usr/share/mender-orchestrator/interfaces/v1/rootfs-image
+/usr/share/mender/modules/v3/mender-orchestrator-manifest
+/usr/share/mender/inventory/mender-inventory-orchestrator-inventory
