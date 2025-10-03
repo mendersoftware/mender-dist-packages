@@ -74,12 +74,15 @@ names correspond to the Mender components:
 - `mender-monitor`
 - `mender-setup`
 - `mender-snapshot`
+- `mender-orchestrator`
+- `mender-orchestrator-support`
 
-The default value for `version` is `master`. An exact version of a package
-(usually a tag in the component's repository) can be specified. The `version`
-also specifies the version of the recipes used. If there is a recipe for the
-specific `version` in the respective `recipes/$package-name` directory, it is
-used. Otherwise the `debian-master` recipe for the given package is used.
+The version specified with `version` may be an exact version of the package
+(usually a tag in the component's repository) or the name of the main branch.
+The `version` also specifies the version of the recipes used. If there is a
+recipe for the specific `version` in the respective `recipes/$package-name`
+directory, it is used. Otherwise the `debian-master` recipe for the given
+package is used.
 
 *Note: Some recipes for past versions of various packages can be found in git
 history.*
