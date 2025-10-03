@@ -13,7 +13,13 @@ if [ ! -f "$CONFIG" ]; then
     [ -e "$CONFIG_DIR" ] || mkdir -p "$CONFIG_DIR"
 
     # get the system's current time zone
-    TIMEZONE=$(cat /etc/timezone)
+    # Debian 13 no longer supports /etc/timezone - file not exists
+    # Instead /etc/localtime should be used as a timezone source
+    if [[ -f /etc/timezone ]]; then
+        TIMEZONE=$(cat /etc/timezone)
+    else
+        TIMEZONE=$(cat /etc/localtime)
+    fi
 
     # if running on a Raspberry PI, set both timezone and mender-demo-raspberrypi-led keys
     if [ -e /sys/class/leds/led0/trigger ]; then
