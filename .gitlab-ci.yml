@@ -298,7 +298,7 @@ test:check-python3-formatting:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
-.test:pkgs:
+.template:test:pkgs:
   stage: test
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:dind
   tags:
@@ -306,11 +306,12 @@ test:check-python3-formatting:
     - hetzner-amd-beefy
   needs:
     # Note that we are only testing packages from Debian bullseye
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, amd64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+    REFERENCE_DIST: "debian-bullseye-amd64"
   before_script:
     # DinD setup in Mender CI runners
     - unset DOCKER_HOST
@@ -339,7 +340,6 @@ test:check-python3-formatting:
     - pip3 install --break-system-packages -r tests/requirements.txt
   script:
     - cd tests
-    - REFERENCE_DIST=debian-bullseye-amd64
     - |-
         commercial_tests_flags=""
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] &&
@@ -371,8 +371,35 @@ test:check-python3-formatting:
     reports:
       junit: tests/results.xml
 
+test:pkgs:bullseye:
+  extends: .template:test:pkgs
+  variables:
+    REFERENCE_DIST: "debian-bullseye-amd64"
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
+
+test:pkgs:bullseye:
+  extends: .template:test:pkgs
+  variables:
+    REFERENCE_DIST: "debian-bookworm-amd64"
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]"
+
+test:pkgs:trixie:
+  extends: .template:test:pkgs
+  variables:
+    REFERENCE_DIST: "debian-trixie-amd64"
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, trixie, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, trixie, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]"
+
 test:pkgs:device-components:
-  extends: .test:pkgs
+  extends: .template:test:pkgs
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:bullseye
   tags:
     - hetzner-arm
