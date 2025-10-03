@@ -100,7 +100,7 @@ declare -A mender_orchestrator_support_props=(
     [recipe_name]="mender-orchestrator-support"
     [src_url]="https://github.com/mendersoftware/mender-orchestrator-support"
     [arch_indep]="true"
-    [commercial]="false"
+    [commercial]="true"
 )
 
 declare -a packages=(

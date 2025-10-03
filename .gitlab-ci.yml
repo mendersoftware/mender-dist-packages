@@ -218,7 +218,6 @@ build:orig:all:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -252,11 +251,11 @@ build:pkgs:device-components:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator $MENDER_ORCHESTRATOR_VERSION
+    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION
     - fi
     - find output -type f
   artifacts:
@@ -364,7 +363,7 @@ test:check-python3-formatting:
           commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-orchestrator-deb-version)"
           # NOTE: Although mender-orchestrator-support is built with no closed source secrets, it cannot be tested without mender-orchestrator so it belongs to "commercial tests"
           commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-version $MENDER_ORCHESTRATOR_SUPPORT_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-orchestrator-support-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-orchestrator-support-deb-version)"
         fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
