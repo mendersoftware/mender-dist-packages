@@ -317,9 +317,9 @@ test:check-python3-formatting:
     - hetzner-amd-beefy
   needs:
     # Note that we are only testing packages from Debian bullseye
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, trixie, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, trixie, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   before_script:
@@ -350,7 +350,7 @@ test:check-python3-formatting:
     - pip3 install --break-system-packages -r tests/requirements.txt
   script:
     - cd tests
-    - REFERENCE_DIST=debian-bullseye-amd64
+    - REFERENCE_DIST=debian-trixie-amd64
     - |-
         commercial_tests_flags=""
         if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] &&
