@@ -26,6 +26,8 @@ COMMERCIAL_PACKAGES = [
     "mender-monitor",
     "mender-orchestrator-core",
     "mender-orchestrator",
+    "mender-orchestrator-support",
+    "mender-orchestrator-demo",
 ]
 
 
