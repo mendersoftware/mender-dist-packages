@@ -28,7 +28,8 @@ SCRIPT_SERVER_ADDR = "localhost"
 SCRIPT_SERVER_PORT = 8000
 SCRIPT_SERVER_PATH = os.path.join(os.path.dirname(__file__), "..")
 
-DEBIAN_REF_DISTRO = "bullseye"
+# Fetch the distro variant from the CI
+DEBIAN_REF_DISTRO = os.getenv("DEBIAN_VERSION_NAME", "missing-debian-version")
 DEBIAN_REF_PACKAGES = os.path.join(
     os.path.join(os.path.dirname(__file__), "..", "..", "output"),
     f"opensource/debian-{DEBIAN_REF_DISTRO}-amd64",
@@ -75,6 +76,7 @@ def script_server():
 
 @pytest.fixture(scope="function")
 def generic_debian_container(request):
+    output = subprocess.check_output(["docker", "pull", f"debian:{DEBIAN_REF_DISTRO}",])
     output = subprocess.check_output(
         [
             "docker",
