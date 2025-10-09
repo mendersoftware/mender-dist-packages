@@ -39,8 +39,6 @@ def pytest_addoption(parser):
     parser.addoption("--mender-artifact-deb-version", required=False)
     parser.addoption("--mender-cli-version", required=False)
     parser.addoption("--mender-cli-deb-version", required=False)
-    parser.addoption("--mender-app-update-module-version", required=False)
-    parser.addoption("--mender-app-update-module-deb-version", required=False)
     parser.addoption("--mender-setup-version", required=False)
     parser.addoption("--mender-setup-deb-version", required=False)
     parser.addoption("--mender-snapshot-version", required=False)
@@ -80,11 +78,6 @@ def mender_connect_version(request):
 @pytest.fixture(scope="session")
 def mender_configure_version(request):
     return request.config.getoption("--mender-configure-version")
-
-
-@pytest.fixture(scope="session")
-def mender_app_update_module_version(request):
-    return request.config.getoption("--mender-app-update-module-version")
 
 
 @pytest.fixture(scope="session")
@@ -141,9 +134,6 @@ def mender_dist_packages_versions(request):
         "mender-configure": request.config.getoption("--mender-configure-deb-version"),
         "mender-artifact": request.config.getoption("--mender-artifact-deb-version"),
         "mender-cli": request.config.getoption("--mender-cli-deb-version"),
-        "mender-app-update-module": request.config.getoption(
-            "--mender-app-update-module-deb-version"
-        ),
         "mender-setup": request.config.getoption("--mender-setup-deb-version"),
         "mender-snapshot": request.config.getoption("--mender-snapshot-deb-version"),
         "mender-flash": request.config.getoption("--mender-flash-deb-version"),
@@ -203,15 +193,6 @@ def min_mender_configure_version(request):
         request,
         "min_mender_configure_version",
         request.config.getoption("--mender-configure-version"),
-    )
-
-
-@pytest.fixture(autouse=True)
-def min_mender_app_update_module_version(request):
-    min_version_impl(
-        request,
-        "min_mender_app_update_module_version",
-        request.config.getoption("--mender-app-update-module-version"),
     )
 
 
