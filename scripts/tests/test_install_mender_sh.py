@@ -178,9 +178,10 @@ class TestInstallMenderScript:
     ):
         """Default, no arg install installs mender-client and add-ons (stable)."""
 
-        client_package = (
-            "mender-client4" if channel == "experimental" else "mender-client"
-        )
+        client_package = "mender-client4"
+        # Only Debian 11 in "stable" mode is still using "mender-client"
+        if DEBIAN_REF_DISTRO == "bullseye" and (channel == "stable" or channel == ""):
+            client_package = "mender-client"
 
         if channel != "":
             channel = "-c " + channel
@@ -287,13 +288,26 @@ class TestInstallMenderScript:
         generic_debian_container.run("apt --assume-yes upgrade")
 
         # Only mender-client should be upgraded
-        check_installed(generic_debian_container, "mender-client")
-        check_installed(generic_debian_container, "mender-client4", installed=False)
-        check_installed(generic_debian_container, "mender-update", installed=False)
-        check_installed(generic_debian_container, "mender-auth", installed=False)
-        check_installed(generic_debian_container, "mender-flash", installed=False)
-        check_installed(generic_debian_container, "mender-setup", installed=False)
-        check_installed(generic_debian_container, "mender-snapshot", installed=False)
+        # We are using stable branch so only Debian Bullseye will use "mender-client,
+        # everything else will have "mender-client4"
+        if DEBIAN_REF_DISTRO == "bullseye":
+            check_installed(generic_debian_container, "mender-client")
+            check_installed(generic_debian_container, "mender-update", installed=False)
+            check_installed(generic_debian_container, "mender-auth", installed=False)
+            check_installed(generic_debian_container, "mender-flash", installed=False)
+            check_installed(generic_debian_container, "mender-setup", installed=False)
+            check_installed(
+                generic_debian_container, "mender-snapshot", installed=False
+            )
+        else:
+            # Debian 12 / 13 will pull the dependencies
+            check_installed(generic_debian_container, "mender-client4")
+            check_installed(generic_debian_container, "mender-update")
+            check_installed(generic_debian_container, "mender-auth")
+            check_installed(generic_debian_container, "mender-flash")
+            check_installed(generic_debian_container, "mender-setup")
+            check_installed(generic_debian_container, "mender-snapshot")
+
         # The addons should not be removed
         check_installed(generic_debian_container, "mender-connect")
         check_installed(generic_debian_container, "mender-configure")
@@ -312,8 +326,11 @@ class TestInstallMenderScript:
             "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-update mender-client4"
         )
 
-        # mender-client should be removed and mender-client4 + all packages should be installed
-        check_installed(generic_debian_container, "mender-client", installed=False)
+        # Only Debian Bullseye stable is using "mender-client" and it will be removed
+        # with the "Status: deinstall ok config-files" result
+        # On Debian Bookworm / Trixi it will not be installed at all
+        if DEBIAN_REF_DISTRO == "bullseye":
+            check_installed(generic_debian_container, "mender-client", installed=False)
         check_installed(generic_debian_container, "mender-client4")
         check_installed(generic_debian_container, "mender-update")
         check_installed(generic_debian_container, "mender-auth")
@@ -361,9 +378,13 @@ class TestInstallMenderScript:
             "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-auth mender-update"
         )
 
-        # mender-client should be removed and required packages should be installed
-        check_installed(generic_debian_container, "mender-client", installed=False)
-        check_installed(generic_debian_container, "mender-client4", installed=False)
+        # Only Debian Bullseye stable is still using mender-client and will have it removed
+        if DEBIAN_REF_DISTRO == "bullseye":
+            check_installed(generic_debian_container, "mender-client", installed=False)
+            check_installed(generic_debian_container, "mender-client4", installed=False)
+        else:
+            # On Debian Bookworm / Trixie mender-client4 will not be affected
+            check_installed(generic_debian_container, "mender-client4")
         check_installed(generic_debian_container, "mender-update")
         check_installed(generic_debian_container, "mender-auth")
         check_installed(generic_debian_container, "mender-flash")
@@ -372,6 +393,10 @@ class TestInstallMenderScript:
         check_installed(generic_debian_container, "mender-configure")
 
 
+@pytest.mark.skipif(
+    DEBIAN_REF_DISTRO != "bullseye",
+    reason="Debian 11 is the only one requiring full cycle of package upgrades",
+)
 @pytest.mark.usefixtures("script_server")
 class TestUpgradeMenderV4:
     def test_upgrade_from_v3_to_v4_to_build(
