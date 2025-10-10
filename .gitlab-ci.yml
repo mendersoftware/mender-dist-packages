@@ -20,9 +20,6 @@ variables:
   MENDER_CLI_VERSION:
     value: "master"
     description: "Version of mender-cli repository"
-  MENDER_APP_UPDATE_MODULE_VERSION:
-    value: "master"
-    description: "Version of mender-app-update-module repository"
   MENDER_SETUP_VERSION:
     value: "master"
     description: "Version of mender-setup repository"
@@ -214,7 +211,6 @@ build:orig:all:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
@@ -247,7 +243,6 @@ build:pkgs:device-components:
     - fi
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-app-update-module $MENDER_APP_UPDATE_MODULE_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
@@ -372,8 +367,6 @@ test:check-python3-formatting:
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
-      --mender-app-update-module-version $MENDER_APP_UPDATE_MODULE_VERSION
-      --mender-app-update-module-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-app-update-module-deb-version)
       --mender-setup-version $MENDER_SETUP_VERSION
       --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)
       --mender-snapshot-version $MENDER_SNAPSHOT_VERSION

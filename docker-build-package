@@ -68,13 +68,6 @@ declare -A mender_gateway_props=(
     [commercial]="true"
 )
 
-declare -A mender_app_update_module_props=(
-    [recipe_name]="mender-app-update-module"
-    [src_url]="https://github.com/mendersoftware/app-update-module"
-    [arch_indep]="true"
-    [commercial]="false"
-)
-
 declare -A mender_setup_props=(
     [recipe_name]="mender-setup"
     [src_url]="https://github.com/mendersoftware/mender-setup"
@@ -112,7 +105,6 @@ declare -a packages=(
     mender_flash_props
     mender_gateway_props
     mender_monitor_props
-    mender_app_update_module_props
     mender_setup_props
     mender_snapshot_props
     mender_orchestrator_props
