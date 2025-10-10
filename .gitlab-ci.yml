@@ -303,6 +303,8 @@ test:check-python3-formatting:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
 
+# This template setups the Docker based environment to test the packages
+# from a specified Debian version
 .test:pkgs:
   stage: test
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:dind
@@ -310,12 +312,13 @@ test:check-python3-formatting:
     #- mender-qa-worker-generic
     - hetzner-amd-beefy
   needs:
-    # Note that we are only testing packages from Debian bullseye
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, amd64]"
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
+    DEBIAN_VERSION: 11
+    DEBIAN_VERSION_NAME: "bullseye"
   before_script:
     # DinD setup in Mender CI runners
     - unset DOCKER_HOST
@@ -336,52 +339,52 @@ test:check-python3-formatting:
     - apk --update --no-cache add git
     - git submodule sync --recursive
     - git submodule update --init --recursive
+    - git submodule status --recursive
     # Log in to pull test image from registry.gitlab.com
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
     # Install dependencies
     - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
       libffi-dev libc-dev python3-dev bash musl-dev rust cargo
-    - pip3 install --break-system-packages -r tests/requirements.txt
+    - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
   script:
     - cd tests
-    - REFERENCE_DIST=debian-bullseye-amd64
     - |-
         commercial_tests_flags=""
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version ] &&
-           [ -f ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version ]; then
+        if [ -f ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-gateway-deb-version ] &&
+           [ -f ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-monitor-deb-version ]; then
           commercial_tests_flags="--commercial-tests"
           commercial_tests_flags="$commercial_tests_flags --mender-gateway-version $MENDER_GATEWAY_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-gateway-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-gateway-deb-version)"
           commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-monitor-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-monitor-deb-version)"
           commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-version $MENDER_ORCHESTRATOR_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-orchestrator-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-orchestrator-deb-version)"
           # NOTE: Although mender-orchestrator-support is built with no closed source secrets, it cannot be tested without mender-orchestrator so it belongs to "commercial tests"
           commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-version $MENDER_ORCHESTRATOR_SUPPORT_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/${REFERENCE_DIST}/mender-orchestrator-support-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-orchestrator-support-deb-version)"
         fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-client*-deb-version)
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client*-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
-      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-connect-deb-version)
+      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
-      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-configure-deb-version)
+      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-configure-deb-version)
       --mender-setup-version $MENDER_SETUP_VERSION
-      --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-setup-deb-version)
+      --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-setup-deb-version)
       --mender-snapshot-version $MENDER_SNAPSHOT_VERSION
-      --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-snapshot-deb-version)
+      --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-snapshot-deb-version)
       --mender-flash-version $MENDER_FLASH_VERSION
-      --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/${REFERENCE_DIST}/mender-flash-deb-version)
+      --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-flash-deb-version)
       ${commercial_tests_flags}
       --junit-xml results.xml
   artifacts:
     reports:
       junit: tests/results.xml
 
-test:pkgs:device-components:
+.test:pkgs:device-components:
   extends: .test:pkgs
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:bullseye
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:${DEBIAN_VERSION_NAME}
   tags:
     - hetzner-arm
   rules:
@@ -391,12 +394,46 @@ test:pkgs:device-components:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   before_script:
     - apt-get update
-    - apt-get -yyq install bash git python3-pip wget sudo
+    - apt-get -yyq install bash git python3-pip wget sudo python3-venv
     - git submodule sync --recursive
     - git submodule update --init --recursive
-    - pip3 install -r tests/requirements.txt
+    - git submodule status --recursive
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
 
-test:install-script:
+test:pkgs:device-components:bullseye:
+  extends: .test:pkgs:device-components
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
+  variables:
+    DEBIAN_VERSION: 11
+    DEBIAN_VERSION_NAME: "bullseye"
+
+test:pkgs:device-components:bookworm:
+  extends: .test:pkgs:device-components
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]"
+  variables:
+    DEBIAN_VERSION: 12
+    DEBIAN_VERSION_NAME: "bookworm"
+
+test:pkgs:device-components:trixie:
+  extends: .test:pkgs:device-components
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, trixie, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, trixie, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]"
+  variables:
+    DEBIAN_VERSION: 13
+    DEBIAN_VERSION_NAME: "trixie"
+
+# This template allows testing installation sctip agains different Debian versions
+.test:install-script:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   extends: .test:pkgs
@@ -408,6 +445,38 @@ test:install-script:
     reports:
       junit: scripts/tests/results.xml
 
+test:install-script:bullseye:
+  extends: .test:install-script
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
+  variables:
+    DEBIAN_VERSION: 11
+    DEBIAN_VERSION_NAME: "bullseye"
+
+test:install-script:bookworm:
+  extends: .test:install-script
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]"
+  variables:
+    DEBIAN_VERSION: 12
+    DEBIAN_VERSION_NAME: "bookworm"
+
+test:install-script:trixie:
+  extends: .test:install-script
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, trixie, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, trixie, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]"
+  variables:
+    DEBIAN_VERSION: 13
+    DEBIAN_VERSION_NAME: "trixie"
+
+# This is a template for testing workstation-tools agains different Debian version
+# which will be redefined when template will be extended.
 .test:pkgs:workstation-tools:
   variables:
     DEBIAN_VERSION: 12

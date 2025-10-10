@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import os.path
+import os
 
 from mender_test_containers.helpers import Result as SSHResult
 
@@ -39,12 +39,16 @@ def packages_path(package, package_arch=DEFAULT_PACKAGE_ARCH):
         package_arch = "amd64"
 
     distro = "debian"
+    # Inherit this from the CI calling the tests
+    distro_version = os.getenv("DEBIAN_VERSION_NAME", "missing-debian-version")
 
     basedir = "opensource"
     if package in COMMERCIAL_PACKAGES:
         basedir = "commercial"
 
-    return os.path.join(output_path, basedir, f"{distro}-bullseye-{package_arch}")
+    return os.path.join(
+        output_path, basedir, f"{distro}-{distro_version}-{package_arch}"
+    )
 
 
 def package_filename(package_version, package_name, package_arch=DEFAULT_PACKAGE_ARCH):
