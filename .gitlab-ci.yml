@@ -311,14 +311,15 @@ test:check-python3-formatting:
   tags:
     #- mender-qa-worker-generic
     - hetzner-amd-beefy
-  needs:
-    - "build:pkgs:device-components: [crosscompile, debian, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, amd64]"
+  # Bellow will be overwritten in the final pipeline definition with something like
+  # "build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]"
+  needs: []
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
+    # Bellow two variables need to be defined in the final pipeline and
+    # match each other to property reflect Debian version
+    # DEBIAN_VERSION  (example: 11)
+    # DEBIAN_VERSION_NAME  (example: "bullseye")
   before_script:
     # DinD setup in Mender CI runners
     - unset DOCKER_HOST
@@ -407,7 +408,6 @@ test:pkgs:device-components:bullseye:
   needs:
     - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
     - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
   variables:
     DEBIAN_VERSION: 11
     DEBIAN_VERSION_NAME: "bullseye"
@@ -417,7 +417,6 @@ test:pkgs:device-components:bookworm:
   needs:
     - "build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]"
     - "build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]"
   variables:
     DEBIAN_VERSION: 12
     DEBIAN_VERSION_NAME: "bookworm"
@@ -427,7 +426,6 @@ test:pkgs:device-components:trixie:
   needs:
     - "build:pkgs:device-components: [crosscompile, debian, trixie, amd64]"
     - "build:pkgs:device-components: [crosscompile, debian, trixie, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]"
   variables:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
