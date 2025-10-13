@@ -13,14 +13,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import os
 import re
+
+from conftest import get_debian_distro_version
 
 
 def verify_package_version(version, deb_version):
     distro = "debian"
     # Inherit this from the CI calling the tests
-    distro_version = os.getenv("DEBIAN_VERSION_NAME", "missing-debian-version")
+    distro_version = get_debian_distro_version()
 
     if version == "master":
         # Example package: mender-setup_1.1.0~git20251006.0edfbc5-1+debian+bullseye+builder2084488895

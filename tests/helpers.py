@@ -15,6 +15,7 @@
 
 import os
 
+from conftest import get_debian_distro_version
 from mender_test_containers.helpers import Result as SSHResult
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
@@ -39,8 +40,7 @@ def packages_path(package, package_arch=DEFAULT_PACKAGE_ARCH):
         package_arch = "amd64"
 
     distro = "debian"
-    # Inherit this from the CI calling the tests
-    distro_version = os.getenv("DEBIAN_VERSION_NAME", "missing-debian-version")
+    distro_version = get_debian_distro_version()
 
     basedir = "opensource"
     if package in COMMERCIAL_PACKAGES:
