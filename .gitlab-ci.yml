@@ -41,6 +41,9 @@ variables:
   MENDER_ORCHESTRATOR_SUPPORT_VERSION:
     value: "main"
     description: "Version of mender-orchestrator-support repository"
+  MENDER_CONTAINER_MODULES_VERSION:
+    value: "main"
+    description: "Version of mender-container-modules repository"
 
   # Bucket name
   S3_BUCKET_NAME: "mender"
@@ -209,6 +212,7 @@ build:orig:all:
     - fi
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
@@ -243,6 +247,7 @@ build:pkgs:device-components:
     - fi
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
@@ -377,6 +382,8 @@ test:check-python3-formatting:
       --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-snapshot-deb-version)
       --mender-flash-version $MENDER_FLASH_VERSION
       --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-flash-deb-version)
+      --mender-container-modules-version $MENDER_CONTAINER_MODULES_VERSION
+      --mender-container-modules-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-container-modules-deb-version)
       ${commercial_tests_flags}
       --junit-xml results.xml
   artifacts:

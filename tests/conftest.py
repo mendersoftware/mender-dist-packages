@@ -61,6 +61,8 @@ def pytest_addoption(parser):
     parser.addoption("--mender-orchestrator-deb-version", required=False)
     parser.addoption("--mender-orchestrator-support-version", required=False)
     parser.addoption("--mender-orchestrator-support-deb-version", required=False)
+    parser.addoption("--mender-container-modules-version", required=False)
+    parser.addoption("--mender-container-modules-deb-version", required=False)
     parser.addoption(
         "--commercial-tests", action="store_true", required=False, default=False
     )
@@ -152,6 +154,9 @@ def mender_dist_packages_versions(request):
         ),
         "mender-orchestrator-support": request.config.getoption(
             "--mender-orchestrator-support-deb-version"
+        ),
+        "mender-container-modules": request.config.getoption(
+            "--mender-container-modules-deb-version"
         ),
     }
 
