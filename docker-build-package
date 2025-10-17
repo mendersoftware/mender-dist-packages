@@ -95,6 +95,12 @@ declare -A mender_orchestrator_support_props=(
     [arch_indep]="true"
     [commercial]="true"
 )
+declare -A mender_container_modules_props=(
+    [recipe_name]="mender-container-modules"
+    [src_url]="https://github.com/mendersoftware/mender-container-modules"
+    [arch_indep]="true"
+    [commercial]="false"
+)
 
 declare -a packages=(
     mender_client4_props
@@ -109,6 +115,7 @@ declare -a packages=(
     mender_snapshot_props
     mender_orchestrator_props
     mender_orchestrator_support_props
+    mender_container_modules_props
 )
 
 # Parse args
