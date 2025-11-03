@@ -63,7 +63,6 @@ can be one of the following values:
 The `package-name` and `version` define what should be built. Possible package
 names correspond to the Mender components:
 
-- `mender-app-update-module`
 - `mender-artifact`
 - `mender-cli`
 - `mender-client4`

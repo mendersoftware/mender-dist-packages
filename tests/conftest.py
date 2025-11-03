@@ -15,6 +15,7 @@
 
 import packaging.version
 
+import os
 import pytest
 
 from mender_test_containers.container_props import *
@@ -28,6 +29,13 @@ def setup_test_container_props(request):
     return request.param
 
 
+def get_debian_distro_version():
+    # Inherit this from the CI calling the tests
+    distro_version = os.getenv("DEBIAN_VERSION_NAME", "")
+    assert distro_version != ""
+    return distro_version
+
+
 def pytest_addoption(parser):
     parser.addoption("--mender-client-version", required=False)
     parser.addoption("--mender-client-deb-version", required=False)
@@ -39,8 +47,6 @@ def pytest_addoption(parser):
     parser.addoption("--mender-artifact-deb-version", required=False)
     parser.addoption("--mender-cli-version", required=False)
     parser.addoption("--mender-cli-deb-version", required=False)
-    parser.addoption("--mender-app-update-module-version", required=False)
-    parser.addoption("--mender-app-update-module-deb-version", required=False)
     parser.addoption("--mender-setup-version", required=False)
     parser.addoption("--mender-setup-deb-version", required=False)
     parser.addoption("--mender-snapshot-version", required=False)
@@ -55,6 +61,8 @@ def pytest_addoption(parser):
     parser.addoption("--mender-orchestrator-deb-version", required=False)
     parser.addoption("--mender-orchestrator-support-version", required=False)
     parser.addoption("--mender-orchestrator-support-deb-version", required=False)
+    parser.addoption("--mender-container-modules-version", required=False)
+    parser.addoption("--mender-container-modules-deb-version", required=False)
     parser.addoption(
         "--commercial-tests", action="store_true", required=False, default=False
     )
@@ -80,11 +88,6 @@ def mender_connect_version(request):
 @pytest.fixture(scope="session")
 def mender_configure_version(request):
     return request.config.getoption("--mender-configure-version")
-
-
-@pytest.fixture(scope="session")
-def mender_app_update_module_version(request):
-    return request.config.getoption("--mender-app-update-module-version")
 
 
 @pytest.fixture(scope="session")
@@ -141,9 +144,6 @@ def mender_dist_packages_versions(request):
         "mender-configure": request.config.getoption("--mender-configure-deb-version"),
         "mender-artifact": request.config.getoption("--mender-artifact-deb-version"),
         "mender-cli": request.config.getoption("--mender-cli-deb-version"),
-        "mender-app-update-module": request.config.getoption(
-            "--mender-app-update-module-deb-version"
-        ),
         "mender-setup": request.config.getoption("--mender-setup-deb-version"),
         "mender-snapshot": request.config.getoption("--mender-snapshot-deb-version"),
         "mender-flash": request.config.getoption("--mender-flash-deb-version"),
@@ -154,6 +154,9 @@ def mender_dist_packages_versions(request):
         ),
         "mender-orchestrator-support": request.config.getoption(
             "--mender-orchestrator-support-deb-version"
+        ),
+        "mender-container-modules": request.config.getoption(
+            "--mender-container-modules-deb-version"
         ),
     }
 
@@ -203,15 +206,6 @@ def min_mender_configure_version(request):
         request,
         "min_mender_configure_version",
         request.config.getoption("--mender-configure-version"),
-    )
-
-
-@pytest.fixture(autouse=True)
-def min_mender_app_update_module_version(request):
-    min_version_impl(
-        request,
-        "min_mender_app_update_module_version",
-        request.config.getoption("--mender-app-update-module-version"),
     )
 
 

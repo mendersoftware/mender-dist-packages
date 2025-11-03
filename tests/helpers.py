@@ -13,8 +13,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-import os.path
+import os
 
+from conftest import get_debian_distro_version
 from mender_test_containers.helpers import Result as SSHResult
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
@@ -26,6 +27,8 @@ COMMERCIAL_PACKAGES = [
     "mender-monitor",
     "mender-orchestrator-core",
     "mender-orchestrator",
+    "mender-orchestrator-support",
+    "mender-orchestrator-demo",
 ]
 
 
@@ -37,12 +40,15 @@ def packages_path(package, package_arch=DEFAULT_PACKAGE_ARCH):
         package_arch = "amd64"
 
     distro = "debian"
+    distro_version = get_debian_distro_version()
 
     basedir = "opensource"
     if package in COMMERCIAL_PACKAGES:
         basedir = "commercial"
 
-    return os.path.join(output_path, basedir, f"{distro}-bullseye-{package_arch}")
+    return os.path.join(
+        output_path, basedir, f"{distro}-{distro_version}-{package_arch}"
+    )
 
 
 def package_filename(package_version, package_name, package_arch=DEFAULT_PACKAGE_ARCH):

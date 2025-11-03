@@ -1,0 +1,13 @@
+Source: mender-container-modules
+Maintainer: Mender Team <mender@northern.tech>
+Section: admin
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: mender-docker-compose
+Architecture: all
+Depends: jq, docker-ce-cli | docker.io, docker-compose-plugin | docker-compose, mender-update, ${misc:Depends}
+Description: Mender docker-compose Update Module
+ mender-docker-compose provides the docker-compose Mender Update Module that allows Mender to
+ install and update Docker Compose projects on devices.
