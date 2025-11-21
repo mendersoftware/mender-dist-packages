@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+
+APP_NAME="mender-orchestrator"
+DATA_DIR="/data"
+TARGET_DIR="${DATA_DIR}/${APP_NAME}"
+LINK_PATH="/var/lib/${APP_NAME}"
+
+ACTION="$1"
+
+case "$ACTION" in
+    configure)
+        if [ -d "$DATA_DIR" ]; then
+        	if [ -d "$LINK_PATH" ] && [ ! -L "$LINK_PATH" ]; then
+                # LINK_PATH a directory AND NOT a symlink (i.e., a real directory)
+                # Should never happen, because we would need to have it created by some previous
+                # installation, but it does not hurt to check.
+                echo "ERROR: $LINK_PATH exists and is a real directory. Cannot overwrite." >&2
+                exit 1 
+            fi
+            # -f to overwrite if link already exists
+            ln -sf "$TARGET_DIR" "$LINK_PATH"
+        fi
+    ;;
+
+    *)
+    ;;
+esac
+
+#DEBHELPER#
