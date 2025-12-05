@@ -47,7 +47,7 @@ The only supported `build-type` is `crosscompile`. `distro`, `release` and
 `arch` define the target OS. `distro` and `release` can currently be one of the
 following combinations:
 
-- `debian`: `bullseye`, `bookworm`
+- `debian`: `bullseye`, `bookworm`, `trixie`
 - `ubuntu`: `focal`, `jammy`, `noble`
 
 These combinations change in time with new distribution releases and old
