@@ -1,0 +1,15 @@
+Source: mender-client-version-inventory-script
+Maintainer: Mender Team <mender@northern.tech>
+Section: devel
+Priority: optional
+Standards-Version: 1.0
+Build-Depends: debhelper (>= 9)
+Conflicts: mender (<< ${mender:Version}), mender (>> ${mender:Version})
+
+Package: mender-client-version-inventory-script
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Mender client version inventory script
+ Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
+ mender-client-version-inventory-script is a new recipe that provides an inventory script
+ with the "built-in" inventory key `mender_client_version` for a supported Mender Client installation.
