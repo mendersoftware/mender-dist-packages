@@ -1,6 +1,5 @@
 #!/usr/bin/make -f
 
-export MENDER_UPDATE_VERSION := $(shell dpkg-parsechangelog -S Version | sed 's/-.*//')
 
 %:
 	dh $@ --with systemd
@@ -41,10 +40,3 @@ override_dh_auto_install:
 override_dh_strip:
 	dh_strip --no-automatic-dbgsym
 
-override_dh_gencontrol:
-	if dpkg --compare-versions "$(MENDER_UPDATE_VERSION)" ge "5.1"; then \
-		echo "my:conditional_recommends=mender-client-version-inventory-script" >> debian/substvars; \
-	else \
-		echo "my:conditional_recommends=" >> debian/substvars; \
-	fi
-	dh_gencontrol
