@@ -1,5 +1,6 @@
 #!/usr/bin/make -f
 
+
 %:
 	dh $@ --with systemd
 
@@ -38,3 +39,4 @@ override_dh_auto_install:
 # See https://northerntech.atlassian.net/browse/MEN-6915
 override_dh_strip:
 	dh_strip --no-automatic-dbgsym
+

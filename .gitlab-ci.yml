@@ -20,6 +20,9 @@ variables:
   MENDER_CLI_VERSION:
     value: "master"
     description: "Version of mender-cli repository"
+  MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION:
+    value: "main"
+    description: "Version of mender-client-version-inventory-script"
   MENDER_SETUP_VERSION:
     value: "master"
     description: "Version of mender-setup repository"
@@ -215,6 +218,7 @@ build:orig:all:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
@@ -245,6 +249,7 @@ build:pkgs:device-components:
     - else
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
     - fi
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION
@@ -374,6 +379,8 @@ test:check-python3-formatting:
       --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client*-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-connect-deb-version)
+      --mender-client-version-inventory-script-version $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
+      --mender-client-version-inventory-script-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client-version-inventory-script-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
       --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-configure-deb-version)
       --mender-setup-version $MENDER_SETUP_VERSION

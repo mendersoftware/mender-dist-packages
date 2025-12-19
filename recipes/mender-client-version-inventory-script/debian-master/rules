@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+
+export MENDER_VERSION := $(shell python3 -c "import json; print(json.load(open('versions.json'))['mender'])")
+
+%:
+	dh $@
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Vmender:Version=$(MENDER_VERSION)
+
+override_dh_auto_build:
+	make build-inventory-script
+
+override_dh_auto_install:
+	make install-inventory-script
+
+override_dh_auto_test:
+	true
+
