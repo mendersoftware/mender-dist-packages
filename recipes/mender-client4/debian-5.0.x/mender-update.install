@@ -1,0 +1,6 @@
+/lib/systemd/system/mender-updated.service
+/usr/bin/mender-update
+/usr/share/mender/modules/v3/*
+/usr/share/mender/inventory/*
+/etc/mender/scripts/version
+/etc/mender/inventory/*
