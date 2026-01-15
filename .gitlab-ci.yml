@@ -437,7 +437,7 @@ test:pkgs:device-components:trixie:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
 
-# This template allows testing installation sctip agains different Debian versions
+# This template allows testing installation script against different Debian versions
 .test:install-script:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
@@ -480,7 +480,7 @@ test:install-script:trixie:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
 
-# This is a template for testing workstation-tools agains different Debian version
+# This is a template for testing workstation-tools against different Debian version
 # which will be redefined when template will be extended.
 .test:pkgs:workstation-tools:
   variables:
