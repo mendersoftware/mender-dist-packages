@@ -101,7 +101,7 @@ include:
     matrix:
       - BUILD: crosscompile
         DISTRO: debian
-        RELEASE: [bullseye, bookworm, trixie]
+        RELEASE: [bookworm, trixie]
         ARCH: [amd64, armhf, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
@@ -112,7 +112,7 @@ include:
     matrix:
       - BUILD: crosscompile
         DISTRO: debian
-        RELEASE: [bullseye, bookworm, trixie]
+        RELEASE: [bookworm, trixie]
         ARCH: [amd64, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
@@ -201,7 +201,7 @@ build:orig:all:
   variables:
     BUILD: "crosscompile"
     DISTRO: "debian"
-    RELEASE: "bullseye"
+    RELEASE: "bookworm"
     ARCH: "amd64"
   script:
     - apk --update --no-cache add bash
@@ -323,8 +323,8 @@ test:check-python3-formatting:
     GIT_SUBMODULE_STRATEGY: recursive
     # Bellow two variables need to be defined in the final pipeline and
     # match each other to property reflect Debian version
-    # DEBIAN_VERSION  (example: 11)
-    # DEBIAN_VERSION_NAME  (example: "bullseye")
+    # DEBIAN_VERSION  (example: 13)
+    # DEBIAN_VERSION_NAME  (example: "trixie")
   before_script:
     # DinD setup in Mender CI runners
     - unset DOCKER_HOST
@@ -409,15 +409,6 @@ test:check-python3-formatting:
     - python3 -m venv venv
     - source venv/bin/activate
     - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
-
-test:pkgs:device-components:bullseye:
-  extends: .test:pkgs:device-components
-  needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-  variables:
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
 
 test:pkgs:device-components:bookworm:
   extends: .test:pkgs:device-components
@@ -538,9 +529,6 @@ test:pkgs:workstation-tools:trixie:
 
 .template:publish:s3:device-components:
   dependencies:
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
@@ -578,8 +566,6 @@ publish:s3:device-components:automatic:
 
 .template:publish:s3:workstation_tools:
   dependencies:
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]'
@@ -642,9 +628,6 @@ publish:production:s3:scripts:install-mender-sh:
 
 .template:publish:s3:
   dependencies:
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
