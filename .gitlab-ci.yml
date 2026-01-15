@@ -471,12 +471,10 @@ test:install-script:trixie:
     DEBIAN_VERSION_NAME: "trixie"
 
 # Legacy tests specific for Debian 11
+# Note that it does not verify built packages (because we don't build anymore for Debian 11)
 test:install-script:legacy:
   extends: .test:install-script
-  needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
+  needs: []
   script:
     - cd scripts/tests
     - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh_legacy.py
