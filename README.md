@@ -48,7 +48,7 @@ The only supported `build-type` is `crosscompile`. `distro`, `release` and
 following combinations:
 
 - `debian`: `bullseye`, `bookworm`, `trixie`
-- `ubuntu`: `focal`, `jammy`, `noble`
+- `ubuntu`: `jammy`, `noble`
 
 These combinations change in time with new distribution releases and old
 releases going out of support.
