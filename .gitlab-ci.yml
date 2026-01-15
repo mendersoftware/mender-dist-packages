@@ -445,20 +445,10 @@ test:pkgs:device-components:trixie:
   needs: []
   script:
     - cd scripts/tests
-    - python3 -m pytest -v --junit-xml results.xml
+    - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh.py
   artifacts:
     reports:
       junit: scripts/tests/results.xml
-
-test:install-script:bullseye:
-  extends: .test:install-script
-  needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
-  variables:
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
 
 test:install-script:bookworm:
   extends: .test:install-script
@@ -479,6 +469,20 @@ test:install-script:trixie:
   variables:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
+
+# Legacy tests specific for Debian 11
+test:install-script:legacy:
+  extends: .test:install-script
+  needs:
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
+    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
+    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
+  script:
+    - cd scripts/tests
+    - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh_legacy.py
+  variables:
+    DEBIAN_VERSION: 11
+    DEBIAN_VERSION_NAME: "bullseye"
 
 # This is a template for testing workstation-tools against different Debian version
 # which will be redefined when template will be extended.
