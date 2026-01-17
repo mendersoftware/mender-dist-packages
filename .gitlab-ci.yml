@@ -101,7 +101,7 @@ include:
     matrix:
       - BUILD: crosscompile
         DISTRO: debian
-        RELEASE: [bullseye, bookworm, trixie]
+        RELEASE: [bookworm, trixie]
         ARCH: [amd64, armhf, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
@@ -112,7 +112,7 @@ include:
     matrix:
       - BUILD: crosscompile
         DISTRO: debian
-        RELEASE: [bullseye, bookworm, trixie]
+        RELEASE: [bookworm, trixie]
         ARCH: [amd64, arm64]
       - BUILD: crosscompile
         DISTRO: ubuntu
@@ -201,7 +201,7 @@ build:orig:all:
   variables:
     BUILD: "crosscompile"
     DISTRO: "debian"
-    RELEASE: "bullseye"
+    RELEASE: "bookworm"
     ARCH: "amd64"
   script:
     - apk --update --no-cache add bash
@@ -323,8 +323,8 @@ test:check-python3-formatting:
     GIT_SUBMODULE_STRATEGY: recursive
     # Bellow two variables need to be defined in the final pipeline and
     # match each other to property reflect Debian version
-    # DEBIAN_VERSION  (example: 11)
-    # DEBIAN_VERSION_NAME  (example: "bullseye")
+    # DEBIAN_VERSION  (example: 13)
+    # DEBIAN_VERSION_NAME  (example: "trixie")
   before_script:
     # DinD setup in Mender CI runners
     - unset DOCKER_HOST
@@ -410,15 +410,6 @@ test:check-python3-formatting:
     - source venv/bin/activate
     - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
 
-test:pkgs:device-components:bullseye:
-  extends: .test:pkgs:device-components
-  needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-  variables:
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
-
 test:pkgs:device-components:bookworm:
   extends: .test:pkgs:device-components
   needs:
@@ -437,7 +428,7 @@ test:pkgs:device-components:trixie:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
 
-# This template allows testing installation sctip agains different Debian versions
+# This template allows testing installation script against different Debian versions
 .test:install-script:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
@@ -445,20 +436,10 @@ test:pkgs:device-components:trixie:
   needs: []
   script:
     - cd scripts/tests
-    - python3 -m pytest -v --junit-xml results.xml
+    - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh.py
   artifacts:
     reports:
       junit: scripts/tests/results.xml
-
-test:install-script:bullseye:
-  extends: .test:install-script
-  needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
-  variables:
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
 
 test:install-script:bookworm:
   extends: .test:install-script
@@ -480,7 +461,19 @@ test:install-script:trixie:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
 
-# This is a template for testing workstation-tools agains different Debian version
+# Legacy tests specific for Debian 11
+# Note that it does not verify built packages (because we don't build anymore for Debian 11)
+test:install-script:legacy:
+  extends: .test:install-script
+  needs: []
+  script:
+    - cd scripts/tests
+    - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh_legacy.py
+  variables:
+    DEBIAN_VERSION: 11
+    DEBIAN_VERSION_NAME: "bullseye"
+
+# This is a template for testing workstation-tools against different Debian version
 # which will be redefined when template will be extended.
 .test:pkgs:workstation-tools:
   variables:
@@ -536,9 +529,6 @@ test:pkgs:workstation-tools:trixie:
 
 .template:publish:s3:device-components:
   dependencies:
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
@@ -576,8 +566,6 @@ publish:s3:device-components:automatic:
 
 .template:publish:s3:workstation_tools:
   dependencies:
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]'
@@ -640,9 +628,6 @@ publish:production:s3:scripts:install-mender-sh:
 
 .template:publish:s3:
   dependencies:
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
     - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
