@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	make build-inventory-script
+
+override_dh_auto_install:
+	install -d debian/mender-client-version-inventory-script/usr/bin
+	install -m 0755 inventory-script/mender-inventory-client-version debian/mender-client-version-inventory-script/usr/bin/mender-inventory-client-version
+
+override_dh_auto_test:
+	true
