@@ -47,6 +47,10 @@ def pytest_addoption(parser):
     parser.addoption("--mender-artifact-deb-version", required=False)
     parser.addoption("--mender-cli-version", required=False)
     parser.addoption("--mender-cli-deb-version", required=False)
+    parser.addoption("--mender-client-version-inventory-script-version", required=False)
+    parser.addoption(
+        "--mender-client-version-inventory-script-deb-version", required=False
+    )
     parser.addoption("--mender-setup-version", required=False)
     parser.addoption("--mender-setup-deb-version", required=False)
     parser.addoption("--mender-snapshot-version", required=False)
@@ -115,6 +119,11 @@ def mender_monitor_version(request):
     return request.config.getoption("--mender-monitor-version")
 
 
+@pytest.fixture(scope="session")
+def mender_client_version_inventory_script_version(request):
+    return request.config.getoption("--mender-client-version-inventory-script-version")
+
+
 def did_not_boot(err, *args):
     return issubclass(err[0], TestContainerDidNotboot)
 
@@ -144,6 +153,9 @@ def mender_dist_packages_versions(request):
         "mender-configure": request.config.getoption("--mender-configure-deb-version"),
         "mender-artifact": request.config.getoption("--mender-artifact-deb-version"),
         "mender-cli": request.config.getoption("--mender-cli-deb-version"),
+        "mender-client-version-inventory-script": request.config.getoption(
+            "--mender-client-version-inventory-script-deb-version"
+        ),
         "mender-setup": request.config.getoption("--mender-setup-deb-version"),
         "mender-snapshot": request.config.getoption("--mender-snapshot-deb-version"),
         "mender-flash": request.config.getoption("--mender-flash-deb-version"),

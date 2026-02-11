@@ -20,6 +20,9 @@ variables:
   MENDER_CLI_VERSION:
     value: "master"
     description: "Version of mender-cli repository"
+  MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION:
+    value: "main"
+    description: "Version of mender-client-version-inventory-script"
   MENDER_SETUP_VERSION:
     value: "master"
     description: "Version of mender-setup repository"
@@ -218,6 +221,7 @@ build:orig:all:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -251,6 +255,7 @@ build:pkgs:device-components:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
@@ -371,7 +376,7 @@ test:check-python3-formatting:
         fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client*-deb-version)
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client4-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
@@ -384,6 +389,8 @@ test:check-python3-formatting:
       --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-flash-deb-version)
       --mender-container-modules-version $MENDER_CONTAINER_MODULES_VERSION
       --mender-container-modules-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-container-modules-deb-version)
+      --mender-client-version-inventory-script-version $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
+      --mender-client-version-inventory-script-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client-version-inventory-script-deb-version)
       ${commercial_tests_flags}
       --junit-xml results.xml
   artifacts:
