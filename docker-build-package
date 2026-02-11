@@ -48,6 +48,12 @@ declare -A mender_cli_props=(
     [arch_indep]="false"
     [commercial]="false"
 )
+declare -A mender_client_version_inventory_script_props=(
+    [recipe_name]="mender-client-version-inventory-script"
+    [src_url]="https://github.com/mendersoftware/mender-client-subcomponents"
+    [arch_indep]="true"
+    [commercial]="false"
+)
 declare -A mender_flash_props=(
     [recipe_name]="mender-flash"
     [src_url]="https://github.com/mendersoftware/mender-flash"
@@ -108,6 +114,7 @@ declare -a packages=(
     mender_configure_props
     mender_artifact_props
     mender_cli_props
+    mender_client_version_inventory_script_props
     mender_flash_props
     mender_gateway_props
     mender_monitor_props

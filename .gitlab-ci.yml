@@ -20,6 +20,9 @@ variables:
   MENDER_CLI_VERSION:
     value: "master"
     description: "Version of mender-cli repository"
+  MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION:
+    value: "main"
+    description: "Version of mender-client-version-inventory-script"
   MENDER_SETUP_VERSION:
     value: "master"
     description: "Version of mender-setup repository"
@@ -218,6 +221,7 @@ build:orig:all:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -251,6 +255,7 @@ build:pkgs:device-components:
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
     - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
+    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
     -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION

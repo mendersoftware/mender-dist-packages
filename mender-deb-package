@@ -59,6 +59,27 @@ checkout_repo() {
   cd ${repo_path}
 }
 
+# mender-client-version-inventory-script is a special package as it contains
+# dynamically created conflicts in the control file
+handle_version_inventory_script() {
+  if [ "${DEB_PACKAGE}" != "mender-client-version-inventory-script" ]; then
+      return
+  fi
+
+  echo "Generating conflicts for mender-client-version-inventory-script package"
+  # We are now in the mender-client-subcomponents repository cloned eralier
+  CONFLICTS_SEP="," make build-inventory-script generate-conflicts
+  INVENTORY_CONFLICTS=$(cat build/conflicts)
+
+  # We should already have a copy of control file made in "prepare_recipe" step
+  CONTROL_FILE=$(grep -rl "__MENDER_INVENTORY_CONFLICTS__" .)
+  echo "Found control file to be modified: ${CONTROL_FILE}"
+
+  # Ammend file with generated conflict entries. If they not exist the blank
+  # Control section will be stripped in the build process.
+  sed -i "s/__MENDER_INVENTORY_CONFLICTS__/${INVENTORY_CONFLICTS}/g" $CONTROL_FILE
+}
+
 install_go() {
   local GOLANG_ARCH=amd64
   local golang_version_set
@@ -334,6 +355,8 @@ else
   if [[ -f "go.mod" ]]; then
     install_go
   fi
+
+  handle_version_inventory_script
 
   build_packages
 

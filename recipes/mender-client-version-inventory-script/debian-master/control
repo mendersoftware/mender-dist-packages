@@ -1,0 +1,18 @@
+Source: mender-client-version-inventory-script
+Maintainer: Mender Team <mender@northern.tech>
+Section: admin
+Priority: optional
+Standards-Version: 4.0
+Build-Depends-Indep: debhelper (>= 10), jq, git
+
+Package: mender-client-version-inventory-script
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, mender-update
+Description: Mender client version inventory script
+ Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
+ mender-client-version-inventory-script provides an inventory script with the
+ inventory key `mender_client_version`. It used to be built-in in mender-update
+ prior to 5.1.0. It is used to uniquely identify the Mender CLient version on a device.
+# Bellow entry serves as a dynamic conflicts resolver.
+# This will be evaluated by scripts before package will be build
+Conflicts: __MENDER_INVENTORY_CONFLICTS__
