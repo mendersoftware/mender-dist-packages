@@ -371,7 +371,7 @@ test:check-python3-formatting:
         fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client*-deb-version)
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client4-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
