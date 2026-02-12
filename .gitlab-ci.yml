@@ -39,7 +39,7 @@ variables:
     value: "master"
     description: "Version of monitor-client repository"
   MENDER_ORCHESTRATOR_VERSION:
-    value: "master"
+    value: "main"
     description: "Version of mender-orchestrator repository"
   MENDER_ORCHESTRATOR_SUPPORT_VERSION:
     value: "main"
