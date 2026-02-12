@@ -180,10 +180,10 @@ class TestPackageOrchestratorCore:
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
         try:
-            # Remove mender-update (and add-ons that depend on it) to verify
+            # Remove mender-update (and packages that depend on it) to verify
             # that mender-orchestrator-core requires only mender-auth
             setup_tester_ssh_connection.run(
-                f"sudo dpkg --purge remove mender-update mender-configure mender-connect"
+                f"sudo dpkg --purge remove mender-update mender-configure mender-connect mender-client-version-inventory-script"
             )
 
             upload_deb_package(
