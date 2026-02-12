@@ -75,6 +75,7 @@ names correspond to the Mender components:
 - `mender-snapshot`
 - `mender-orchestrator`
 - `mender-orchestrator-support`
+- `mender-client-version-inventory-script`
 
 The version specified with `version` may be an exact version of the package
 (usually a tag in the component's repository) or the name of the main branch.
