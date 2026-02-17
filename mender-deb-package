@@ -68,7 +68,7 @@ handle_version_inventory_script() {
 
   echo "Generating conflicts for mender-client-version-inventory-script package"
   # We are now in the mender-client-subcomponents repository cloned earlier
-  CONFLICTS_SEP="," make build-inventory-script generate-conflicts
+  CONFLICTS_SEP="," make generate-conflicts
   INVENTORY_CONFLICTS=$(cat build/conflicts)
 
   # We should already have a copy of control file made in "prepare_recipe" step
