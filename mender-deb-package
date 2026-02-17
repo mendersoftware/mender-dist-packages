@@ -67,7 +67,7 @@ handle_version_inventory_script() {
   fi
 
   echo "Generating conflicts for mender-client-version-inventory-script package"
-  # We are now in the mender-client-subcomponents repository cloned eralier
+  # We are now in the mender-client-subcomponents repository cloned earlier
   CONFLICTS_SEP="," make build-inventory-script generate-conflicts
   INVENTORY_CONFLICTS=$(cat build/conflicts)
 
@@ -75,7 +75,7 @@ handle_version_inventory_script() {
   CONTROL_FILE=$(grep -rl "__MENDER_INVENTORY_CONFLICTS__" .)
   echo "Found control file to be modified: ${CONTROL_FILE}"
 
-  # Ammend file with generated conflict entries. If they not exist the blank
+  # Amend file with generated conflict entries. If they not exist the blank
   # Control section will be stripped in the build process.
   sed -i "s/__MENDER_INVENTORY_CONFLICTS__/${INVENTORY_CONFLICTS}/g" $CONTROL_FILE
 }
