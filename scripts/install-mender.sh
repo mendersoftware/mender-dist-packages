@@ -32,6 +32,7 @@ mender-gateway \
 mender-monitor \
 mender-monitor-demo \
 mender-update \
+mender-flash \
 "
 
 # Default components (installed when no flags and no specified components)

@@ -59,6 +59,27 @@ checkout_repo() {
   cd ${repo_path}
 }
 
+# mender-client-version-inventory-script is a special package as it contains
+# dynamically created conflicts in the control file
+handle_version_inventory_script() {
+  if [ "${DEB_PACKAGE}" != "mender-client-version-inventory-script" ]; then
+      return
+  fi
+
+  echo "Generating conflicts for mender-client-version-inventory-script package"
+  # We are now in the mender-client-subcomponents repository cloned earlier
+  CONFLICTS_SEP="," make generate-conflicts
+  INVENTORY_CONFLICTS=$(cat build/conflicts)
+
+  # We should already have a copy of control file made in "prepare_recipe" step
+  CONTROL_FILE=$(grep -rl "__MENDER_INVENTORY_CONFLICTS__" .)
+  echo "Found control file to be modified: ${CONTROL_FILE}"
+
+  # Amend file with generated conflict entries. If they not exist the blank
+  # Control section will be stripped in the build process.
+  sed -i "s/__MENDER_INVENTORY_CONFLICTS__/${INVENTORY_CONFLICTS}/g" $CONTROL_FILE
+}
+
 install_go() {
   local GOLANG_ARCH=amd64
   local golang_version_set
@@ -210,7 +231,23 @@ build_orig() {
   # we need to reset the mtim to some fixed date
   DEFAULT_MTIME=1621101293
   # we do not need the .git nor debian directory in the orig file
-  GZIP=-n tar --sort=name --mtime="@${DEFAULT_MTIME}" --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --exclude .git --exclude debian -czf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
+  tar -I'gzip -n' --sort=name --mtime="@${DEFAULT_MTIME}" --owner=0 --group=0 --numeric-owner --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime --exclude .git --exclude debian -cf /tmp/"${DEB_PACKAGE}_${DEB_VERSION_NO_REV}".orig.tar.gz .
+}
+
+install_build_dependencies() {
+  # Install the dependencies from the debian/control file
+  apt-get update
+  mk-build-deps --install \
+                --build-indep \
+                --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
+                debian/control
+  rm -f ${DEB_PACKAGE}-build-deps-indep_*
+  mk-build-deps --install \
+                --build-dep \
+                --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
+                --host-arch ${ARCH} \
+                debian/control
+  rm -f ${DEB_PACKAGE}-build-deps-depends_*
 }
 
 build_packages() {
@@ -232,20 +269,6 @@ build_packages() {
   fi
 
   dpkg_build_ignore_flag="--diff-ignore=(.git|vendor)"
-
-  # Install the dependencies from the debian/control file
-  apt-get update
-  mk-build-deps --install \
-                --build-indep \
-                --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
-                debian/control
-  rm -f ${DEB_PACKAGE}-build-deps-indep_*
-  mk-build-deps --install \
-                --build-dep \
-                --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' \
-                --host-arch ${ARCH} \
-                debian/control
-  rm -f ${DEB_PACKAGE}-build-deps-depends_*
 
   case "$ARCH" in
     amd64)
@@ -334,6 +357,10 @@ else
   if [[ -f "go.mod" ]]; then
     install_go
   fi
+
+  install_build_dependencies
+
+  handle_version_inventory_script
 
   build_packages
 

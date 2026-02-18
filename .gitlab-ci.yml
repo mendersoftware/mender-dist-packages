@@ -20,6 +20,9 @@ variables:
   MENDER_CLI_VERSION:
     value: "master"
     description: "Version of mender-cli repository"
+  MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION:
+    value: "main"
+    description: "Version of mender-client-version-inventory-script"
   MENDER_SETUP_VERSION:
     value: "master"
     description: "Version of mender-setup repository"
@@ -36,7 +39,7 @@ variables:
     value: "master"
     description: "Version of monitor-client repository"
   MENDER_ORCHESTRATOR_VERSION:
-    value: "master"
+    value: "main"
     description: "Version of mender-orchestrator repository"
   MENDER_ORCHESTRATOR_SUPPORT_VERSION:
     value: "main"
@@ -99,23 +102,19 @@ include:
 .mender-dist-packages-image-matrix-cross:
   parallel:
     matrix:
-      - BUILD: crosscompile
-        DISTRO: debian
-        RELEASE: [bullseye, bookworm, trixie]
+      - DISTRO: debian
+        RELEASE: [bookworm, trixie]
         ARCH: [amd64, armhf, arm64]
-      - BUILD: crosscompile
-        DISTRO: ubuntu
+      - DISTRO: ubuntu
         RELEASE: [jammy, noble]
         ARCH: [amd64, armhf, arm64]
 .mender-dist-packages-workstation_tools-image-matrix-cross:
   parallel:
     matrix:
-      - BUILD: crosscompile
-        DISTRO: debian
-        RELEASE: [bullseye, bookworm, trixie]
+      - DISTRO: debian
+        RELEASE: [bookworm, trixie]
         ARCH: [amd64, arm64]
-      - BUILD: crosscompile
-        DISTRO: ubuntu
+      - DISTRO: ubuntu
         RELEASE: [jammy, noble]
         ARCH: [amd64, arm64]
 
@@ -199,25 +198,25 @@ build:orig:all:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
       alias: docker
   variables:
-    BUILD: "crosscompile"
     DISTRO: "debian"
-    RELEASE: "bullseye"
+    RELEASE: "bookworm"
     ARCH: "amd64"
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
-    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
     - else
-    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION true
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION true
     - fi
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -241,21 +240,22 @@ build:pkgs:device-components:
   script:
     - apk --update --no-cache add bash
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
-    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - else
-    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
     - fi
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
-    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
-    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator $MENDER_ORCHESTRATOR_VERSION
-    -   ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-orchestrator $MENDER_ORCHESTRATOR_VERSION
+    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION
     - fi
     - find output -type f
   artifacts:
@@ -281,8 +281,8 @@ build:pkgs:workstation-tools:
       alias: docker
   script:
     - apk --update --no-cache add bash
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
-    - ./docker-build-package $BUILD $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
+    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION
     - find output -type f
   artifacts:
     paths:
@@ -317,14 +317,14 @@ test:check-python3-formatting:
     #- mender-qa-worker-generic
     - hetzner-amd-beefy
   # Bellow will be overwritten in the final pipeline definition with something like
-  # "build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]"
+  # "build:pkgs:workstation-tools: [debian, trixie, amd64]"
   needs: []
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     # Bellow two variables need to be defined in the final pipeline and
     # match each other to property reflect Debian version
-    # DEBIAN_VERSION  (example: 11)
-    # DEBIAN_VERSION_NAME  (example: "bullseye")
+    # DEBIAN_VERSION  (example: 13)
+    # DEBIAN_VERSION_NAME  (example: "trixie")
   before_script:
     # DinD setup in Mender CI runners
     - unset DOCKER_HOST
@@ -371,7 +371,7 @@ test:check-python3-formatting:
         fi
     - python3 -m pytest -v
       --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client*-deb-version)
+      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client4-deb-version)
       --mender-connect-version $MENDER_CONNECT_VERSION
       --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-connect-deb-version)
       --mender-configure-version $MENDER_CONFIGURE_VERSION
@@ -384,6 +384,8 @@ test:check-python3-formatting:
       --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-flash-deb-version)
       --mender-container-modules-version $MENDER_CONTAINER_MODULES_VERSION
       --mender-container-modules-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-container-modules-deb-version)
+      --mender-client-version-inventory-script-version $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
+      --mender-client-version-inventory-script-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client-version-inventory-script-deb-version)
       ${commercial_tests_flags}
       --junit-xml results.xml
   artifacts:
@@ -410,20 +412,11 @@ test:check-python3-formatting:
     - source venv/bin/activate
     - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
 
-test:pkgs:device-components:bullseye:
-  extends: .test:pkgs:device-components
-  needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-  variables:
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
-
 test:pkgs:device-components:bookworm:
   extends: .test:pkgs:device-components
   needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]"
+    - "build:pkgs:device-components: [debian, bookworm, amd64]"
+    - "build:pkgs:device-components: [debian, bookworm, armhf]"
   variables:
     DEBIAN_VERSION: 12
     DEBIAN_VERSION_NAME: "bookworm"
@@ -431,13 +424,13 @@ test:pkgs:device-components:bookworm:
 test:pkgs:device-components:trixie:
   extends: .test:pkgs:device-components
   needs:
-    - "build:pkgs:device-components: [crosscompile, debian, trixie, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, trixie, armhf]"
+    - "build:pkgs:device-components: [debian, trixie, amd64]"
+    - "build:pkgs:device-components: [debian, trixie, armhf]"
   variables:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
 
-# This template allows testing installation sctip agains different Debian versions
+# This template allows testing installation script against different Debian versions
 .test:install-script:
   rules:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
@@ -445,27 +438,17 @@ test:pkgs:device-components:trixie:
   needs: []
   script:
     - cd scripts/tests
-    - python3 -m pytest -v --junit-xml results.xml
+    - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh.py
   artifacts:
     reports:
       junit: scripts/tests/results.xml
 
-test:install-script:bullseye:
-  extends: .test:install-script
-  needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]"
-  variables:
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
-
 test:install-script:bookworm:
   extends: .test:install-script
   needs:
-    - "build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]"
+    - "build:pkgs:device-components: [debian, bookworm, amd64]"
+    - "build:pkgs:device-components: [debian, bookworm, armhf]"
+    - "build:pkgs:workstation-tools: [debian, bookworm, amd64]"
   variables:
     DEBIAN_VERSION: 12
     DEBIAN_VERSION_NAME: "bookworm"
@@ -473,14 +456,26 @@ test:install-script:bookworm:
 test:install-script:trixie:
   extends: .test:install-script
   needs:
-    - "build:pkgs:device-components: [crosscompile, debian, trixie, amd64]"
-    - "build:pkgs:device-components: [crosscompile, debian, trixie, armhf]"
-    - "build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]"
+    - "build:pkgs:device-components: [debian, trixie, amd64]"
+    - "build:pkgs:device-components: [debian, trixie, armhf]"
+    - "build:pkgs:workstation-tools: [debian, trixie, amd64]"
   variables:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
 
-# This is a template for testing workstation-tools agains different Debian version
+# Legacy tests specific for Debian 11
+# Note that it does not verify built packages (because we don't build anymore for Debian 11)
+test:install-script:legacy:
+  extends: .test:install-script
+  needs: []
+  script:
+    - cd scripts/tests
+    - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh_legacy.py
+  variables:
+    DEBIAN_VERSION: 11
+    DEBIAN_VERSION_NAME: "bullseye"
+
+# This is a template for testing workstation-tools against different Debian version
 # which will be redefined when template will be extended.
 .test:pkgs:workstation-tools:
   variables:
@@ -490,7 +485,7 @@ test:install-script:trixie:
   tags:
     - hetzner-amd-beefy
   needs:
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, amd64]'
+    - 'build:pkgs:workstation-tools: [debian, amd64]'
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -512,7 +507,7 @@ test:pkgs:workstation-tools:bookworm:
     DEBIAN_VERSION: 12
     DEBIAN_VERSION_NAME: "bookworm"
   needs:
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
+    - 'build:pkgs:workstation-tools: [debian, bookworm, amd64]'
 
 test:pkgs:workstation-tools:trixie:
   extends: .test:pkgs:workstation-tools
@@ -520,7 +515,7 @@ test:pkgs:workstation-tools:trixie:
     DEBIAN_VERSION: 13
     DEBIAN_VERSION_NAME: "trixie"
   needs:
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]'
+    - 'build:pkgs:workstation-tools: [debian, trixie, amd64]'
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
@@ -536,21 +531,18 @@ test:pkgs:workstation-tools:trixie:
 
 .template:publish:s3:device-components:
   dependencies:
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, debian, trixie, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, trixie, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, trixie, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [debian, bookworm, amd64]'
+    - 'build:pkgs:device-components: [debian, bookworm, arm64]'
+    - 'build:pkgs:device-components: [debian, bookworm, armhf]'
+    - 'build:pkgs:device-components: [debian, trixie, amd64]'
+    - 'build:pkgs:device-components: [debian, trixie, arm64]'
+    - 'build:pkgs:device-components: [debian, trixie, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, jammy, amd64]'
+    - 'build:pkgs:device-components: [ubuntu, jammy, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, jammy, arm64]'
+    - 'build:pkgs:device-components: [ubuntu, noble, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
+    - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   tags:
@@ -576,16 +568,14 @@ publish:s3:device-components:automatic:
 
 .template:publish:s3:workstation_tools:
   dependencies:
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bullseye, arm64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, amd64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, bookworm, arm64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, amd64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, debian, trixie, arm64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, jammy, arm64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, amd64]'
-    - 'build:pkgs:workstation-tools: [crosscompile, ubuntu, noble, arm64]'
+    - 'build:pkgs:workstation-tools: [debian, bookworm, amd64]'
+    - 'build:pkgs:workstation-tools: [debian, bookworm, arm64]'
+    - 'build:pkgs:workstation-tools: [debian, trixie, amd64]'
+    - 'build:pkgs:workstation-tools: [debian, trixie, arm64]'
+    - 'build:pkgs:workstation-tools: [ubuntu, jammy, amd64]'
+    - 'build:pkgs:workstation-tools: [ubuntu, jammy, arm64]'
+    - 'build:pkgs:workstation-tools: [ubuntu, noble, amd64]'
+    - 'build:pkgs:workstation-tools: [ubuntu, noble, arm64]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   tags:
@@ -640,21 +630,18 @@ publish:production:s3:scripts:install-mender-sh:
 
 .template:publish:s3:
   dependencies:
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bullseye, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, bookworm, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, debian, trixie, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, trixie, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, debian, trixie, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, amd64]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, jammy, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, armhf]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, arm64]'
-    - 'build:pkgs:device-components: [crosscompile, ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [debian, bookworm, amd64]'
+    - 'build:pkgs:device-components: [debian, bookworm, arm64]'
+    - 'build:pkgs:device-components: [debian, bookworm, armhf]'
+    - 'build:pkgs:device-components: [debian, trixie, amd64]'
+    - 'build:pkgs:device-components: [debian, trixie, arm64]'
+    - 'build:pkgs:device-components: [debian, trixie, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, jammy, amd64]'
+    - 'build:pkgs:device-components: [ubuntu, jammy, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, jammy, arm64]'
+    - 'build:pkgs:device-components: [ubuntu, noble, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
+    - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   before_script:

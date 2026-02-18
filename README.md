@@ -43,12 +43,11 @@ To build the DEB packages, run the `docker-build-package` script as follows:
 ./docker-build-package build-type distro release arch package-name [version] [save-orig]
 ```
 
-The only supported `build-type` is `crosscompile`. `distro`, `release` and
-`arch` define the target OS. `distro` and `release` can currently be one of the
-following combinations:
+`distro`, `release` and `arch` define the target OS. `distro` and `release` can
+currently be one of the following combinations:
 
-- `debian`: `bullseye`, `bookworm`
-- `ubuntu`: `focal`, `jammy`, `noble`
+- `debian`: `bookworm`, `trixie`
+- `ubuntu`: `jammy`, `noble`
 
 These combinations change in time with new distribution releases and old
 releases going out of support.
@@ -75,6 +74,7 @@ names correspond to the Mender components:
 - `mender-snapshot`
 - `mender-orchestrator`
 - `mender-orchestrator-support`
+- `mender-client-version-inventory-script`
 
 The version specified with `version` may be an exact version of the package
 (usually a tag in the component's repository) or the name of the main branch.
@@ -93,8 +93,8 @@ packages), `save-orig` must be set to `true`.
 A full example can then be:
 
 ```bash
-./docker-build-package crosscompile debian bookworm amd64 mender-flash 1.0.2 true
-./docker-build-package crosscompile debian bookworm amd64 mender-flash 1.0.2
+./docker-build-package debian bookworm amd64 mender-flash 1.0.2 true
+./docker-build-package debian bookworm amd64 mender-flash 1.0.2
 ```
 
 When finished, the packages should be ready in the `output/` directory.

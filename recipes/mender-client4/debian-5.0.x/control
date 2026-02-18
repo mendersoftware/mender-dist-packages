@@ -19,7 +19,7 @@ Package: mender-update
 Conflicts: mender, mender-client
 Architecture: any
 Depends: mender-auth, ${shlibs:Depends}, ${misc:Depends}
-Recommends: mender-flash, mender-setup, mender-client-version-inventory-script
+Recommends: mender-flash, mender-setup
 Description: Mender update
  Mender-update is an open source over-the-air (OTA) software updater for embedded Linux devices.
 

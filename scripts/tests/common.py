@@ -1,0 +1,171 @@
+#!/usr/bin/python3
+# Copyright 2026 Northern.tech AS
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
+import glob
+import http.server
+import os
+import socketserver
+import subprocess
+import threading
+
+import pytest
+
+from tests.mender_test_containers.helpers import Result as SSHResult
+
+SCRIPT_SERVER_ADDR = "localhost"
+SCRIPT_SERVER_PORT = 8000
+SCRIPT_SERVER_PATH = os.path.join(os.path.dirname(__file__), "..")
+
+# Fetch the distro variant from the CI
+DEBIAN_REF_DISTRO = os.getenv("DEBIAN_VERSION_NAME", "")
+assert DEBIAN_REF_DISTRO != ""
+DEBIAN_REF_PACKAGES = os.path.join(
+    os.path.join(os.path.dirname(__file__), "..", "..", "output"),
+    f"opensource/debian-{DEBIAN_REF_DISTRO}-amd64",
+)
+
+
+def check_installed(conn, pkg, installed=True):
+    """Check whether the given package is installed on the device given by conn.
+    Check the specific dpkg Status to differentiate between installed (install ok installed)
+    and other status like removed but not purged (deinstall ok config-files)"""
+
+    res = conn.run(f"dpkg --status {pkg}", warn=True)
+    if isinstance(res, SSHResult):
+        retcode = res.return_code
+        output = res.stdout
+    else:
+        retcode = res.returncode
+        output = res.stdout.decode()
+
+    if installed:
+        assert "Status: install ok installed" in output
+    else:
+        assert retcode != 0 or "Status: install ok installed" not in output
+
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=SCRIPT_SERVER_PATH, **kwargs)
+
+
+@pytest.fixture(scope="session")
+def script_server():
+    thread = None
+    with socketserver.TCPServer(("0.0.0.0", SCRIPT_SERVER_PORT), Handler) as httpd:
+        httpd.allow_reuse_address = True
+        thread = threading.Thread(target=httpd.serve_forever)
+        thread.daemon = False
+        thread.start()
+        yield
+    httpd.shutdown()
+    thread.join()
+    print("cleaned up script server")
+
+
+@pytest.fixture(scope="function")
+def generic_debian_container(request):
+    output = subprocess.check_output(["docker", "pull", f"debian:{DEBIAN_REF_DISTRO}",])
+    output = subprocess.check_output(
+        [
+            "docker",
+            "run",
+            "--network=host",
+            "--rm",
+            "-tid",
+            f"debian:{DEBIAN_REF_DISTRO}",
+        ]
+    )
+
+    global docker_container_id
+    docker_container_id = output.decode("utf-8").split("\n")[0]
+
+    def finalizer():
+        subprocess.check_output(["docker", "rm", "-f", docker_container_id])
+
+    request.addfinalizer(finalizer)
+
+    class GenericContainer:
+        def __init__(self, container_id):
+            self.container_id = container_id
+
+        def run(self, command, warn=False):
+            try:
+                return subprocess.run(
+                    ["docker", "exec", self.container_id, "/bin/bash", "-c", command],
+                    capture_output=True,
+                    check=not warn,
+                )
+            except subprocess.CalledProcessError as e:
+                print(e.output.decode())
+                raise
+
+        def put(self, source, dest):
+            subprocess.check_call(
+                ["docker", "cp", source, f"{self.container_id}:{dest}"]
+            )
+
+    c = GenericContainer(docker_container_id)
+
+    # Get install-mender.sh requirements
+    c.run("apt update")
+    c.run("apt install -y curl")
+
+    return c
+
+
+def put_all_built_packages(container, dest):
+    container.run(f"mkdir -p {dest}")
+    for package in glob.glob(f"{DEBIAN_REF_PACKAGES}/*.deb"):
+        container.put(package, dest)
+
+
+def prepare_local_apt_repo(container, packages_path):
+    # Configure a local APT repo with dpkg-dev. See:
+    # https://askubuntu.com/questions/458748/is-it-possible-to-add-a-location-folder-on-my-hard-disk-to-sources-list
+    container.run("apt install -y dpkg-dev")
+    container.run(
+        f"cd {packages_path} && dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz"
+    )
+    sources_list_file = (
+        f"/etc/apt/sources.list.d/{os.path.basename(packages_path)}.list"
+    )
+    container.run(
+        f"echo deb [trusted=yes] file:{packages_path} ./ > {sources_list_file}"
+    )
+    container.run("apt update")
+
+
+def local_apt_repo_from_built_packages(container):
+    put_all_built_packages(container, "/packages")
+    prepare_local_apt_repo(container, "/packages")
+
+
+def local_apt_repo_from_upstream_packages(container, pool_paths, dest):
+    container.run(f"mkdir {dest}")
+    for path in pool_paths:
+        url = f"https://downloads.mender.io/repos/debian/pool/main/{path}"
+        container.run(f"cd {dest} && curl --remote-name {url}")
+
+    prepare_local_apt_repo(container, dest)
+
+
+def local_apt_repo_from_test_packages(container, pool_paths, dest):
+    container.run(f"mkdir {dest}")
+    for path in pool_paths:
+        url = f"https://downloads.mender.io/repos/debian/pool/test-packages/{path}"
+        container.run(f"cd {dest} && curl --remote-name {url}")
+
+    prepare_local_apt_repo(container, dest)

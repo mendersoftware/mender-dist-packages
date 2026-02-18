@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+ACTION="$1"
+
+case "$ACTION" in
+    # We always want to do this.
+    *)
+        # Restore files that were diverted during an upgrade from mender-client < 4.0 to mender-auth
+        # and mender-upgrade. Use `--quiet` to avoid a lot of messages in case the files are not
+        # diverted, which will usually be the case.
+        dpkg-divert --package mender-auth --quiet --remove --rename /usr/share/mender/identity/mender-device-identity
+        dpkg-divert --package mender-auth --quiet --remove --rename /etc/mender/identity/mender-device-identity
+        dpkg-divert --package mender-auth --quiet --remove --rename /usr/share/dbus-1/system.d/io.mender.AuthenticationManager.conf
+        dpkg-divert --package mender-update --quiet --remove --rename /etc/mender/inventory/mender-inventory-bootloader-integration
+        dpkg-divert --package mender-update --quiet --remove --rename /etc/mender/inventory/mender-inventory-hostinfo
+        dpkg-divert --package mender-update --quiet --remove --rename /etc/mender/inventory/mender-inventory-network
+        dpkg-divert --package mender-update --quiet --remove --rename /etc/mender/inventory/mender-inventory-os
+        dpkg-divert --package mender-update --quiet --remove --rename /etc/mender/inventory/mender-inventory-provides
+        dpkg-divert --package mender-update --quiet --remove --rename /etc/mender/inventory/mender-inventory-rootfs-type
+        dpkg-divert --package mender-update --quiet --remove --rename /etc/mender/inventory/mender-inventory-update-modules
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/modules/v3/deb
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/modules/v3/directory
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/modules/v3/docker
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/modules/v3/rootfs-image
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/modules/v3/rpm
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/modules/v3/script
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/modules/v3/single-file
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-bootloader-integration
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-hostinfo
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-network
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-os
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-provides
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-rootfs-type
+        dpkg-divert --package mender-update --quiet --remove --rename /usr/share/mender/inventory/mender-inventory-update-modules
+        dpkg-divert --package mender-update --quiet --remove --rename /etc/mender/scripts/version
+        ;;
+esac
+
+#DEBHELPER#

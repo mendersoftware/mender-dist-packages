@@ -2,6 +2,5 @@
 /lib/systemd/system/mender-authd.service
 /usr/bin/mender-auth
 /usr/share/dbus-1/system.d/io.mender.AuthenticationManager.conf
-/usr/share/dbus-1/system-services/io.mender.AuthenticationManager.service
 /usr/share/doc/mender-auth/examples/demo.crt
 /usr/share/mender/identity
