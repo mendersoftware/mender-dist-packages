@@ -7,7 +7,7 @@ Build-Depends-Indep: debhelper (>= 10), jq, git
 
 Package: mender-client-version-inventory-script
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, mender-update
+Depends: ${misc:Depends}, mender-update
 Description: Mender client version inventory script
  Mender is an open source over-the-air (OTA) software updater for embedded Linux devices.
  mender-client-version-inventory-script provides an inventory script with the
