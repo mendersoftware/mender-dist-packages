@@ -43,9 +43,8 @@ To build the DEB packages, run the `docker-build-package` script as follows:
 ./docker-build-package build-type distro release arch package-name [version] [save-orig]
 ```
 
-The only supported `build-type` is `crosscompile`. `distro`, `release` and
-`arch` define the target OS. `distro` and `release` can currently be one of the
-following combinations:
+`distro`, `release` and `arch` define the target OS. `distro` and `release` can
+currently be one of the following combinations:
 
 - `debian`: `bookworm`, `trixie`
 - `ubuntu`: `jammy`, `noble`
@@ -94,8 +93,8 @@ packages), `save-orig` must be set to `true`.
 A full example can then be:
 
 ```bash
-./docker-build-package crosscompile debian bookworm amd64 mender-flash 1.0.2 true
-./docker-build-package crosscompile debian bookworm amd64 mender-flash 1.0.2
+./docker-build-package debian bookworm amd64 mender-flash 1.0.2 true
+./docker-build-package debian bookworm amd64 mender-flash 1.0.2
 ```
 
 When finished, the packages should be ready in the `output/` directory.

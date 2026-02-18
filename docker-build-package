@@ -126,17 +126,16 @@ declare -a packages=(
 )
 
 # Parse args
-if [ $# -lt 5 ]; then
-    echo "usage: $0 build distro release arch package [version]"
+if [ $# -lt 4 ]; then
+    echo "usage: $0 distro release arch package [version]"
     exit 1
 fi
-BUILD="${1}"
-DISTRO="${2}"
-RELEASE="${3}"
-ARCH="${4}"
-RECIPE_NAME="${5}"
-RECIPE_VERSION="${6}"
-SAVE_ORIG="$7"
+DISTRO="${1}"
+RELEASE="${2}"
+ARCH="${3}"
+RECIPE_NAME="${4}"
+RECIPE_VERSION="${5}"
+SAVE_ORIG="${6}"
 
 # Look for the recipe
 recipe_found=0
@@ -205,7 +204,7 @@ docker run --rm \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
         --env GOLANG_VERSION \
         --env OVERRIDE_DEBIAN_SUFFIX \
-        ${IMAGE_NAME_PREFIX}-${BUILD}-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
+        ${IMAGE_NAME_PREFIX}-crosscompile-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \
         ${BUILD_TYPE} \
