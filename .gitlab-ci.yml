@@ -89,6 +89,10 @@ variables:
   AWS_EC2_METADATA_DISABLED: "true"
 
 include:
+  - project: Northern.tech/Mender/mendertesting
+    file:
+      - qa-common/runner.yml
+      - qa-common/retry.yml
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-check-commits-signoffs.yml'
   - project: 'Northern.tech/Mender/mendertesting'
@@ -175,6 +179,10 @@ include:
     exit_codes:
       - 137
       - 192
+
+default:
+  tags: !reference [.qa-common-default-runner, tags]
+  retry: !reference [.qa-common-default-retry, retry]
 
 stages:
   - test:static
@@ -403,6 +411,7 @@ test:check-python3-formatting:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   before_script:
+    - !reference [.qa-common-network-apt-retry, before_script]
     - apt-get update
     - apt-get -yyq install bash git python3-pip wget sudo python3-venv
     - git submodule sync --recursive
@@ -492,6 +501,8 @@ test:install-script:legacy:
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:${DEBIAN_VERSION}
+  before_script:
+    - !reference [.qa-common-network-apt-retry, before_script]
   script:
     - apt-get update
     - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-artifact*.deb
@@ -551,6 +562,7 @@ test:pkgs:workstation-tools:trixie:
     # APT repo path for incoming device-components packages
     S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
   before_script:
+    - !reference [.qa-common-network-apt-retry, before_script]
     - *wait-for-s3-lock
   script:
     - *upload-packages-to-s3
@@ -584,6 +596,7 @@ publish:s3:device-components:automatic:
     # APT repo path for incoming workstation-tools packages
     S3_BUCKET_REPO_PATH: "repos/workstation-tools/incoming"
   before_script:
+    - !reference [.qa-common-network-apt-retry, before_script]
     - *wait-for-s3-lock
   script:
     - *upload-packages-to-s3
@@ -603,6 +616,7 @@ publish:s3:workstation_tools:automatic:
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   before_script:
+    - !reference [.qa-common-network-apt-retry, before_script]
     - apt update && apt install -yyq awscli
   only:
     changes:
@@ -645,6 +659,7 @@ publish:production:s3:scripts:install-mender-sh:
   stage: publish
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
   before_script:
+    - !reference [.qa-common-network-apt-retry, before_script]
     - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
