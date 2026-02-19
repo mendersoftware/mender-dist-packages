@@ -2,51 +2,58 @@ variables:
   GOLANG_VERSION:
     value: "1.24.2"
     description: "Go version to build the packages with. The toolchain is downloaded at build time from https://dl.google.com/go"
-  # Packages versions
+
+  # Mender Client LTS
   # NOTE: when adding variables here update also trigger from mender-qa:
   # https://github.com/mendersoftware/mender-qa/blob/master/gitlab-pipeline/stage/trigger-packages.yml
+  MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION:
+    value: "main"
+    description: "Version of mender-client-version-inventory-script"
   MENDER_VERSION:
     value: "master"
     description: "Version of mender repository"
   MENDER_CONNECT_VERSION:
     value: "master"
     description: "Version of mender-connect repository"
+  MENDER_MONITOR_VERSION:
+    value: "master"
+    description: "Version of monitor-client repository"
+  MENDER_FLASH_VERSION:
+    value: "master"
+    description: "Version of mender-flash repository"
   MENDER_CONFIGURE_VERSION:
     value: "master"
     description: "Version of mender-configure repository"
+  MENDER_CONTAINER_MODULES_VERSION:
+    value: "main"
+    description: "Version of mender-container-modules repository"
+
+  # Workstation tools
   MENDER_ARTIFACT_VERSION:
     value: "master"
     description: "Version of mender-artifact repository"
   MENDER_CLI_VERSION:
     value: "master"
     description: "Version of mender-cli repository"
-  MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION:
-    value: "main"
-    description: "Version of mender-client-version-inventory-script"
+
+  # Independent tools
   MENDER_SETUP_VERSION:
     value: "master"
     description: "Version of mender-setup repository"
   MENDER_SNAPSHOT_VERSION:
     value: "master"
     description: "Version of mender-snapshot repository"
-  MENDER_FLASH_VERSION:
-    value: "master"
-    description: "Version of mender-flash repository"
+
+  # Other LTS
   MENDER_GATEWAY_VERSION:
     value: "master"
     description: "Version of mender-gateway repository"
-  MENDER_MONITOR_VERSION:
-    value: "master"
-    description: "Version of monitor-client repository"
   MENDER_ORCHESTRATOR_VERSION:
     value: "main"
     description: "Version of mender-orchestrator repository"
   MENDER_ORCHESTRATOR_SUPPORT_VERSION:
     value: "main"
     description: "Version of mender-orchestrator-support repository"
-  MENDER_CONTAINER_MODULES_VERSION:
-    value: "main"
-    description: "Version of mender-container-modules repository"
 
   # Bucket name
   S3_BUCKET_NAME: "mender"
