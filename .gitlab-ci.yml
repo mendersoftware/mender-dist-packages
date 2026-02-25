@@ -108,6 +108,9 @@ include:
     file: '.gitlab-ci-check-python3-format.yml'
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-github-status-updates.yml'
+  - project: "Northern.tech/Mender/mendertesting"
+    file: "qa-common/send-results-to-mantra.yml"
+    ref: "master"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix-cross:
@@ -365,7 +368,7 @@ test:check-python3-formatting:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
     # Install dependencies
     - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
-      libffi-dev libc-dev python3-dev bash musl-dev rust cargo
+      libffi-dev libc-dev python3-dev bash musl-dev rust cargo curl jq
     - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
   script:
     - cd tests
@@ -403,6 +406,9 @@ test:check-python3-formatting:
       --mender-client-version-inventory-script-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client-version-inventory-script-deb-version)
       ${commercial_tests_flags}
       --junit-xml results.xml
+  after_script:
+  - export MANTRA_PROJECT_NAME="client_general"
+  - !reference [.mantra-push-results]
   artifacts:
     reports:
       junit: tests/results.xml
@@ -457,6 +463,9 @@ test:pkgs:device-components:trixie:
   script:
     - cd scripts/tests
     - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh.py
+  after_script:
+  - export MANTRA_PROJECT_NAME="client_general"
+  - !reference [.mantra-push-results]
   artifacts:
     reports:
       junit: scripts/tests/results.xml
@@ -489,6 +498,9 @@ test:install-script:legacy:
   script:
     - cd scripts/tests
     - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh_legacy.py
+  after_script:
+  - export MANTRA_PROJECT_NAME="client_general"
+  - !reference [.mantra-push-results]
   variables:
     DEBIAN_VERSION: 11
     DEBIAN_VERSION_NAME: "bullseye"
