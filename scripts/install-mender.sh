@@ -101,6 +101,11 @@ declare -A COMMERCIAL_COMP_TO_URL_PATH_F=(
 # URL path for mender-gateway demo, formatted by version
 MENDER_GATEWAY_EXAMPLES_URL_PATH_F="mender-gateway/examples/%s/mender-gateway-examples-%s.tar"
 
+# Latest versions for commercial components
+# See MEN-9480 and MEN-9297
+MENDER_MONITOR_LATEST_VERSION="1.5.0"
+MENDER_GATEWAY_LATEST_VERSION="2.0.0"
+
 export DEBIAN_FRONTEND=noninteractive
 
 banner (){
@@ -250,63 +255,22 @@ print_components() {
     done
 }
 
-
-#
-# $1 - component
-# $2 - mender-release
-#
-# Note, requires jq and curl
-function get_version_of() {
-    which jq 2>&1 >/dev/null || { echo >&2 "'jq' needs to be installed"; exit 1; }
-    [[ $# -ne 2 ]] && { echo >&2 "get_version_of requires two arguments. Got  $#"; exit 1; }
-    local -r component_name="$1"
-    local -r mender_release="$2"
-    local -r major_minor="$(echo -e ${mender_release} | cut --delimiter=. --fields=1,2)"
-    local -r versions_json="$(curl --fail https://docs.mender.io/releases/versions.json)"
-    echo "$versions_json" | jq --raw-output "$(cat <<EOF
-.releases |
-."${major_minor}" |
-."${mender_release}" |
-.repos |
-.[] |
- select(.name == "${component_name}") |
-.version
-EOF
-)"
-}
-
-#
-# Returns the latest Mender release version
-# from `docs.mender.io/`
-#
-# Note, requires jq and curl
-function get_latest_mender_release() {
-    [[ $# -ne 0 ]] && { echo >&2 "get_latest_mender_release takes no arguments"; exit 1; }
-    local -r versions_json="$(curl --fail https://docs.mender.io/releases/versions.json)"
-    local -r release_series="$(echo "${versions_json}" | jq '.releases | keys | max')"
-    local -r latest_release="$(echo "${versions_json}" | jq --raw-output "$(cat <<EOF
-.releases[] |
- to_entries[].key |
- select(startswith($release_series))
-EOF
-)" |
-head --lines=1
-)"
-    echo ${latest_release}
-}
-
 #
 # $1 - The package to install
+#      Only mender-monitor, mender-monitor-demo and mender-gateway are supported.
 #
 function get_latest_version_of_commercial_component() {
     [[ $# -ne 1 ]] && { echo >&2 "get_latest_version_of_commercial_component requires one argument"; exit 1; }
     local component_name="$1"
     case "${component_name}" in
         mender-monitor|mender-monitor-demo)
-            local -r version_of="$(get_version_of "monitor-client" "$(get_latest_mender_release)")"
+            local -r version_of="$MENDER_MONITOR_LATEST_VERSION"
+            ;;
+        mender-gateway)
+            local -r version_of="$MENDER_GATEWAY_LATEST_VERSION"
             ;;
         *)
-            local -r version_of="$(get_version_of "${component_name}" "$(get_latest_mender_release)")"
+            local -r version_of=""
             ;;
     esac
     if [[ -z "${version_of}" ]]; then
