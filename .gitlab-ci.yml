@@ -449,6 +449,8 @@ test:pkgs:device-components:trixie:
 # This template allows testing installation script against different Debian versions
 .test:install-script:
   rules:
+    - if: $CI_COMMIT_BRANCH == "production"
+      when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true"'
   extends: .test:pkgs
   needs: []
