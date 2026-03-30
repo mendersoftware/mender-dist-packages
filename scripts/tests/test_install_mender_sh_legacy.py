@@ -27,7 +27,8 @@ from common import (
 @pytest.mark.usefixtures("script_server")
 class TestUpgradeMenderV4:
     def test_upgrade_from_v3_to_v4_to_last_debian_11(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         # Install mender-client 3.5.1 (epoch 0:)
         local_apt_repo_from_upstream_packages(
@@ -89,7 +90,8 @@ class TestUpgradeMenderV4:
         check_installed(generic_debian_container, "mender-configure")
 
     def test_upgrade_from_v3_to_last_debian_11(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         # Install mender-client 3.5.2 (epoch 1:)
         local_apt_repo_from_upstream_packages(
@@ -119,7 +121,8 @@ class TestUpgradeMenderV4:
         check_installed(generic_debian_container, "mender-configure")
 
     def test_upgrade_from_v4_to_last_debian_11(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         # Install mender-client 4.0.0
         local_apt_repo_from_test_packages(

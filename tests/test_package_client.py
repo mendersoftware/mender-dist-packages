@@ -38,21 +38,45 @@ def verify_file_exists(ssh_conn, files):
 
 
 all_files = [
-    {"name": "/usr/bin/mender-update", "type": "executable",},
-    {"name": "/usr/bin/mender-auth", "type": "executable",},
-    {"name": "/usr/share/mender/modules/v3/", "type": "directory",},
+    {
+        "name": "/usr/bin/mender-update",
+        "type": "executable",
+    },
+    {
+        "name": "/usr/bin/mender-auth",
+        "type": "executable",
+    },
+    {
+        "name": "/usr/share/mender/modules/v3/",
+        "type": "directory",
+    },
     #
     # Inventory scripts symlinked to /etc/ as conf files
     #
-    {"name": "/usr/share/mender/inventory", "type": "directory",},
+    {
+        "name": "/usr/share/mender/inventory",
+        "type": "directory",
+    },
     {
         "name": "/usr/share/mender/inventory/mender-inventory-bootloader-integration",
         "type": "file",
     },
-    {"name": "/usr/share/mender/inventory/mender-inventory-hostinfo", "type": "file",},
-    {"name": "/usr/share/mender/inventory/mender-inventory-network", "type": "file",},
-    {"name": "/usr/share/mender/inventory/mender-inventory-os", "type": "file",},
-    {"name": "/usr/share/mender/inventory/mender-inventory-provides", "type": "file",},
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-hostinfo",
+        "type": "file",
+    },
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-network",
+        "type": "file",
+    },
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-os",
+        "type": "file",
+    },
+    {
+        "name": "/usr/share/mender/inventory/mender-inventory-provides",
+        "type": "file",
+    },
     {
         "name": "/usr/share/mender/inventory/mender-inventory-rootfs-type",
         "type": "file",
@@ -61,31 +85,64 @@ all_files = [
         "name": "/usr/share/mender/inventory/mender-inventory-update-modules",
         "type": "file",
     },
-    {"name": "/etc/mender/inventory", "type": "directory",},
+    {
+        "name": "/etc/mender/inventory",
+        "type": "directory",
+    },
     {
         "name": "/etc/mender/inventory/mender-inventory-bootloader-integration",
         "type": "file",
     },
-    {"name": "/etc/mender/inventory/mender-inventory-hostinfo", "type": "executable",},
-    {"name": "/etc/mender/inventory/mender-inventory-network", "type": "executable",},
-    {"name": "/etc/mender/inventory/mender-inventory-os", "type": "executable",},
-    {"name": "/etc/mender/inventory/mender-inventory-provides", "type": "file",},
+    {
+        "name": "/etc/mender/inventory/mender-inventory-hostinfo",
+        "type": "executable",
+    },
+    {
+        "name": "/etc/mender/inventory/mender-inventory-network",
+        "type": "executable",
+    },
+    {
+        "name": "/etc/mender/inventory/mender-inventory-os",
+        "type": "executable",
+    },
+    {
+        "name": "/etc/mender/inventory/mender-inventory-provides",
+        "type": "file",
+    },
     {
         "name": "/etc/mender/inventory/mender-inventory-rootfs-type",
         "type": "executable",
     },
-    {"name": "/etc/mender/inventory/mender-inventory-update-modules", "type": "file",},
+    {
+        "name": "/etc/mender/inventory/mender-inventory-update-modules",
+        "type": "file",
+    },
     #
     # Update modules
     #
-    {"name": "/usr/share/mender/modules/v3/", "type": "directory",},
-    {"name": "/usr/share/mender/modules/v3/directory", "type": "executable",},
-    {"name": "/usr/share/mender/modules/v3/rootfs-image", "type": "executable",},
-    {"name": "/usr/share/mender/modules/v3/single-file", "type": "executable",},
+    {
+        "name": "/usr/share/mender/modules/v3/",
+        "type": "directory",
+    },
+    {
+        "name": "/usr/share/mender/modules/v3/directory",
+        "type": "executable",
+    },
+    {
+        "name": "/usr/share/mender/modules/v3/rootfs-image",
+        "type": "executable",
+    },
+    {
+        "name": "/usr/share/mender/modules/v3/single-file",
+        "type": "executable",
+    },
     #
     # device identity files
     #
-    {"name": "/usr/share/mender/identity", "type": "directory",},
+    {
+        "name": "/usr/share/mender/identity",
+        "type": "directory",
+    },
     {
         "name": "/usr/share/mender/identity/mender-device-identity",
         "type": "executable",
@@ -102,13 +159,26 @@ all_files = [
     #     "name": "/etc/mender/mender.conf",
     #     "type": "file",
     # },
-    {"name": "/etc/mender/scripts", "type": "directory",},
-    {"name": "/etc/mender/scripts/version", "type": "file", "contents": "3",},
+    {
+        "name": "/etc/mender/scripts",
+        "type": "directory",
+    },
+    {
+        "name": "/etc/mender/scripts/version",
+        "type": "file",
+        "contents": "3",
+    },
     #
     # Systemd services
     #
-    {"name": "/lib/systemd/system/mender-updated.service", "type": "file",},
-    {"name": "/lib/systemd/system/mender-authd.service", "type": "file",},
+    {
+        "name": "/lib/systemd/system/mender-updated.service",
+        "type": "file",
+    },
+    {
+        "name": "/lib/systemd/system/mender-authd.service",
+        "type": "file",
+    },
     #
     # D-Bus policy files
     #
@@ -119,7 +189,10 @@ all_files = [
     #
     # Demo certificate
     #
-    {"name": "/usr/share/doc/mender-auth/examples/demo.crt", "type": "file",},
+    {
+        "name": "/usr/share/doc/mender-auth/examples/demo.crt",
+        "type": "file",
+    },
     #
     # Device type file
     # Installed by mender-setup
