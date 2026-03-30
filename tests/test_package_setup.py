@@ -20,8 +20,7 @@ from mender_test_containers.helpers import *
 
 
 class TestPackageSetup:
-    """Tests installation mender-setup deb package.
-    """
+    """Tests installation mender-setup deb package."""
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_install(self, setup_tester_ssh_connection, mender_dist_packages_versions):

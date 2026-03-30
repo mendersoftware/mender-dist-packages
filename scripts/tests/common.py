@@ -77,7 +77,13 @@ def script_server():
 
 @pytest.fixture(scope="function")
 def generic_debian_container(request):
-    output = subprocess.check_output(["docker", "pull", f"debian:{DEBIAN_REF_DISTRO}",])
+    output = subprocess.check_output(
+        [
+            "docker",
+            "pull",
+            f"debian:{DEBIAN_REF_DISTRO}",
+        ]
+    )
     output = subprocess.check_output(
         [
             "docker",

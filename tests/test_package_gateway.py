@@ -34,7 +34,8 @@ class TestPackageGateway:
         setup_tester_ssh_connection.run(
             "sudo dpkg --install "
             + package_filename(
-                mender_dist_packages_versions["mender-gateway"], "mender-gateway",
+                mender_dist_packages_versions["mender-gateway"],
+                "mender-gateway",
             )
         )
         check_installed(setup_tester_ssh_connection, "mender-gateway")
