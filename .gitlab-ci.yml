@@ -111,6 +111,9 @@ include:
   - project: "Northern.tech/Mender/mendertesting"
     file: "qa-common/send-results-to-mantra.yml"
     ref: "master"
+  - component: gitlab.com/Northern.tech/Mender/mendertesting/renovate@master
+    inputs:
+      stage: "renovate"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix-cross:
@@ -195,6 +198,7 @@ default:
   retry: !reference [.qa-common-default-retry, retry]
 
 stages:
+  - renovate
   - test:static
   - build:orig
   - build:packages
