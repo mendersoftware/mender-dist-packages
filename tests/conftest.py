@@ -137,6 +137,19 @@ def pytest_collection_modifyitems(config, items):
             if "commercial" in item.keywords:
                 item.add_marker(skip_commercial)
 
+    # Skip tests whose required CLI option (e.g. --mender-flash-deb-version)
+    # was not provided. Tests advertise their requirements via the
+    # `requires_option` marker, allowing per-package builds to skip
+    # corresponding tests automatically.
+    for item in items:
+        for marker in item.iter_markers(name="requires_option"):
+            opt = marker.args[0]
+            if not config.getoption(opt):
+                item.add_marker(
+                    pytest.mark.skip(reason=f"{opt} not provided (package not built)")
+                )
+                break
+
     flaky_marker = pytest.mark.flaky(max_runs=3, rerun_filter=did_not_boot)
     for item in items:
         item.add_marker(flaky_marker)
@@ -182,6 +195,9 @@ def mender_deb_version(request):
 
 
 def min_version_impl(request, marker, min_version):
+    if min_version is None:
+        # Package was not built/specified, no version constraint to enforce.
+        return
     version_mark = request.node.get_closest_marker(marker)
     if version_mark is not None:
         try:

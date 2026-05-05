@@ -18,6 +18,8 @@ import pytest
 from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
+pytestmark = pytest.mark.requires_option("--mender-flash-deb-version")
+
 
 class TestPackageFlash:
     """Tests installation of mender-flash deb package."""

@@ -18,6 +18,8 @@ import pytest
 from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
+pytestmark = pytest.mark.requires_option("--mender-setup-deb-version")
+
 
 class TestPackageSetup:
     """Tests installation mender-setup deb package."""

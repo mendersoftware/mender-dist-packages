@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Copyright 2022 Northern.tech AS
+# Copyright 2026 Northern.tech AS
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -17,34 +17,37 @@ import pytest
 
 from helpers import package_filename, upload_deb_package, check_installed
 
-pytestmark = pytest.mark.requires_option("--mender-gateway-deb-version")
+pytestmark = pytest.mark.requires_option("--mender-configure-deb-version")
 
 
-class TestPackageGateway:
-    @pytest.mark.commercial
-    def test_mender_gateway(
+@pytest.mark.usefixtures("setup_mender_configured")
+class TestPackageConfigure:
+    def test_mender_configure(
         self, setup_tester_ssh_connection, mender_dist_packages_versions
     ):
         # Upload
         upload_deb_package(
             setup_tester_ssh_connection,
-            mender_dist_packages_versions["mender-gateway"],
-            "mender-gateway",
+            mender_dist_packages_versions["mender-configure"],
+            "mender-configure",
+            "all",
         )
 
         # Install
         setup_tester_ssh_connection.run(
-            "sudo dpkg --install "
+            "sudo apt -y install --fix-broken ./"
             + package_filename(
-                mender_dist_packages_versions["mender-gateway"],
-                "mender-gateway",
+                mender_dist_packages_versions["mender-configure"],
+                "mender-configure",
+                "all",
             )
         )
-        check_installed(setup_tester_ssh_connection, "mender-gateway")
+        check_installed(setup_tester_ssh_connection, "mender-configure")
 
-        # Check mender-gateway files
-        setup_tester_ssh_connection.run("test -x /usr/bin/mender-gateway")
-        setup_tester_ssh_connection.run("test -f /etc/mender/mender-gateway.conf")
+        # Check mender-configure files
         setup_tester_ssh_connection.run(
-            "test -f /lib/systemd/system/mender-gateway.service"
+            "test -x /usr/share/mender/modules/v3/mender-configure"
+        )
+        setup_tester_ssh_connection.run(
+            "test -x /usr/share/mender/inventory/mender-inventory-mender-configure"
         )

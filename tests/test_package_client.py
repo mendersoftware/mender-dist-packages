@@ -18,6 +18,8 @@ import pytest
 from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
+pytestmark = pytest.mark.requires_option("--mender-client-deb-version")
+
 expected_copyright_from_l2_md5sum = "39a30292da940b7ce011150e8c8d5e4f"
 
 
