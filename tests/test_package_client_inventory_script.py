@@ -18,6 +18,10 @@ import pytest
 from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
+pytestmark = pytest.mark.requires_option(
+    "--mender-client-version-inventory-script-deb-version"
+)
+
 
 class TestPackageClientInventoryScript:
     """Tests installation of mender-client-version-inventory-script deb package."""

@@ -17,6 +17,8 @@ import pytest
 
 from helpers import package_filename, upload_deb_package, check_installed
 
+pytestmark = pytest.mark.requires_option("--mender-configure-deb-version")
+
 
 @pytest.mark.usefixtures("setup_mender_configured")
 class TestPackageConfigure:

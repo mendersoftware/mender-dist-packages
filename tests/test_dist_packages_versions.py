@@ -15,6 +15,8 @@
 
 import re
 
+import pytest
+
 from conftest import get_debian_distro_version
 
 
@@ -35,18 +37,21 @@ def verify_package_version(version, deb_version):
         assert m is not None, "Cannot match (non master) %s" % deb_version
 
 
+@pytest.mark.requires_option("--mender-client-deb-version")
 def test_version_client(mender_version, mender_dist_packages_versions):
     verify_package_version(
         mender_version, mender_dist_packages_versions["mender-client"]
     )
 
 
+@pytest.mark.requires_option("--mender-connect-deb-version")
 def test_version_connect(mender_connect_version, mender_dist_packages_versions):
     verify_package_version(
         mender_connect_version, mender_dist_packages_versions["mender-connect"]
     )
 
 
+@pytest.mark.requires_option("--mender-configure-deb-version")
 def test_version_configure(mender_configure_version, mender_dist_packages_versions):
     verify_package_version(
         mender_configure_version, mender_dist_packages_versions["mender-configure"]

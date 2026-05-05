@@ -17,6 +17,8 @@ import pytest
 
 from helpers import package_filename, upload_deb_package, check_installed
 
+pytestmark = pytest.mark.requires_option("--mender-gateway-deb-version")
+
 
 class TestPackageGateway:
     @pytest.mark.commercial
