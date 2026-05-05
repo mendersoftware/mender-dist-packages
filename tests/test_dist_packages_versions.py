@@ -35,18 +35,19 @@ def verify_package_version(version, deb_version):
         assert m is not None, "Cannot match (non master) %s" % deb_version
 
 
-def test_versions(
-    mender_version,
-    mender_connect_version,
-    mender_configure_version,
-    mender_dist_packages_versions,
-):
+def test_version_client(mender_version, mender_dist_packages_versions):
     verify_package_version(
         mender_version, mender_dist_packages_versions["mender-client"]
     )
+
+
+def test_version_connect(mender_connect_version, mender_dist_packages_versions):
     verify_package_version(
         mender_connect_version, mender_dist_packages_versions["mender-connect"]
     )
+
+
+def test_version_configure(mender_configure_version, mender_dist_packages_versions):
     verify_package_version(
         mender_configure_version, mender_dist_packages_versions["mender-configure"]
     )
