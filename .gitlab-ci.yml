@@ -92,6 +92,14 @@ variables:
     description: |-
       Overrides Debian suffix, which by default is "-1". Use it to manually build (and publish)
       a new version of a package from already released (git tagged) software.
+  DEBIAN_EXTRA_CHANGELOG:
+    value: ""
+    description: |-
+      Extra changelog text appended to the Debian packages built by mender-deb-package.
+      Use `*` to separate bullet points, e.g. `* note one * note two`. Each bullet point is
+      appended to debian/changelog with `dch -a` after the default "Release ..." entry.
+      Use it when re-publishing packages with a newer Debian revision (e.g.
+      mender-connect_3.0.0-2) to record a short note explaining the rebuild.
 
   BUILD_MENDER_CLIENT:
     value: "true"

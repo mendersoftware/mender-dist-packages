@@ -204,6 +204,7 @@ docker run --rm \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
         --env GOLANG_VERSION \
         --env OVERRIDE_DEBIAN_SUFFIX \
+        --env DEBIAN_EXTRA_CHANGELOG \
         ${IMAGE_NAME_PREFIX}-crosscompile-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \
