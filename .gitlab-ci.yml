@@ -225,7 +225,6 @@ include:
   - fi
 
 .wait-for-s3-lock: &wait-for-s3-lock
-  - apt update && apt install -yyq awscli
   # Lock the bucket to block concurrent jobs
   - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
   -   rm -f /tmp/lock.in
@@ -240,7 +239,6 @@ include:
   - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .release-s3-lock: &release-s3-lock
-  - apt update && apt install -yyq awscli
   - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .upload-packages-to-s3: &upload-packages-to-s3
@@ -703,14 +701,13 @@ test:pkgs:workstation-tools:trixie:
     - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
+  image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
     - hetzner-amd-beefy-privileged
   variables:
     # APT repo path for incoming device-components packages
     S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
   before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
     - *wait-for-s3-lock
   script:
     - *upload-packages-to-s3
@@ -737,14 +734,13 @@ publish:s3:device-components:automatic:
     - 'build:pkgs:workstation-tools: [ubuntu, noble, amd64]'
     - 'build:pkgs:workstation-tools: [ubuntu, noble, arm64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
+  image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
     - hetzner-amd-beefy-privileged
   variables:
     # APT repo path for incoming workstation-tools packages
     S3_BUCKET_REPO_PATH: "repos/workstation-tools/incoming"
   before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
     - *wait-for-s3-lock
   script:
     - *upload-packages-to-s3
@@ -762,10 +758,7 @@ publish:s3:workstation_tools:automatic:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
-  before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
-    - apt update && apt install -yyq awscli
+  image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   only:
     changes:
       - scripts/install-mender.sh
@@ -805,10 +798,8 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
+  image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
-    - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
     - echo "Publishing ${PUBLISH_PACKAGE_PREFIX} version ${PUBLISH_PACKAGE_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"
