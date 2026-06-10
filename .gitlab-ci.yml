@@ -1,6 +1,6 @@
 variables:
   GOLANG_VERSION:
-    value: "1.26.3"
+    value: "1.26.4"
     description: "Go version to build the packages with. The toolchain is downloaded at build time from https://dl.google.com/go"
 
   # Mender Client LTS
