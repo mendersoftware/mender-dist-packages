@@ -194,7 +194,7 @@ include:
         RELEASE: [bookworm, trixie]
         ARCH: [amd64, armhf, arm64]
       - DISTRO: ubuntu
-        RELEASE: [jammy, noble]
+        RELEASE: [noble, resolute]
         ARCH: [amd64, armhf, arm64]
 .mender-dist-packages-workstation_tools-image-matrix-cross:
   parallel:
@@ -203,7 +203,7 @@ include:
         RELEASE: [bookworm, trixie]
         ARCH: [amd64, arm64]
       - DISTRO: ubuntu
-        RELEASE: [jammy, noble]
+        RELEASE: [noble, resolute]
         ARCH: [amd64, arm64]
 
 .dind-login: &dind-login
@@ -694,12 +694,12 @@ test:pkgs:workstation-tools:trixie:
     - 'build:pkgs:device-components: [debian, trixie, amd64]'
     - 'build:pkgs:device-components: [debian, trixie, arm64]'
     - 'build:pkgs:device-components: [debian, trixie, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, amd64]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, armhf]'
     - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, arm64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
@@ -729,10 +729,10 @@ publish:s3:device-components:automatic:
     - 'build:pkgs:workstation-tools: [debian, bookworm, arm64]'
     - 'build:pkgs:workstation-tools: [debian, trixie, amd64]'
     - 'build:pkgs:workstation-tools: [debian, trixie, arm64]'
-    - 'build:pkgs:workstation-tools: [ubuntu, jammy, amd64]'
-    - 'build:pkgs:workstation-tools: [ubuntu, jammy, arm64]'
     - 'build:pkgs:workstation-tools: [ubuntu, noble, amd64]'
     - 'build:pkgs:workstation-tools: [ubuntu, noble, arm64]'
+    - 'build:pkgs:workstation-tools: [ubuntu, resolute, amd64]'
+    - 'build:pkgs:workstation-tools: [ubuntu, resolute, arm64]'
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
@@ -791,12 +791,12 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:pkgs:device-components: [debian, trixie, amd64]'
     - 'build:pkgs:device-components: [debian, trixie, arm64]'
     - 'build:pkgs:device-components: [debian, trixie, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, amd64]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, armhf]'
     - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, arm64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   before_script:
