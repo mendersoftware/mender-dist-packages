@@ -16,7 +16,7 @@
 
 set -e
 
-IMAGE_NAME_PREFIX=registry.gitlab.com/northern.tech/mender/mender-test-containers:mender-dist-packages-builder
+IMAGE_NAME_PREFIX=registry.gitlab.com/northern.tech/mender/mender-test-containers/mender-dist-packages-builder
 
 declare -A mender_client4_props=(
     [recipe_name]="mender-client4"
@@ -205,7 +205,7 @@ docker run --rm \
         --env GOLANG_VERSION \
         --env OVERRIDE_DEBIAN_SUFFIX \
         --env DEBIAN_EXTRA_CHANGELOG \
-        ${IMAGE_NAME_PREFIX}-crosscompile-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
+        ${IMAGE_NAME_PREFIX}:crosscompile-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
         /script \
         ${recipe_name} \
         ${BUILD_TYPE} \
