@@ -186,6 +186,15 @@ include:
     inputs:
       stage: "renovate"
 
+default:
+  tags:
+    - k8s
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix-cross:
   parallel:
