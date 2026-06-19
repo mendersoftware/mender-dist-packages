@@ -225,6 +225,16 @@ EOF
     --distribution ${DEB_DISTRIBUTION} \
     --package ${DEB_PACKAGE} \
     "Release ${DEB_VERSION}. See online docs for complete changelog"
+
+  # Split DEBIAN_EXTRA_CHANGELOG on '*' and append each bullet with `dch -a`.
+  if [ -n "${DEBIAN_EXTRA_CHANGELOG}" ]; then
+    IFS='*' read -ra entries <<< "${DEBIAN_EXTRA_CHANGELOG//$'\n'/ }"
+    for entry in "${entries[@]}"; do
+      # Strip leading and trailing spaces.
+      entry=$(echo "$entry" | sed -E 's/^ +| +$//g')
+      [ -n "$entry" ] && dch -a "$entry"
+    done
+  fi
 }
 
 build_orig() {

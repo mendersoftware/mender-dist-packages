@@ -18,10 +18,11 @@ import pytest
 from helpers import package_filename, upload_deb_package, check_installed
 from mender_test_containers.helpers import *
 
+pytestmark = pytest.mark.requires_option("--mender-snapshot-deb-version")
+
 
 class TestPackageSnapshot:
-    """Tests installation of mender-snapshot deb package.
-    """
+    """Tests installation of mender-snapshot deb package."""
 
     @pytest.mark.usefixtures("setup_test_container")
     def test_install(self, setup_tester_ssh_connection, mender_dist_packages_versions):

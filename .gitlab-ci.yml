@@ -1,6 +1,6 @@
 variables:
   GOLANG_VERSION:
-    value: "1.24.2"
+    value: "1.26.3"
     description: "Go version to build the packages with. The toolchain is downloaded at build time from https://dl.google.com/go"
 
   # Mender Client LTS
@@ -92,6 +92,77 @@ variables:
     description: |-
       Overrides Debian suffix, which by default is "-1". Use it to manually build (and publish)
       a new version of a package from already released (git tagged) software.
+  DEBIAN_EXTRA_CHANGELOG:
+    value: ""
+    description: |-
+      Extra changelog text appended to the Debian packages built by mender-deb-package.
+      Use `*` to separate bullet points, e.g. `* note one * note two`. Each bullet point is
+      appended to debian/changelog with `dch -a` after the default "Release ..." entry.
+      Use it when re-publishing packages with a newer Debian revision (e.g.
+      mender-connect_3.0.0-2) to record a short note explaining the rebuild.
+
+  BUILD_MENDER_CLIENT:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-client / mender-client4 package"
+  BUILD_MENDER_CONNECT:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-connect package"
+  BUILD_MENDER_CONFIGURE:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-configure package"
+  BUILD_MENDER_CONTAINER_MODULES:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-container-modules package"
+  BUILD_MENDER_ARTIFACT:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-artifact package"
+  BUILD_MENDER_CLI:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-cli package"
+  BUILD_MENDER_SETUP:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-setup package"
+  BUILD_MENDER_SNAPSHOT:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-snapshot package"
+  BUILD_MENDER_FLASH:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-flash package"
+  BUILD_MENDER_CLIENT_VERSION_INVENTORY_SCRIPT:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-client-version-inventory-script package"
+  BUILD_MENDER_GATEWAY:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-gateway package (commercial)"
+  BUILD_MENDER_MONITOR:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-monitor package (commercial)"
+  # TODO: BUILD_MENDER_ORCHESTRATOR=false / BUILD_MENDER_ORCHESTRATOR_SUPPORT=false
+  # is not yet wired through the test job, because test_package_orchestrator.py
+  # covers both packages and has no requires_option marker. Setting either of
+  # these to "false" while still running tests will make those tests fail at
+  # install time. Split the orchestrator test file per package first.
+  BUILD_MENDER_ORCHESTRATOR:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-orchestrator package (commercial)"
+  BUILD_MENDER_ORCHESTRATOR_SUPPORT:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-orchestrator-support package (commercial)"
+
   # Don't slow down aws cli commands with connections to IMDS: we're not in AWS
   AWS_EC2_METADATA_DISABLED: "true"
 
@@ -108,6 +179,12 @@ include:
     file: '.gitlab-ci-check-python3-format.yml'
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-github-status-updates.yml'
+  - project: "Northern.tech/Mender/mendertesting"
+    file: "qa-common/send-results-to-mantra.yml"
+    ref: "master"
+  - component: gitlab.com/Northern.tech/Mender/mendertesting/renovate@master
+    inputs:
+      stage: "renovate"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix-cross:
@@ -117,7 +194,7 @@ include:
         RELEASE: [bookworm, trixie]
         ARCH: [amd64, armhf, arm64]
       - DISTRO: ubuntu
-        RELEASE: [jammy, noble]
+        RELEASE: [noble, resolute]
         ARCH: [amd64, armhf, arm64]
 .mender-dist-packages-workstation_tools-image-matrix-cross:
   parallel:
@@ -126,7 +203,7 @@ include:
         RELEASE: [bookworm, trixie]
         ARCH: [amd64, arm64]
       - DISTRO: ubuntu
-        RELEASE: [jammy, noble]
+        RELEASE: [noble, resolute]
         ARCH: [amd64, arm64]
 
 .dind-login: &dind-login
@@ -148,7 +225,6 @@ include:
   - fi
 
 .wait-for-s3-lock: &wait-for-s3-lock
-  - apt update && apt install -yyq awscli
   # Lock the bucket to block concurrent jobs
   - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
   -   rm -f /tmp/lock.in
@@ -163,7 +239,6 @@ include:
   - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .release-s3-lock: &release-s3-lock
-  - apt update && apt install -yyq awscli
   - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .upload-packages-to-s3: &upload-packages-to-s3
@@ -176,6 +251,40 @@ include:
   -     aws s3 cp "$file" "s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/${d}/"
   -   done
   - done
+
+# Helper used by every build job to honor the per-package BUILD_<PKG> toggles.
+# The case-statement is the single source of truth mapping a package name to
+# its toggle. mender-client and mender-client4 share BUILD_MENDER_CLIENT
+# because they are the same package built from different source trees.
+# Unknown package names exit non-zero to catch typos early instead of
+# silently building (or silently skipping) the wrong recipe.
+.maybe-build: &maybe-build
+  - |
+    maybe_build() {
+      pkg="$4"
+      case "$pkg" in
+        mender-client|mender-client4)            toggle="${BUILD_MENDER_CLIENT:-true}" ;;
+        mender-connect)                          toggle="${BUILD_MENDER_CONNECT:-true}" ;;
+        mender-configure)                        toggle="${BUILD_MENDER_CONFIGURE:-true}" ;;
+        mender-container-modules)                toggle="${BUILD_MENDER_CONTAINER_MODULES:-true}" ;;
+        mender-artifact)                         toggle="${BUILD_MENDER_ARTIFACT:-true}" ;;
+        mender-cli)                              toggle="${BUILD_MENDER_CLI:-true}" ;;
+        mender-setup)                            toggle="${BUILD_MENDER_SETUP:-true}" ;;
+        mender-snapshot)                         toggle="${BUILD_MENDER_SNAPSHOT:-true}" ;;
+        mender-flash)                            toggle="${BUILD_MENDER_FLASH:-true}" ;;
+        mender-client-version-inventory-script)  toggle="${BUILD_MENDER_CLIENT_VERSION_INVENTORY_SCRIPT:-true}" ;;
+        mender-gateway)                          toggle="${BUILD_MENDER_GATEWAY:-true}" ;;
+        mender-monitor)                          toggle="${BUILD_MENDER_MONITOR:-true}" ;;
+        mender-orchestrator)                     toggle="${BUILD_MENDER_ORCHESTRATOR:-true}" ;;
+        mender-orchestrator-support)             toggle="${BUILD_MENDER_ORCHESTRATOR_SUPPORT:-true}" ;;
+        *) echo "ERROR: maybe_build: unknown package $pkg" >&2; exit 1 ;;
+      esac
+      if [ "$toggle" = "true" ]; then
+        ./docker-build-package "$@"
+      else
+        echo "Skipping $pkg (BUILD_<PKG>=$toggle)"
+      fi
+    }
 
 .build:base:
   before_script:
@@ -192,6 +301,7 @@ default:
   retry: !reference [.qa-common-default-retry, retry]
 
 stages:
+  - renovate
   - test:static
   - build:orig
   - build:packages
@@ -218,20 +328,21 @@ build:orig:all:
     ARCH: "amd64"
   script:
     - apk --update --no-cache add bash
+    - *maybe-build
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
+    -   maybe_build $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION true
     - else
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION true
+    -   maybe_build $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION true
     - fi
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION true
     - find output -type f
   artifacts:
     paths:
@@ -254,23 +365,24 @@ build:pkgs:device-components:
       alias: docker
   script:
     - apk --update --no-cache add bash
+    - *maybe-build
     - if [[ "${MENDER_VERSION}" =~ ^3\..* ]]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
+    -   maybe_build $DISTRO $RELEASE $ARCH mender-client $MENDER_VERSION
     - else
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
+    -   maybe_build $DISTRO $RELEASE $ARCH mender-client4 $MENDER_VERSION
     - fi
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-snapshot $MENDER_SNAPSHOT_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-flash $MENDER_FLASH_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-client-version-inventory-script $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
     - if [ -n "${MENDER_PRIVATE_REPO_ACCESS_TOKEN}" ]; then
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-orchestrator $MENDER_ORCHESTRATOR_VERSION
-    -   ./docker-build-package $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION
+    -   maybe_build $DISTRO $RELEASE $ARCH mender-gateway $MENDER_GATEWAY_VERSION
+    -   maybe_build $DISTRO $RELEASE $ARCH mender-monitor $MENDER_MONITOR_VERSION
+    -   maybe_build $DISTRO $RELEASE $ARCH mender-orchestrator $MENDER_ORCHESTRATOR_VERSION
+    -   maybe_build $DISTRO $RELEASE $ARCH mender-orchestrator-support $MENDER_ORCHESTRATOR_SUPPORT_VERSION
     - fi
     - find output -type f
   artifacts:
@@ -296,8 +408,9 @@ build:pkgs:workstation-tools:
       alias: docker
   script:
     - apk --update --no-cache add bash
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
-    - ./docker-build-package $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION
+    - *maybe-build
+    - maybe_build $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION
     - find output -type f
   artifacts:
     paths:
@@ -365,44 +478,62 @@ test:check-python3-formatting:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
     # Install dependencies
     - apk --update --no-cache add python3 py3-pip gcc openssh-client make openssl-dev
-      libffi-dev libc-dev python3-dev bash musl-dev rust cargo
+      libffi-dev libc-dev python3-dev bash musl-dev rust cargo curl jq
     - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
   script:
     - cd tests
     - |-
+        pkg_flags=""
+        # Only adds the pytest --foo-version / --foo-deb-version pair when the
+        # build job for that package produced a deb-version artifact (i.e. the
+        # package was actually built).
+        maybe_add_pkg_flag() {
+          local pkg="$1" version="$2" filename="$3"
+          local path="${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/$filename"
+          if [ -f "$path" ]; then
+            pkg_flags="$pkg_flags --$pkg-version $version --$pkg-deb-version $(cat "$path")"
+          else
+            echo "Skipping $pkg in pytest args: $path not present"
+          fi
+        }
+        maybe_add_pkg_flag mender-client "$MENDER_VERSION" mender-client4-deb-version
+        maybe_add_pkg_flag mender-connect "$MENDER_CONNECT_VERSION" mender-connect-deb-version
+        maybe_add_pkg_flag mender-configure "$MENDER_CONFIGURE_VERSION" mender-configure-deb-version
+        maybe_add_pkg_flag mender-setup "$MENDER_SETUP_VERSION" mender-setup-deb-version
+        maybe_add_pkg_flag mender-snapshot "$MENDER_SNAPSHOT_VERSION" mender-snapshot-deb-version
+        maybe_add_pkg_flag mender-flash "$MENDER_FLASH_VERSION" mender-flash-deb-version
+        maybe_add_pkg_flag mender-container-modules "$MENDER_CONTAINER_MODULES_VERSION" mender-container-modules-deb-version
+        maybe_add_pkg_flag mender-client-version-inventory-script "$MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION" mender-client-version-inventory-script-deb-version
+
+        COMMERCIAL_OUTPUT="${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64"
         commercial_tests_flags=""
-        if [ -f ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-gateway-deb-version ] &&
-           [ -f ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-monitor-deb-version ]; then
+        if [ -f "$COMMERCIAL_OUTPUT/mender-gateway-deb-version" ] &&
+           [ -f "$COMMERCIAL_OUTPUT/mender-monitor-deb-version" ]; then
           commercial_tests_flags="--commercial-tests"
           commercial_tests_flags="$commercial_tests_flags --mender-gateway-version $MENDER_GATEWAY_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-gateway-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat $COMMERCIAL_OUTPUT/mender-gateway-deb-version)"
           commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-monitor-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat $COMMERCIAL_OUTPUT/mender-monitor-deb-version)"
           commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-version $MENDER_ORCHESTRATOR_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-orchestrator-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-deb-version $(cat $COMMERCIAL_OUTPUT/mender-orchestrator-deb-version)"
           # NOTE: Although mender-orchestrator-support is built with no closed source secrets, it cannot be tested without mender-orchestrator so it belongs to "commercial tests"
           commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-version $MENDER_ORCHESTRATOR_SUPPORT_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat ${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64/mender-orchestrator-support-deb-version)"
+          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat $COMMERCIAL_OUTPUT/mender-orchestrator-support-deb-version)"
+        fi
+
+        # Fail loudly if no packages were built at all, otherwise pytest would
+        # silently skip every test and the test job would falsely report green.
+        if [ -z "${pkg_flags}${commercial_tests_flags}" ]; then
+          echo "ERROR: no packages produced *-deb-version artifacts; refusing to run pytest with empty arguments" >&2
+          exit 1
         fi
     - python3 -m pytest -v
-      --mender-client-version $MENDER_VERSION
-      --mender-client-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client4-deb-version)
-      --mender-connect-version $MENDER_CONNECT_VERSION
-      --mender-connect-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-connect-deb-version)
-      --mender-configure-version $MENDER_CONFIGURE_VERSION
-      --mender-configure-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-configure-deb-version)
-      --mender-setup-version $MENDER_SETUP_VERSION
-      --mender-setup-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-setup-deb-version)
-      --mender-snapshot-version $MENDER_SNAPSHOT_VERSION
-      --mender-snapshot-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-snapshot-deb-version)
-      --mender-flash-version $MENDER_FLASH_VERSION
-      --mender-flash-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-flash-deb-version)
-      --mender-container-modules-version $MENDER_CONTAINER_MODULES_VERSION
-      --mender-container-modules-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-container-modules-deb-version)
-      --mender-client-version-inventory-script-version $MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION
-      --mender-client-version-inventory-script-deb-version $(cat ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-client-version-inventory-script-deb-version)
+      ${pkg_flags}
       ${commercial_tests_flags}
       --junit-xml results.xml
+  after_script:
+  - export MANTRA_PROJECT_NAME="client_general"
+  - !reference [.mantra-push-results]
   artifacts:
     reports:
       junit: tests/results.xml
@@ -457,6 +588,9 @@ test:pkgs:device-components:trixie:
   script:
     - cd scripts/tests
     - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh.py
+  after_script:
+  - export MANTRA_PROJECT_NAME="client_general"
+  - !reference [.mantra-push-results]
   artifacts:
     reports:
       junit: scripts/tests/results.xml
@@ -489,6 +623,9 @@ test:install-script:legacy:
   script:
     - cd scripts/tests
     - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh_legacy.py
+  after_script:
+  - export MANTRA_PROJECT_NAME="client_general"
+  - !reference [.mantra-push-results]
   variables:
     DEBIAN_VERSION: 11
     DEBIAN_VERSION_NAME: "bullseye"
@@ -557,21 +694,20 @@ test:pkgs:workstation-tools:trixie:
     - 'build:pkgs:device-components: [debian, trixie, amd64]'
     - 'build:pkgs:device-components: [debian, trixie, arm64]'
     - 'build:pkgs:device-components: [debian, trixie, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, amd64]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, armhf]'
     - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, arm64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
+  image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
     - hetzner-amd-beefy-privileged
   variables:
     # APT repo path for incoming device-components packages
     S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
   before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
     - *wait-for-s3-lock
   script:
     - *upload-packages-to-s3
@@ -593,19 +729,18 @@ publish:s3:device-components:automatic:
     - 'build:pkgs:workstation-tools: [debian, bookworm, arm64]'
     - 'build:pkgs:workstation-tools: [debian, trixie, amd64]'
     - 'build:pkgs:workstation-tools: [debian, trixie, arm64]'
-    - 'build:pkgs:workstation-tools: [ubuntu, jammy, amd64]'
-    - 'build:pkgs:workstation-tools: [ubuntu, jammy, arm64]'
     - 'build:pkgs:workstation-tools: [ubuntu, noble, amd64]'
     - 'build:pkgs:workstation-tools: [ubuntu, noble, arm64]'
+    - 'build:pkgs:workstation-tools: [ubuntu, resolute, amd64]'
+    - 'build:pkgs:workstation-tools: [ubuntu, resolute, arm64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
+  image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
     - hetzner-amd-beefy-privileged
   variables:
     # APT repo path for incoming workstation-tools packages
     S3_BUCKET_REPO_PATH: "repos/workstation-tools/incoming"
   before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
     - *wait-for-s3-lock
   script:
     - *upload-packages-to-s3
@@ -623,10 +758,7 @@ publish:s3:workstation_tools:automatic:
 
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
-  before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
-    - apt update && apt install -yyq awscli
+  image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   only:
     changes:
       - scripts/install-mender.sh
@@ -659,17 +791,15 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:pkgs:device-components: [debian, trixie, amd64]'
     - 'build:pkgs:device-components: [debian, trixie, arm64]'
     - 'build:pkgs:device-components: [debian, trixie, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, amd64]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, jammy, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, armhf]'
     - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
     - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, armhf]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, arm64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
   stage: publish
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:13
+  image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
-    - apt update && apt install -yyq awscli
     - *publish_helper_functions
   script:
     - echo "Publishing ${PUBLISH_PACKAGE_PREFIX} version ${PUBLISH_PACKAGE_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"

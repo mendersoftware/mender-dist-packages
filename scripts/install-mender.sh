@@ -520,6 +520,9 @@ check_dist_and_version() {
                 DIST_VERSION="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
             fi
             case "$DIST_VERSION" in
+                resolute)
+                    DIST_VERSION="resolute"
+                ;;
                 noble)
                     DIST_VERSION="noble"
                 ;;

@@ -34,6 +34,7 @@ COMMERCIAL_PACKAGES = [
 
 DEFAULT_PACKAGE_ARCH = "armhf"
 
+
 # Returns path were to find the package to install
 def packages_path(package, package_arch=DEFAULT_PACKAGE_ARCH):
     if package_arch == "all":

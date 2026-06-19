@@ -24,7 +24,9 @@ from common import check_installed, local_apt_repo_from_built_packages
 class TestInstallMenderScriptInstall:
     @pytest.mark.parametrize("channel", ["", "stable", "experimental"])
     def test_default(
-        self, generic_debian_container, channel,
+        self,
+        generic_debian_container,
+        channel,
     ):
         """Default, no arg install installs mender-client and add-ons (stable)."""
 
@@ -54,7 +56,8 @@ class TestInstallMenderScriptInstall:
         assert "Unsupported argument: `unknown`" in res.stdout.decode()
 
     def test_default_setup_mender(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         """Pass mender setup args, should be propagated"""
 
@@ -72,7 +75,8 @@ class TestInstallMenderScriptInstall:
         assert '"User": "nobody"' in result.stdout.decode()
 
     def test_default_setup_addons(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         """Setup for add-ons (passing --demo)"""
 
@@ -84,7 +88,8 @@ class TestInstallMenderScriptInstall:
         assert '"User": "root"' in result.stdout.decode()
 
     def test_client(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         generic_debian_container.run(
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-client"
@@ -98,7 +103,8 @@ class TestInstallMenderScriptInstall:
         assert res.returncode == 1
 
     def test_connect(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         generic_debian_container.run(
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-connect"
@@ -109,7 +115,8 @@ class TestInstallMenderScriptInstall:
         check_installed(generic_debian_container, "mender-configure", installed=False)
 
     def test_configure(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         generic_debian_container.run(
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-configure"
@@ -124,7 +131,8 @@ class TestInstallMenderScriptInstall:
 @pytest.mark.usefixtures("script_server")
 class TestInstallMenderScriptUpgrade:
     def test_upgrade_mender_meta_package_with_addons(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         # Install default stable software
         generic_debian_container.run(
@@ -148,7 +156,8 @@ class TestInstallMenderScriptUpgrade:
         check_installed(generic_debian_container, "mender-configure")
 
     def test_upgrade_mender_meta_package_only_client(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         # Install only the meta-package
         generic_debian_container.run(
@@ -173,7 +182,8 @@ class TestInstallMenderScriptUpgrade:
         check_installed(generic_debian_container, "mender-configure", installed=False)
 
     def test_upgrade_mender_explicit_auth_update(
-        self, generic_debian_container,
+        self,
+        generic_debian_container,
     ):
         # Install the actual core packages
         generic_debian_container.run(
