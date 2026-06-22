@@ -171,8 +171,7 @@ include:
     file:
       - qa-common/runner.yml
       - qa-common/retry.yml
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-commits-signoffs.yml'
+  - component: gitlab.com/Northern.tech/Mender/mendertesting/commit-lint@master
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-check-license.yml'
   - project: 'Northern.tech/Mender/mendertesting'
@@ -416,12 +415,6 @@ build:pkgs:workstation-tools:
     paths:
       - output/opensource
   parallel: !reference [.mender-dist-packages-workstation_tools-image-matrix-cross, parallel]
-
-test:check-commits:
-  stage: test:static
-  only:
-    variables:
-      - '$TEST_MENDER_DIST_PACKAGES == "true"'
 
 test:check-license:
   stage: test:static
