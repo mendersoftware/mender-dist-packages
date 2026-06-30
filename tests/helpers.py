@@ -15,7 +15,7 @@
 
 import os
 
-from conftest import get_debian_distro_version
+from conftest import get_distro_family, get_distro_version
 from mender_test_containers.helpers import Result as SSHResult
 
 tests_path = os.path.dirname(os.path.realpath(__file__))
@@ -40,15 +40,15 @@ def packages_path(package, package_arch=DEFAULT_PACKAGE_ARCH):
     if package_arch == "all":
         package_arch = "amd64"
 
-    distro = "debian"
-    distro_version = get_debian_distro_version()
+    distro_family = get_distro_family()
+    distro_version = get_distro_version()
 
     basedir = "opensource"
     if package in COMMERCIAL_PACKAGES:
         basedir = "commercial"
 
     return os.path.join(
-        output_path, basedir, f"{distro}-{distro_version}-{package_arch}"
+        output_path, basedir, f"{distro_family}-{distro_version}-{package_arch}"
     )
 
 

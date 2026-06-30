@@ -444,8 +444,9 @@ test:check-python3-formatting:
     GIT_SUBMODULE_STRATEGY: recursive
     # Bellow two variables need to be defined in the final pipeline and
     # match each other to property reflect Debian version
-    # DEBIAN_VERSION  (example: 13)
-    # DEBIAN_VERSION_NAME  (example: "trixie")
+    # OS_FAMILY (example: debian)
+    # OS_VERSION  (example: 13)
+    # OS_VERSION_NAME  (example: "trixie")
   before_script:
     # DinD setup in Mender CI runners
     - unset DOCKER_HOST
@@ -482,7 +483,7 @@ test:check-python3-formatting:
         # package was actually built).
         maybe_add_pkg_flag() {
           local pkg="$1" version="$2" filename="$3"
-          local path="${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/$filename"
+          local path="${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/$filename"
           if [ -f "$path" ]; then
             pkg_flags="$pkg_flags --$pkg-version $version --$pkg-deb-version $(cat "$path")"
           else
@@ -498,7 +499,7 @@ test:check-python3-formatting:
         maybe_add_pkg_flag mender-container-modules "$MENDER_CONTAINER_MODULES_VERSION" mender-container-modules-deb-version
         maybe_add_pkg_flag mender-client-version-inventory-script "$MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION" mender-client-version-inventory-script-deb-version
 
-        COMMERCIAL_OUTPUT="${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64"
+        COMMERCIAL_OUTPUT="${CI_PROJECT_DIR}/output/commercial/${OS_FAMILY}-${OS_VERSION_NAME}-amd64"
         commercial_tests_flags=""
         if [ -f "$COMMERCIAL_OUTPUT/mender-gateway-deb-version" ] &&
            [ -f "$COMMERCIAL_OUTPUT/mender-monitor-deb-version" ]; then
@@ -533,7 +534,7 @@ test:check-python3-formatting:
 
 .test:pkgs:device-components:
   extends: .test:pkgs
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:${DEBIAN_VERSION_NAME}
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/${OS_FAMILY}:${OS_VERSION_NAME}
   tags:
     - hetzner-arm
   rules:
@@ -558,8 +559,9 @@ test:pkgs:device-components:bookworm:
     - "build:pkgs:device-components: [debian, bookworm, amd64]"
     - "build:pkgs:device-components: [debian, bookworm, armhf]"
   variables:
-    DEBIAN_VERSION: 12
-    DEBIAN_VERSION_NAME: "bookworm"
+    OS_FAMILY: "debian"
+    OS_VERSION: 12
+    OS_VERSION_NAME: "bookworm"
 
 test:pkgs:device-components:trixie:
   extends: .test:pkgs:device-components
@@ -567,8 +569,29 @@ test:pkgs:device-components:trixie:
     - "build:pkgs:device-components: [debian, trixie, amd64]"
     - "build:pkgs:device-components: [debian, trixie, armhf]"
   variables:
-    DEBIAN_VERSION: 13
-    DEBIAN_VERSION_NAME: "trixie"
+    OS_FAMILY: "debian"
+    OS_VERSION: 13
+    OS_VERSION_NAME: "trixie"
+
+test:pkgs:device-components:noble:
+  extends: .test:pkgs:device-components
+  needs:
+    - "build:pkgs:device-components: [ubuntu, noble, amd64]"
+    - "build:pkgs:device-components: [ubuntu, noble, armhf]"
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 24.04
+    OS_VERSION_NAME: "noble"
+
+test:pkgs:device-components:resolute:
+  extends: .test:pkgs:device-components
+  needs:
+    - "build:pkgs:device-components: [ubuntu, resolute, amd64]"
+    - "build:pkgs:device-components: [ubuntu, resolute, armhf]"
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 26.04
+    OS_VERSION_NAME: "resolute"
 
 # This template allows testing installation script against different Debian versions
 .test:install-script:
@@ -595,8 +618,9 @@ test:install-script:bookworm:
     - "build:pkgs:device-components: [debian, bookworm, armhf]"
     - "build:pkgs:workstation-tools: [debian, bookworm, amd64]"
   variables:
-    DEBIAN_VERSION: 12
-    DEBIAN_VERSION_NAME: "bookworm"
+    OS_FAMILY: "debian"
+    OS_VERSION: 12
+    OS_VERSION_NAME: "bookworm"
 
 test:install-script:trixie:
   extends: .test:install-script
@@ -605,8 +629,31 @@ test:install-script:trixie:
     - "build:pkgs:device-components: [debian, trixie, armhf]"
     - "build:pkgs:workstation-tools: [debian, trixie, amd64]"
   variables:
-    DEBIAN_VERSION: 13
-    DEBIAN_VERSION_NAME: "trixie"
+    OS_FAMILY: "debian"
+    OS_VERSION: 13
+    OS_VERSION_NAME: "trixie"
+
+test:install-script:noble:
+  extends: .test:install-script
+  needs:
+    - "build:pkgs:device-components: [ubuntu, noble, amd64]"
+    - "build:pkgs:device-components: [ubuntu, noble, armhf]"
+    - "build:pkgs:workstation-tools: [ubuntu, noble, amd64]"
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 24.04
+    OS_VERSION_NAME: "noble"
+
+test:install-script:resolute:
+  extends: .test:install-script
+  needs:
+    - "build:pkgs:device-components: [ubuntu, resolute, amd64]"
+    - "build:pkgs:device-components: [ubuntu, resolute, armhf]"
+    - "build:pkgs:workstation-tools: [ubuntu, resolute, amd64]"
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 26.04
+    OS_VERSION_NAME: "resolute"
 
 # Legacy tests specific for Debian 11
 # Note that it does not verify built packages (because we don't build anymore for Debian 11)
@@ -620,15 +667,17 @@ test:install-script:legacy:
   - export MANTRA_PROJECT_NAME="client_general"
   - !reference [.mantra-push-results]
   variables:
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
+    OS_FAMILY: "debian"
+    OS_VERSION: 11
+    OS_VERSION_NAME: "bullseye"
 
 # This is a template for testing workstation-tools against different Debian version
 # which will be redefined when template will be extended.
 .test:pkgs:workstation-tools:
   variables:
-    DEBIAN_VERSION: 12
-    DEBIAN_VERSION_NAME: "bookworm"
+    OS_FAMILY: "debian"
+    OS_VERSION: 12
+    OS_VERSION_NAME: "bookworm"
   stage: test
   tags:
     - hetzner-amd-beefy
@@ -639,33 +688,55 @@ test:install-script:legacy:
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:${DEBIAN_VERSION}
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:${OS_VERSION}
   before_script:
     - !reference [.qa-common-network-apt-retry, before_script]
   script:
     - apt-get update
-    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-artifact*.deb
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/mender-artifact*.deb
     - test -x /usr/bin/mender-artifact
     - mender-artifact --version
-    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-cli*.deb
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/mender-cli*.deb
     - test -x /usr/bin/mender-cli
     - mender-cli --version
 
 test:pkgs:workstation-tools:bookworm:
   extends: .test:pkgs:workstation-tools
   variables:
-    DEBIAN_VERSION: 12
-    DEBIAN_VERSION_NAME: "bookworm"
+    OS_FAMILY: "debian"
+    OS_VERSION: 12
+    OS_VERSION_NAME: "bookworm"
   needs:
     - 'build:pkgs:workstation-tools: [debian, bookworm, amd64]'
 
 test:pkgs:workstation-tools:trixie:
   extends: .test:pkgs:workstation-tools
   variables:
-    DEBIAN_VERSION: 13
-    DEBIAN_VERSION_NAME: "trixie"
+    OS_FAMILY: "debian"
+    OS_VERSION: 13
+    OS_VERSION_NAME: "trixie"
   needs:
     - 'build:pkgs:workstation-tools: [debian, trixie, amd64]'
+
+test:pkgs:workstation-tools:noble:
+  extends: .test:pkgs:workstation-tools
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 24.04
+    OS_VERSION_NAME: "noble"
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/ubuntu:${OS_VERSION}
+  needs:
+    - 'build:pkgs:workstation-tools: [ubuntu, noble, amd64]'
+
+test:pkgs:workstation-tools:resolute:
+  extends: .test:pkgs:workstation-tools
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 26.04
+    OS_VERSION_NAME: "resolute"
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/ubuntu:${OS_VERSION}
+  needs:
+    - 'build:pkgs:workstation-tools: [ubuntu, resolute, amd64]'
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
