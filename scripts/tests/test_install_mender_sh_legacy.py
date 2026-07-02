@@ -16,7 +16,7 @@
 import pytest
 
 from common import SCRIPT_SERVER_ADDR, SCRIPT_SERVER_PORT
-from common import script_server, generic_debian_container
+from common import script_server, generic_container
 from common import (
     check_installed,
     local_apt_repo_from_upstream_packages,
@@ -28,11 +28,11 @@ from common import (
 class TestUpgradeMenderV4:
     def test_upgrade_from_v3_to_v4_to_last_debian_11(
         self,
-        generic_debian_container,
+        generic_container,
     ):
         # Install mender-client 3.5.1 (epoch 0:)
         local_apt_repo_from_upstream_packages(
-            generic_debian_container,
+            generic_container,
             [
                 f"m/mender-client/mender-client_3.5.1-1+debian+bullseye_amd64.deb",
                 f"m/mender-connect/mender-connect_2.1.1-1+debian+bullseye_amd64.deb",
@@ -40,17 +40,17 @@ class TestUpgradeMenderV4:
             ],
             "/mender_3_5_1",
         )
-        generic_debian_container.run(
+        generic_container.run(
             "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client mender-connect mender-configure"
         )
 
-        check_installed(generic_debian_container, "mender-client")
-        check_installed(generic_debian_container, "mender-connect")
-        check_installed(generic_debian_container, "mender-configure")
+        check_installed(generic_container, "mender-client")
+        check_installed(generic_container, "mender-connect")
+        check_installed(generic_container, "mender-configure")
 
         # Upgrade to mender-client 4.0.0
         local_apt_repo_from_test_packages(
-            generic_debian_container,
+            generic_container,
             [
                 f"mender-client_4.0.0-1+debian+bullseye_amd64.deb",
                 f"mender-update_4.0.0-1+debian+bullseye_amd64.deb",
@@ -64,38 +64,38 @@ class TestUpgradeMenderV4:
             "/mender_4_0_0",
         )
         # Note the use of apt instead of apt-get - the latter wouldn't install the new packages
-        generic_debian_container.run("apt --assume-yes upgrade")
-        check_installed(generic_debian_container, "mender-client")
-        check_installed(generic_debian_container, "mender-update")
-        check_installed(generic_debian_container, "mender-auth")
-        check_installed(generic_debian_container, "mender-flash")
-        check_installed(generic_debian_container, "mender-setup")
-        check_installed(generic_debian_container, "mender-snapshot")
-        check_installed(generic_debian_container, "mender-connect")
-        check_installed(generic_debian_container, "mender-configure")
+        generic_container.run("apt --assume-yes upgrade")
+        check_installed(generic_container, "mender-client")
+        check_installed(generic_container, "mender-update")
+        check_installed(generic_container, "mender-auth")
+        check_installed(generic_container, "mender-flash")
+        check_installed(generic_container, "mender-setup")
+        check_installed(generic_container, "mender-snapshot")
+        check_installed(generic_container, "mender-connect")
+        check_installed(generic_container, "mender-configure")
 
         # Install upstream repo and upgrade to the last Debian 11 packages
         # The script requires at least one package; use mender-flash because it has no dependencies
-        generic_debian_container.run(
+        generic_container.run(
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-flash"
         )
-        generic_debian_container.run("apt --assume-yes upgrade")
-        check_installed(generic_debian_container, "mender-client")
-        check_installed(generic_debian_container, "mender-update")
-        check_installed(generic_debian_container, "mender-auth")
-        check_installed(generic_debian_container, "mender-flash")
-        check_installed(generic_debian_container, "mender-setup")
-        check_installed(generic_debian_container, "mender-snapshot")
-        check_installed(generic_debian_container, "mender-connect")
-        check_installed(generic_debian_container, "mender-configure")
+        generic_container.run("apt --assume-yes upgrade")
+        check_installed(generic_container, "mender-client")
+        check_installed(generic_container, "mender-update")
+        check_installed(generic_container, "mender-auth")
+        check_installed(generic_container, "mender-flash")
+        check_installed(generic_container, "mender-setup")
+        check_installed(generic_container, "mender-snapshot")
+        check_installed(generic_container, "mender-connect")
+        check_installed(generic_container, "mender-configure")
 
     def test_upgrade_from_v3_to_last_debian_11(
         self,
-        generic_debian_container,
+        generic_container,
     ):
         # Install mender-client 3.5.2 (epoch 1:)
         local_apt_repo_from_upstream_packages(
-            generic_debian_container,
+            generic_container,
             [
                 f"m/mender-client/mender-client_3.5.2-1+debian+bullseye_amd64.deb",
                 f"m/mender-connect/mender-connect_2.2.0-1+debian+bullseye_amd64.deb",
@@ -103,30 +103,30 @@ class TestUpgradeMenderV4:
             ],
             "/mender_3_5_2",
         )
-        generic_debian_container.run(
+        generic_container.run(
             "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client mender-connect mender-configure"
         )
-        check_installed(generic_debian_container, "mender-client")
-        check_installed(generic_debian_container, "mender-connect")
-        check_installed(generic_debian_container, "mender-configure")
+        check_installed(generic_container, "mender-client")
+        check_installed(generic_container, "mender-connect")
+        check_installed(generic_container, "mender-configure")
 
         # Install upstream repo and upgrade to the last Debian 11 packages
         # The script requires at least one package; use mender-flash because it has no dependencies
-        generic_debian_container.run(
+        generic_container.run(
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-flash"
         )
-        generic_debian_container.run("apt --assume-yes upgrade")
-        check_installed(generic_debian_container, "mender-client")
-        check_installed(generic_debian_container, "mender-connect")
-        check_installed(generic_debian_container, "mender-configure")
+        generic_container.run("apt --assume-yes upgrade")
+        check_installed(generic_container, "mender-client")
+        check_installed(generic_container, "mender-connect")
+        check_installed(generic_container, "mender-configure")
 
     def test_upgrade_from_v4_to_last_debian_11(
         self,
-        generic_debian_container,
+        generic_container,
     ):
         # Install mender-client 4.0.0
         local_apt_repo_from_test_packages(
-            generic_debian_container,
+            generic_container,
             [
                 f"mender-client_4.0.0-1+debian+bullseye_amd64.deb",
                 f"mender-update_4.0.0-1+debian+bullseye_amd64.deb",
@@ -139,16 +139,16 @@ class TestUpgradeMenderV4:
             ],
             "/mender_4_0_0",
         )
-        generic_debian_container.run(
+        generic_container.run(
             "DEBIAN_FRONTEND=noninteractive apt install --assume-yes mender-client mender-connect mender-configure"
         )
 
         # Install upstream repo and upgrade to the last Debian 11 packages
         # The script requires at least one package; use mender-flash because it has no dependencies
-        generic_debian_container.run(
+        generic_container.run(
             f"curl http://{SCRIPT_SERVER_ADDR}:{SCRIPT_SERVER_PORT}/install-mender.sh | bash -s -- mender-flash"
         )
-        generic_debian_container.run("apt --assume-yes upgrade")
-        check_installed(generic_debian_container, "mender-client")
-        check_installed(generic_debian_container, "mender-connect")
-        check_installed(generic_debian_container, "mender-configure")
+        generic_container.run("apt --assume-yes upgrade")
+        check_installed(generic_container, "mender-client")
+        check_installed(generic_container, "mender-connect")
+        check_installed(generic_container, "mender-configure")
