@@ -14,6 +14,7 @@
 #    limitations under the License.
 
 import pytest
+import os
 
 from helpers import package_filename, upload_deb_package, check_installed
 
