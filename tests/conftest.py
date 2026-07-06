@@ -194,11 +194,10 @@ def mender_dist_packages_versions(request):
 
 
 # Required for mender_test_containers/conftest.py::setup_mender_configured,
-# which is only used on addons packages tests. Use version 3.5.3 as the latest
-# version < 4.0.
+# which is only used on addons packages tests.
 @pytest.fixture(scope="session")
 def mender_deb_version(request):
-    return "5.0.2"
+    return "5.0.5"
 
 
 def min_version_impl(request, marker, min_version):
