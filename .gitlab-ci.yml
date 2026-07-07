@@ -58,6 +58,7 @@ variables:
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
+  AWS_S3_PUBLISH_ROLE_ARN: "arn:aws:iam::175683096866:role/nt-mender-dist-packages-s3-publishing"
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
   S3_BUCKET_SUBPATH_ORCHESTRATOR: "mender-orchestrator/debian"
@@ -209,6 +210,18 @@ include:
   - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
   - for retry in 1 2 3 4 5; do docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY && break || sleep $retry; done
 
+.aws-oidc-auth: &aws-oidc-auth
+  - >
+    export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
+    $(aws sts assume-role-with-web-identity
+    --role-arn ${AWS_S3_PUBLISH_ROLE_ARN}
+    --role-session-name "GitLabRunner-${CI_PROJECT_ID}-${CI_PIPELINE_ID}"
+    --web-identity-token ${AWS_OIDC_TOKEN}
+    --duration-seconds 900
+    --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+    --output text))
+  - aws sts get-caller-identity
+
 .requires-docker: &requires-docker
   - DOCKER_RETRY_SLEEP_S=2
   - DOCKER_RUNNING=false
@@ -224,6 +237,7 @@ include:
   - fi
 
 .wait-for-s3-lock: &wait-for-s3-lock
+  - *aws-oidc-auth
   # Lock the bucket to block concurrent jobs
   - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
   -   rm -f /tmp/lock.in
@@ -238,6 +252,7 @@ include:
   - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .release-s3-lock: &release-s3-lock
+  - *aws-oidc-auth
   - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .upload-packages-to-s3: &upload-packages-to-s3
@@ -767,7 +782,10 @@ test:pkgs:workstation-tools:resolute:
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
-    - hetzner-amd-beefy-privileged
+    - k8s-small
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://gitlab.com
   variables:
     # APT repo path for incoming device-components packages
     S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
@@ -800,7 +818,10 @@ publish:s3:device-components:automatic:
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
-    - hetzner-amd-beefy-privileged
+    - k8s-small
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://gitlab.com
   variables:
     # APT repo path for incoming workstation-tools packages
     S3_BUCKET_REPO_PATH: "repos/workstation-tools/incoming"
@@ -823,6 +844,11 @@ publish:s3:workstation_tools:automatic:
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://gitlab.com
+  before_script:
+    - *aws-oidc-auth
   only:
     changes:
       - scripts/install-mender.sh
@@ -863,7 +889,11 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://gitlab.com
   before_script:
+    - *aws-oidc-auth
     - *publish_helper_functions
   script:
     - echo "Publishing ${PUBLISH_PACKAGE_PREFIX} version ${PUBLISH_PACKAGE_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"
