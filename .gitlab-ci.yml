@@ -190,20 +190,14 @@ include:
 .mender-dist-packages-image-matrix-cross:
   parallel:
     matrix:
-      - DISTRO: debian
-        RELEASE: [bookworm, trixie]
-        ARCH: [amd64, armhf, arm64]
       - DISTRO: ubuntu
-        RELEASE: [noble, resolute]
+        RELEASE: [resolute]
         ARCH: [amd64, armhf, arm64]
 .mender-dist-packages-workstation_tools-image-matrix-cross:
   parallel:
     matrix:
-      - DISTRO: debian
-        RELEASE: [bookworm, trixie]
-        ARCH: [amd64, arm64]
       - DISTRO: ubuntu
-        RELEASE: [noble, resolute]
+        RELEASE: [resolute]
         ARCH: [amd64, arm64]
 
 .dind-login: &dind-login
@@ -568,36 +562,6 @@ test:check-python3-formatting:
     - source venv/bin/activate
     - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
 
-test:pkgs:device-components:bookworm:
-  extends: .test:pkgs:device-components
-  needs:
-    - "build:pkgs:device-components: [debian, bookworm, amd64]"
-    - "build:pkgs:device-components: [debian, bookworm, armhf]"
-  variables:
-    OS_FAMILY: "debian"
-    OS_VERSION: 12
-    OS_VERSION_NAME: "bookworm"
-
-test:pkgs:device-components:trixie:
-  extends: .test:pkgs:device-components
-  needs:
-    - "build:pkgs:device-components: [debian, trixie, amd64]"
-    - "build:pkgs:device-components: [debian, trixie, armhf]"
-  variables:
-    OS_FAMILY: "debian"
-    OS_VERSION: 13
-    OS_VERSION_NAME: "trixie"
-
-test:pkgs:device-components:noble:
-  extends: .test:pkgs:device-components
-  needs:
-    - "build:pkgs:device-components: [ubuntu, noble, amd64]"
-    - "build:pkgs:device-components: [ubuntu, noble, armhf]"
-  variables:
-    OS_FAMILY: "ubuntu"
-    OS_VERSION: 24.04
-    OS_VERSION_NAME: "noble"
-
 test:pkgs:device-components:resolute:
   extends: .test:pkgs:device-components
   needs:
@@ -625,39 +589,6 @@ test:pkgs:device-components:resolute:
   artifacts:
     reports:
       junit: scripts/tests/results.xml
-
-test:install-script:bookworm:
-  extends: .test:install-script
-  needs:
-    - "build:pkgs:device-components: [debian, bookworm, amd64]"
-    - "build:pkgs:device-components: [debian, bookworm, armhf]"
-    - "build:pkgs:workstation-tools: [debian, bookworm, amd64]"
-  variables:
-    OS_FAMILY: "debian"
-    OS_VERSION: 12
-    OS_VERSION_NAME: "bookworm"
-
-test:install-script:trixie:
-  extends: .test:install-script
-  needs:
-    - "build:pkgs:device-components: [debian, trixie, amd64]"
-    - "build:pkgs:device-components: [debian, trixie, armhf]"
-    - "build:pkgs:workstation-tools: [debian, trixie, amd64]"
-  variables:
-    OS_FAMILY: "debian"
-    OS_VERSION: 13
-    OS_VERSION_NAME: "trixie"
-
-test:install-script:noble:
-  extends: .test:install-script
-  needs:
-    - "build:pkgs:device-components: [ubuntu, noble, amd64]"
-    - "build:pkgs:device-components: [ubuntu, noble, armhf]"
-    - "build:pkgs:workstation-tools: [ubuntu, noble, amd64]"
-  variables:
-    OS_FAMILY: "ubuntu"
-    OS_VERSION: 24.04
-    OS_VERSION_NAME: "noble"
 
 test:install-script:resolute:
   extends: .test:install-script
@@ -715,34 +646,6 @@ test:install-script:legacy:
     - test -x /usr/bin/mender-cli
     - mender-cli --version
 
-test:pkgs:workstation-tools:bookworm:
-  extends: .test:pkgs:workstation-tools
-  variables:
-    OS_FAMILY: "debian"
-    OS_VERSION: 12
-    OS_VERSION_NAME: "bookworm"
-  needs:
-    - 'build:pkgs:workstation-tools: [debian, bookworm, amd64]'
-
-test:pkgs:workstation-tools:trixie:
-  extends: .test:pkgs:workstation-tools
-  variables:
-    OS_FAMILY: "debian"
-    OS_VERSION: 13
-    OS_VERSION_NAME: "trixie"
-  needs:
-    - 'build:pkgs:workstation-tools: [debian, trixie, amd64]'
-
-test:pkgs:workstation-tools:noble:
-  extends: .test:pkgs:workstation-tools
-  variables:
-    OS_FAMILY: "ubuntu"
-    OS_VERSION: 24.04
-    OS_VERSION_NAME: "noble"
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/ubuntu:${OS_VERSION}
-  needs:
-    - 'build:pkgs:workstation-tools: [ubuntu, noble, amd64]'
-
 test:pkgs:workstation-tools:resolute:
   extends: .test:pkgs:workstation-tools
   variables:
@@ -767,18 +670,9 @@ test:pkgs:workstation-tools:resolute:
 
 .template:publish:s3:device-components:
   dependencies:
-    - 'build:pkgs:device-components: [debian, bookworm, amd64]'
-    - 'build:pkgs:device-components: [debian, bookworm, arm64]'
-    - 'build:pkgs:device-components: [debian, bookworm, armhf]'
-    - 'build:pkgs:device-components: [debian, trixie, amd64]'
-    - 'build:pkgs:device-components: [debian, trixie, arm64]'
-    - 'build:pkgs:device-components: [debian, trixie, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, noble, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
-    - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
     - 'build:pkgs:device-components: [ubuntu, resolute, armhf]'
     - 'build:pkgs:device-components: [ubuntu, resolute, arm64]'
-    - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
@@ -807,12 +701,6 @@ publish:s3:device-components:automatic:
 
 .template:publish:s3:workstation_tools:
   dependencies:
-    - 'build:pkgs:workstation-tools: [debian, bookworm, amd64]'
-    - 'build:pkgs:workstation-tools: [debian, bookworm, arm64]'
-    - 'build:pkgs:workstation-tools: [debian, trixie, amd64]'
-    - 'build:pkgs:workstation-tools: [debian, trixie, arm64]'
-    - 'build:pkgs:workstation-tools: [ubuntu, noble, amd64]'
-    - 'build:pkgs:workstation-tools: [ubuntu, noble, arm64]'
     - 'build:pkgs:workstation-tools: [ubuntu, resolute, amd64]'
     - 'build:pkgs:workstation-tools: [ubuntu, resolute, arm64]'
   stage: publish
@@ -875,18 +763,9 @@ publish:production:s3:scripts:install-mender-sh:
 
 .template:publish:s3:
   dependencies:
-    - 'build:pkgs:device-components: [debian, bookworm, amd64]'
-    - 'build:pkgs:device-components: [debian, bookworm, arm64]'
-    - 'build:pkgs:device-components: [debian, bookworm, armhf]'
-    - 'build:pkgs:device-components: [debian, trixie, amd64]'
-    - 'build:pkgs:device-components: [debian, trixie, arm64]'
-    - 'build:pkgs:device-components: [debian, trixie, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, noble, armhf]'
-    - 'build:pkgs:device-components: [ubuntu, noble, arm64]'
-    - 'build:pkgs:device-components: [ubuntu, noble, amd64]'
+    - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
     - 'build:pkgs:device-components: [ubuntu, resolute, armhf]'
     - 'build:pkgs:device-components: [ubuntu, resolute, arm64]'
-    - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   id_tokens:
