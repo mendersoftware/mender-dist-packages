@@ -193,7 +193,7 @@ all_files = [
     # Demo certificate
     #
     {
-        "name": "/usr/share/doc/mender-auth/examples/demo.crt",
+        "name": "/usr/share/mender-auth/examples/demo.crt",
         "type": "file",
     },
     #
