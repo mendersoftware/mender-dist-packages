@@ -330,11 +330,11 @@ build:orig:all:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
     - mender-qa-worker-generic
   services:
-    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
   variables:
     DISTRO: "debian"
@@ -371,11 +371,11 @@ build:pkgs:device-components:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
     - hetzner-amd-beefy
   services:
-    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
   script:
     - apk --update --no-cache add bash
@@ -414,11 +414,11 @@ build:pkgs:workstation-tools:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
     - hetzner-amd-beefy
   services:
-    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
   script:
     - apk --update --no-cache add bash
