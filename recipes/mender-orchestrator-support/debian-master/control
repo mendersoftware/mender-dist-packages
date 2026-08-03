@@ -18,7 +18,8 @@ Description: Mender Orchestrator Support
 
 Package: mender-orchestrator-demo
 Architecture: all
-Depends: mender-orchestrator-support (= ${binary:Version})
+Depends: python3-paho-mqtt, ${misc:Depends}
+Recommends: mender-orchestrator-support (= ${binary:Version})
 Description: Mender Orchestrator Demo
  Mender Orchestrator orchestrates updates across multiple Components in a
  System, to ensure software consistency across the System as a whole. This
