@@ -19,5 +19,25 @@ override_dh_auto_install:
 	# Install mock for the demo package
 	prefix=debian/tmp make install-mock-env
 
+	# Install the MQTT broker config and Component agent for the demo package
+	prefix=debian/tmp make install-mqtt-broker install-mqtt-component-agent
+
 override_dh_auto_test:
 	true
+
+# mender-mqtt-agent.service ships in mender-orchestrator-demo on both the System Device
+# (RPi #1) and each Component board (RPi #2, ...), but only the latter should ever run it --
+# and even there, only once /etc/mender-mqtt-agent/mender-mqtt-agent.conf has been created
+# and filled in from the .conf.example (a manual step, matching
+# install-mqtt-component-agent's own printed instructions). debhelper's default systemd
+# integration would otherwise auto-enable and auto-start this unit on every install, on
+# both boards, failing immediately every time since EnvironmentFile has no "-" prefix and
+# that .conf doesn't exist until an administrator creates it. Scoped to
+# mender-orchestrator-demo specifically (via -p) since that's the only package that ships
+# this unit -- so any systemd unit added to mender-orchestrator-support in the future isn't
+# silently swept into the same --no-enable/--no-start treatment.
+override_dh_systemd_enable:
+	dh_systemd_enable -pmender-orchestrator-demo --no-enable
+
+override_dh_systemd_start:
+	dh_systemd_start -pmender-orchestrator-demo --no-start
