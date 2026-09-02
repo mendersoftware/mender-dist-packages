@@ -312,7 +312,6 @@ default:
   retry: !reference [.qa-common-default-retry, retry]
 
 stages:
-  - renovate
   - test:static
   - build:orig
   - build:packages
