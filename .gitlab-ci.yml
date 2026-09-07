@@ -666,22 +666,6 @@ test:install-script:resolute:
     OS_VERSION: 26.04
     OS_VERSION_NAME: "resolute"
 
-# Legacy tests specific for Debian 11
-# Note that it does not verify built packages (because we don't build anymore for Debian 11)
-test:install-script:legacy:
-  extends: .test:install-script
-  needs: []
-  script:
-    - cd scripts/tests
-    - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh_legacy.py
-  after_script:
-  - export MANTRA_PROJECT_NAME="client_general"
-  - !reference [.mantra-push-results]
-  variables:
-    OS_FAMILY: "debian"
-    OS_VERSION: 11
-    OS_VERSION_NAME: "bullseye"
-
 # This is a template for testing workstation-tools against different Debian version
 # which will be redefined when template will be extended.
 .test:pkgs:workstation-tools:
