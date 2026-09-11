@@ -42,13 +42,6 @@ mender-configure \
 mender-connect \
 "
 
-# Default components for legacy distributions (installed when no flags and no specified components)
-DEFAULT_COMPONENTS_LEGACY="\
-mender-client \
-mender-configure \
-mender-connect \
-"
-
 # Demo components (added with --demo flag)
 DEMO_COMPONENTS="\
 mender-configure-demo \
@@ -485,14 +478,6 @@ command_exists() {
     command -v "$@" > /dev/null 2>&1
 }
 
-select_mender_client_legacy() {
-    if [ "$FORCE_MENDER_CLIENT4" -ne 1 ] && [ "$CHANNEL" != "experimental" ]; then
-        DEFAULT_COMPONENTS="$DEFAULT_COMPONENTS_LEGACY"
-        SELECTED_COMPONENTS="$DEFAULT_COMPONENTS"
-        MENDER_SETUP_CLI="mender setup"
-    fi
-}
-
 mender_setup_cli() {
     if which mender-setup >/dev/null; then
         echo "mender-setup"
@@ -526,14 +511,6 @@ check_dist_and_version() {
                 noble)
                     DIST_VERSION="noble"
                 ;;
-                jammy)
-                    DIST_VERSION="jammy"
-                    select_mender_client_legacy
-                ;;
-                focal)
-                    DIST_VERSION="focal"
-                    select_mender_client_legacy
-                ;;
                 *)
                     echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
                     echo "Aborting."
@@ -549,14 +526,6 @@ check_dist_and_version() {
                 ;;
                 12)
                     DIST_VERSION="bookworm"
-                ;;
-                11)
-                    DIST_VERSION="bullseye"
-                    select_mender_client_legacy
-                ;;
-                10)
-                    DIST_VERSION="buster"
-                    select_mender_client_legacy
                 ;;
                 *)
                     echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
@@ -601,14 +570,6 @@ check_dist_and_version() {
                     ;;
                     12)
                         DIST_VERSION="bookworm"
-                    ;;
-                    11)
-                        DIST_VERSION="bullseye"
-                        select_mender_client_legacy
-                    ;;
-                    10)
-                        DIST_VERSION="buster"
-                        select_mender_client_legacy
                     ;;
                     *)
                         echo "ERROR: your distribution's version ($DIST_VERSION) is either not recognized or not supported."
