@@ -22,9 +22,9 @@ pluggy==1.5.0
     # via pytest
 pygments==2.20.0
     # via pytest
-pytest==9.0.3
+pytest==9.1.1
     # via -r requirements.in
-requests==2.33.1
+requests==2.34.2
     # via -r requirements.in
 tomli==2.0.1
     # via pytest

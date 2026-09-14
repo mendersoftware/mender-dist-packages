@@ -47,7 +47,7 @@ To build the DEB packages, run the `docker-build-package` script as follows:
 currently be one of the following combinations:
 
 - `debian`: `bookworm`, `trixie`
-- `ubuntu`: `jammy`, `noble`
+- `ubuntu`: `jammy`, `noble, resolute`
 
 These combinations change in time with new distribution releases and old
 releases going out of support.

@@ -28,12 +28,17 @@ SCRIPT_SERVER_ADDR = "localhost"
 SCRIPT_SERVER_PORT = 8000
 SCRIPT_SERVER_PATH = os.path.join(os.path.dirname(__file__), "..")
 
+# Fetch the distro type from the CI: debian, ubuntu
+REF_OS = os.getenv("OS_FAMILY", "")
+assert REF_OS != ""
 # Fetch the distro variant from the CI
-DEBIAN_REF_DISTRO = os.getenv("DEBIAN_VERSION_NAME", "")
-assert DEBIAN_REF_DISTRO != ""
-DEBIAN_REF_PACKAGES = os.path.join(
+# For Debian: bookworm, trixie
+# For Ubuntu: noble, resolute
+REF_DISTRO = os.getenv("OS_VERSION_NAME", "")
+assert REF_DISTRO != ""
+REF_PACKAGES = os.path.join(
     os.path.join(os.path.dirname(__file__), "..", "..", "output"),
-    f"opensource/debian-{DEBIAN_REF_DISTRO}-amd64",
+    f"opensource/{REF_OS}-{REF_DISTRO}-amd64",
 )
 
 
@@ -76,12 +81,12 @@ def script_server():
 
 
 @pytest.fixture(scope="function")
-def generic_debian_container(request):
+def generic_container(request):
     output = subprocess.check_output(
         [
             "docker",
             "pull",
-            f"debian:{DEBIAN_REF_DISTRO}",
+            f"{REF_OS}:{REF_DISTRO}",
         ]
     )
     output = subprocess.check_output(
@@ -91,7 +96,7 @@ def generic_debian_container(request):
             "--network=host",
             "--rm",
             "-tid",
-            f"debian:{DEBIAN_REF_DISTRO}",
+            f"{REF_OS}:{REF_DISTRO}",
         ]
     )
 
@@ -134,7 +139,7 @@ def generic_debian_container(request):
 
 def put_all_built_packages(container, dest):
     container.run(f"mkdir -p {dest}")
-    for package in glob.glob(f"{DEBIAN_REF_PACKAGES}/*.deb"):
+    for package in glob.glob(f"{REF_PACKAGES}/*.deb"):
         container.put(package, dest)
 
 
@@ -162,7 +167,7 @@ def local_apt_repo_from_built_packages(container):
 def local_apt_repo_from_upstream_packages(container, pool_paths, dest):
     container.run(f"mkdir {dest}")
     for path in pool_paths:
-        url = f"https://downloads.mender.io/repos/debian/pool/main/{path}"
+        url = f"https://downloads.mender.io/repos/{REF_OS}/pool/main/{path}"
         container.run(f"cd {dest} && curl --remote-name {url}")
 
     prepare_local_apt_repo(container, dest)
@@ -171,7 +176,7 @@ def local_apt_repo_from_upstream_packages(container, pool_paths, dest):
 def local_apt_repo_from_test_packages(container, pool_paths, dest):
     container.run(f"mkdir {dest}")
     for path in pool_paths:
-        url = f"https://downloads.mender.io/repos/debian/pool/test-packages/{path}"
+        url = f"https://downloads.mender.io/repos/{REF_OS}/pool/test-packages/{path}"
         container.run(f"cd {dest} && curl --remote-name {url}")
 
     prepare_local_apt_repo(container, dest)

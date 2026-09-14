@@ -29,9 +29,16 @@ def setup_test_container_props(request):
     return request.param
 
 
-def get_debian_distro_version():
+def get_distro_family():
     # Inherit this from the CI calling the tests
-    distro_version = os.getenv("DEBIAN_VERSION_NAME", "")
+    distro_family = os.getenv("OS_FAMILY", "")
+    assert distro_family != ""
+    return distro_family
+
+
+def get_distro_version():
+    # Inherit this from the CI calling the tests
+    distro_version = os.getenv("OS_VERSION_NAME", "")
     assert distro_version != ""
     return distro_version
 
@@ -187,11 +194,10 @@ def mender_dist_packages_versions(request):
 
 
 # Required for mender_test_containers/conftest.py::setup_mender_configured,
-# which is only used on addons packages tests. Use version 3.5.3 as the latest
-# version < 4.0.
+# which is only used on addons packages tests.
 @pytest.fixture(scope="session")
 def mender_deb_version(request):
-    return "5.0.2"
+    return "5.0.5"
 
 
 def min_version_impl(request, marker, min_version):

@@ -1,6 +1,6 @@
 variables:
   GOLANG_VERSION:
-    value: "1.26.3"
+    value: "1.26.5"
     description: "Go version to build the packages with. The toolchain is downloaded at build time from https://dl.google.com/go"
 
   # Mender Client LTS
@@ -58,6 +58,7 @@ variables:
   # Bucket name
   S3_BUCKET_NAME: "mender"
   S3_BUCKET_NAME_PRIVATE: "mender-binaries"
+  AWS_S3_PUBLISH_ROLE_ARN: "arn:aws:iam::175683096866:role/nt-mender-dist-packages-s3-publishing"
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
   S3_BUCKET_SUBPATH_ORCHESTRATOR: "mender-orchestrator/debian"
@@ -171,8 +172,7 @@ include:
     file:
       - qa-common/runner.yml
       - qa-common/retry.yml
-  - project: 'Northern.tech/Mender/mendertesting'
-    file: '.gitlab-ci-check-commits-signoffs.yml'
+  - component: gitlab.com/Northern.tech/Mender/mendertesting/commit-lint@master
   - project: 'Northern.tech/Mender/mendertesting'
     file: '.gitlab-ci-check-license.yml'
   - project: 'Northern.tech/Mender/mendertesting'
@@ -182,9 +182,6 @@ include:
   - project: "Northern.tech/Mender/mendertesting"
     file: "qa-common/send-results-to-mantra.yml"
     ref: "master"
-  - component: gitlab.com/Northern.tech/Mender/mendertesting/renovate@master
-    inputs:
-      stage: "renovate"
 
 # NOTE: To add distributions, modify first the matrix in mender-test-containers repository
 .mender-dist-packages-image-matrix-cross:
@@ -210,6 +207,18 @@ include:
   - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
   - for retry in 1 2 3 4 5; do docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY && break || sleep $retry; done
 
+.aws-oidc-auth: &aws-oidc-auth
+  - >
+    export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
+    $(aws sts assume-role-with-web-identity
+    --role-arn ${AWS_S3_PUBLISH_ROLE_ARN}
+    --role-session-name "GitLabRunner-${CI_PROJECT_ID}-${CI_PIPELINE_ID}"
+    --web-identity-token ${AWS_OIDC_TOKEN}
+    --duration-seconds 900
+    --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+    --output text))
+  - aws sts get-caller-identity
+
 .requires-docker: &requires-docker
   - DOCKER_RETRY_SLEEP_S=2
   - DOCKER_RUNNING=false
@@ -225,6 +234,7 @@ include:
   - fi
 
 .wait-for-s3-lock: &wait-for-s3-lock
+  - *aws-oidc-auth
   # Lock the bucket to block concurrent jobs
   - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
   -   rm -f /tmp/lock.in
@@ -239,6 +249,7 @@ include:
   - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .release-s3-lock: &release-s3-lock
+  - *aws-oidc-auth
   - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .upload-packages-to-s3: &upload-packages-to-s3
@@ -301,7 +312,6 @@ default:
   retry: !reference [.qa-common-default-retry, retry]
 
 stages:
-  - renovate
   - test:static
   - build:orig
   - build:packages
@@ -316,11 +326,11 @@ build:orig:all:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
     - mender-qa-worker-generic
   services:
-    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
   variables:
     DISTRO: "debian"
@@ -357,11 +367,11 @@ build:pkgs:device-components:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
     - hetzner-amd-beefy
   services:
-    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
   script:
     - apk --update --no-cache add bash
@@ -400,11 +410,11 @@ build:pkgs:workstation-tools:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - when: on_success
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-cli
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
     - hetzner-amd-beefy
   services:
-    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:26-dind
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
   script:
     - apk --update --no-cache add bash
@@ -416,12 +426,6 @@ build:pkgs:workstation-tools:
     paths:
       - output/opensource
   parallel: !reference [.mender-dist-packages-workstation_tools-image-matrix-cross, parallel]
-
-test:check-commits:
-  stage: test:static
-  only:
-    variables:
-      - '$TEST_MENDER_DIST_PACKAGES == "true"'
 
 test:check-license:
   stage: test:static
@@ -451,8 +455,9 @@ test:check-python3-formatting:
     GIT_SUBMODULE_STRATEGY: recursive
     # Bellow two variables need to be defined in the final pipeline and
     # match each other to property reflect Debian version
-    # DEBIAN_VERSION  (example: 13)
-    # DEBIAN_VERSION_NAME  (example: "trixie")
+    # OS_FAMILY (example: debian)
+    # OS_VERSION  (example: 13)
+    # OS_VERSION_NAME  (example: "trixie")
   before_script:
     # DinD setup in Mender CI runners
     - unset DOCKER_HOST
@@ -489,7 +494,7 @@ test:check-python3-formatting:
         # package was actually built).
         maybe_add_pkg_flag() {
           local pkg="$1" version="$2" filename="$3"
-          local path="${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/$filename"
+          local path="${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/$filename"
           if [ -f "$path" ]; then
             pkg_flags="$pkg_flags --$pkg-version $version --$pkg-deb-version $(cat "$path")"
           else
@@ -505,7 +510,7 @@ test:check-python3-formatting:
         maybe_add_pkg_flag mender-container-modules "$MENDER_CONTAINER_MODULES_VERSION" mender-container-modules-deb-version
         maybe_add_pkg_flag mender-client-version-inventory-script "$MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION" mender-client-version-inventory-script-deb-version
 
-        COMMERCIAL_OUTPUT="${CI_PROJECT_DIR}/output/commercial/debian-${DEBIAN_VERSION_NAME}-amd64"
+        COMMERCIAL_OUTPUT="${CI_PROJECT_DIR}/output/commercial/${OS_FAMILY}-${OS_VERSION_NAME}-amd64"
         commercial_tests_flags=""
         if [ -f "$COMMERCIAL_OUTPUT/mender-gateway-deb-version" ] &&
            [ -f "$COMMERCIAL_OUTPUT/mender-monitor-deb-version" ]; then
@@ -540,7 +545,7 @@ test:check-python3-formatting:
 
 .test:pkgs:device-components:
   extends: .test:pkgs
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/debian:${DEBIAN_VERSION_NAME}
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/${OS_FAMILY}:${OS_VERSION_NAME}
   tags:
     - hetzner-arm
   rules:
@@ -565,8 +570,9 @@ test:pkgs:device-components:bookworm:
     - "build:pkgs:device-components: [debian, bookworm, amd64]"
     - "build:pkgs:device-components: [debian, bookworm, armhf]"
   variables:
-    DEBIAN_VERSION: 12
-    DEBIAN_VERSION_NAME: "bookworm"
+    OS_FAMILY: "debian"
+    OS_VERSION: 12
+    OS_VERSION_NAME: "bookworm"
 
 test:pkgs:device-components:trixie:
   extends: .test:pkgs:device-components
@@ -574,8 +580,29 @@ test:pkgs:device-components:trixie:
     - "build:pkgs:device-components: [debian, trixie, amd64]"
     - "build:pkgs:device-components: [debian, trixie, armhf]"
   variables:
-    DEBIAN_VERSION: 13
-    DEBIAN_VERSION_NAME: "trixie"
+    OS_FAMILY: "debian"
+    OS_VERSION: 13
+    OS_VERSION_NAME: "trixie"
+
+test:pkgs:device-components:noble:
+  extends: .test:pkgs:device-components
+  needs:
+    - "build:pkgs:device-components: [ubuntu, noble, amd64]"
+    - "build:pkgs:device-components: [ubuntu, noble, armhf]"
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 24.04
+    OS_VERSION_NAME: "noble"
+
+test:pkgs:device-components:resolute:
+  extends: .test:pkgs:device-components
+  needs:
+    - "build:pkgs:device-components: [ubuntu, resolute, amd64]"
+    - "build:pkgs:device-components: [ubuntu, resolute, armhf]"
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 26.04
+    OS_VERSION_NAME: "resolute"
 
 # This template allows testing installation script against different Debian versions
 .test:install-script:
@@ -602,8 +629,9 @@ test:install-script:bookworm:
     - "build:pkgs:device-components: [debian, bookworm, armhf]"
     - "build:pkgs:workstation-tools: [debian, bookworm, amd64]"
   variables:
-    DEBIAN_VERSION: 12
-    DEBIAN_VERSION_NAME: "bookworm"
+    OS_FAMILY: "debian"
+    OS_VERSION: 12
+    OS_VERSION_NAME: "bookworm"
 
 test:install-script:trixie:
   extends: .test:install-script
@@ -612,30 +640,39 @@ test:install-script:trixie:
     - "build:pkgs:device-components: [debian, trixie, armhf]"
     - "build:pkgs:workstation-tools: [debian, trixie, amd64]"
   variables:
-    DEBIAN_VERSION: 13
-    DEBIAN_VERSION_NAME: "trixie"
+    OS_FAMILY: "debian"
+    OS_VERSION: 13
+    OS_VERSION_NAME: "trixie"
 
-# Legacy tests specific for Debian 11
-# Note that it does not verify built packages (because we don't build anymore for Debian 11)
-test:install-script:legacy:
+test:install-script:noble:
   extends: .test:install-script
-  needs: []
-  script:
-    - cd scripts/tests
-    - python3 -m pytest -v --junit-xml results.xml test_install_mender_sh_legacy.py
-  after_script:
-  - export MANTRA_PROJECT_NAME="client_general"
-  - !reference [.mantra-push-results]
+  needs:
+    - "build:pkgs:device-components: [ubuntu, noble, amd64]"
+    - "build:pkgs:device-components: [ubuntu, noble, armhf]"
+    - "build:pkgs:workstation-tools: [ubuntu, noble, amd64]"
   variables:
-    DEBIAN_VERSION: 11
-    DEBIAN_VERSION_NAME: "bullseye"
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 24.04
+    OS_VERSION_NAME: "noble"
+
+test:install-script:resolute:
+  extends: .test:install-script
+  needs:
+    - "build:pkgs:device-components: [ubuntu, resolute, amd64]"
+    - "build:pkgs:device-components: [ubuntu, resolute, armhf]"
+    - "build:pkgs:workstation-tools: [ubuntu, resolute, amd64]"
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 26.04
+    OS_VERSION_NAME: "resolute"
 
 # This is a template for testing workstation-tools against different Debian version
 # which will be redefined when template will be extended.
 .test:pkgs:workstation-tools:
   variables:
-    DEBIAN_VERSION: 12
-    DEBIAN_VERSION_NAME: "bookworm"
+    OS_FAMILY: "debian"
+    OS_VERSION: 12
+    OS_VERSION_NAME: "bookworm"
   stage: test
   tags:
     - hetzner-amd-beefy
@@ -646,33 +683,55 @@ test:install-script:legacy:
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:${DEBIAN_VERSION}
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/debian:${OS_VERSION}
   before_script:
     - !reference [.qa-common-network-apt-retry, before_script]
   script:
     - apt-get update
-    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-artifact*.deb
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/mender-artifact*.deb
     - test -x /usr/bin/mender-artifact
     - mender-artifact --version
-    - apt -y install ${CI_PROJECT_DIR}/output/opensource/debian-${DEBIAN_VERSION_NAME}-amd64/mender-cli*.deb
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/mender-cli*.deb
     - test -x /usr/bin/mender-cli
     - mender-cli --version
 
 test:pkgs:workstation-tools:bookworm:
   extends: .test:pkgs:workstation-tools
   variables:
-    DEBIAN_VERSION: 12
-    DEBIAN_VERSION_NAME: "bookworm"
+    OS_FAMILY: "debian"
+    OS_VERSION: 12
+    OS_VERSION_NAME: "bookworm"
   needs:
     - 'build:pkgs:workstation-tools: [debian, bookworm, amd64]'
 
 test:pkgs:workstation-tools:trixie:
   extends: .test:pkgs:workstation-tools
   variables:
-    DEBIAN_VERSION: 13
-    DEBIAN_VERSION_NAME: "trixie"
+    OS_FAMILY: "debian"
+    OS_VERSION: 13
+    OS_VERSION_NAME: "trixie"
   needs:
     - 'build:pkgs:workstation-tools: [debian, trixie, amd64]'
+
+test:pkgs:workstation-tools:noble:
+  extends: .test:pkgs:workstation-tools
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 24.04
+    OS_VERSION_NAME: "noble"
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/ubuntu:${OS_VERSION}
+  needs:
+    - 'build:pkgs:workstation-tools: [ubuntu, noble, amd64]'
+
+test:pkgs:workstation-tools:resolute:
+  extends: .test:pkgs:workstation-tools
+  variables:
+    OS_FAMILY: "ubuntu"
+    OS_VERSION: 26.04
+    OS_VERSION_NAME: "resolute"
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/ubuntu:${OS_VERSION}
+  needs:
+    - 'build:pkgs:workstation-tools: [ubuntu, resolute, amd64]'
 
 .publish_helper_functions: &publish_helper_functions |
   # Bash function to check if the string is a final tag
@@ -703,7 +762,10 @@ test:pkgs:workstation-tools:trixie:
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
-    - hetzner-amd-beefy-privileged
+    - k8s-small
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://gitlab.com
   variables:
     # APT repo path for incoming device-components packages
     S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
@@ -736,7 +798,10 @@ publish:s3:device-components:automatic:
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   tags:
-    - hetzner-amd-beefy-privileged
+    - k8s-small
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://gitlab.com
   variables:
     # APT repo path for incoming workstation-tools packages
     S3_BUCKET_REPO_PATH: "repos/workstation-tools/incoming"
@@ -759,6 +824,11 @@ publish:s3:workstation_tools:automatic:
 .publish-template:s3:scripts:install-mender-sh:
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://gitlab.com
+  before_script:
+    - *aws-oidc-auth
   only:
     changes:
       - scripts/install-mender.sh
@@ -799,7 +869,11 @@ publish:production:s3:scripts:install-mender-sh:
     - 'build:pkgs:device-components: [ubuntu, resolute, amd64]'
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://gitlab.com
   before_script:
+    - *aws-oidc-auth
     - *publish_helper_functions
   script:
     - echo "Publishing ${PUBLISH_PACKAGE_PREFIX} version ${PUBLISH_PACKAGE_VERSION} to s3://${S3_BUCKET_NAME_PRIVATE}/${PUBLISH_PACKAGE_S3_SUBPATH}/${PUBLISH_PACKAGE_VERSION}/"

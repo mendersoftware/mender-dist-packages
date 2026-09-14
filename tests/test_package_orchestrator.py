@@ -50,7 +50,7 @@ class TestPackageOrchestratorSplit:
                 "mender-orchestrator-core",
             )
             setup_tester_ssh_connection.run(
-                "sudo dpkg --install "
+                "sudo dpkg --install --force-depends "
                 + package_filename(
                     mender_dist_packages_versions["mender-orchestrator"],
                     "mender-orchestrator-core",
@@ -65,7 +65,7 @@ class TestPackageOrchestratorSplit:
                 "all",
             )
             setup_tester_ssh_connection.run(
-                "sudo dpkg --install "
+                "sudo dpkg --install --force-depends "
                 + package_filename(
                     mender_dist_packages_versions["mender-orchestrator-support"],
                     "mender-orchestrator-support",
@@ -92,7 +92,7 @@ class TestPackageOrchestratorSplit:
                 "all",
             )
             setup_tester_ssh_connection.run(
-                "sudo dpkg --install "
+                "sudo dpkg --install --force-depends "
                 + package_filename(
                     mender_dist_packages_versions["mender-orchestrator-support"],
                     "mender-orchestrator-demo",
