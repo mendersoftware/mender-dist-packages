@@ -118,6 +118,10 @@ variables:
     value: "true"
     options: ["true", "false"]
     description: "Build mender-container-modules package"
+  BUILD_MENDER_CONTAINER_MODULES_GENERATORS:
+    value: "true"
+    options: ["true", "false"]
+    description: "Build mender-container-modules-generators package (built from the same revision as mender-container-modules, see MENDER_CONTAINER_MODULES_VERSION)"
   BUILD_MENDER_ARTIFACT:
     value: "true"
     options: ["true", "false"]
@@ -278,6 +282,7 @@ include:
         mender-connect)                          toggle="${BUILD_MENDER_CONNECT:-true}" ;;
         mender-configure)                        toggle="${BUILD_MENDER_CONFIGURE:-true}" ;;
         mender-container-modules)                toggle="${BUILD_MENDER_CONTAINER_MODULES:-true}" ;;
+        mender-container-modules-generators)     toggle="${BUILD_MENDER_CONTAINER_MODULES_GENERATORS:-true}" ;;
         mender-artifact)                         toggle="${BUILD_MENDER_ARTIFACT:-true}" ;;
         mender-cli)                              toggle="${BUILD_MENDER_CLI:-true}" ;;
         mender-setup)                            toggle="${BUILD_MENDER_SETUP:-true}" ;;
@@ -347,6 +352,7 @@ build:orig:all:
     - maybe_build $DISTRO $RELEASE $ARCH mender-connect $MENDER_CONNECT_VERSION true
     - maybe_build $DISTRO $RELEASE $ARCH mender-configure $MENDER_CONFIGURE_VERSION true
     - maybe_build $DISTRO $RELEASE $ARCH mender-container-modules $MENDER_CONTAINER_MODULES_VERSION true
+    - maybe_build $DISTRO $RELEASE $ARCH mender-container-modules-generators $MENDER_CONTAINER_MODULES_VERSION true
     - maybe_build $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION true
     - maybe_build $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION true
     - maybe_build $DISTRO $RELEASE $ARCH mender-setup $MENDER_SETUP_VERSION true
@@ -421,6 +427,7 @@ build:pkgs:workstation-tools:
     - *maybe-build
     - maybe_build $DISTRO $RELEASE $ARCH mender-artifact $MENDER_ARTIFACT_VERSION
     - maybe_build $DISTRO $RELEASE $ARCH mender-cli $MENDER_CLI_VERSION
+    - maybe_build $DISTRO $RELEASE $ARCH mender-container-modules-generators $MENDER_CONTAINER_MODULES_VERSION
     - find output -type f
   artifacts:
     paths:
@@ -694,6 +701,8 @@ test:install-script:resolute:
     - apt -y install ${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/mender-cli*.deb
     - test -x /usr/bin/mender-cli
     - mender-cli --version
+    - apt -y install ${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/mender-docker-compose-generator*.deb
+    - test -x /usr/bin/gen_docker-compose
 
 test:pkgs:workstation-tools:bookworm:
   extends: .test:pkgs:workstation-tools
