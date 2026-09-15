@@ -205,7 +205,7 @@ include:
 
 .dind-login: &dind-login
   - mkdir -p $HOME/.docker && echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
-  - retry_command 5 -- docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - for retry in 1 2 3 4 5; do docker login --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD $CI_REGISTRY && break || sleep $retry; done
 
 .aws-oidc-auth: &aws-oidc-auth
   - >
@@ -299,7 +299,6 @@ include:
 
 .build:base:
   before_script:
-    - !reference [.qa-common-retry-command, script]
     - *dind-login
     - *requires-docker
   retry:
