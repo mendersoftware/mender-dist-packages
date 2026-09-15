@@ -301,7 +301,6 @@ include:
   before_script:
     - *dind-login
     - *requires-docker
-    - !reference [.qa-common-network-git-clone-retry, before_script]
   retry:
     max: 2
     exit_codes:
