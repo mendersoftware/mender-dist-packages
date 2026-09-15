@@ -55,7 +55,14 @@ checkout_repo_clean_local_path() {
 
 checkout_repo() {
   local -r repo_path=$(checkout_repo_clean_local_path "${REPO_URL}")
-  git clone --recurse-submodules --branch "${VERSION}" "${REPO_URL}" "${repo_path}"
+  for retry in 1 2 3 4 5; do
+    rm -rf "${repo_path}"
+    git clone --recurse-submodules --branch "${VERSION}" "${REPO_URL}" "${repo_path}" && break || sleep "${retry}"
+  done
+  if [ ! -d "${repo_path}" ]; then
+    echo "ERROR: failed to clone ${REPO_URL} after 5 attempts" >&2
+    exit 192
+  fi
   cd ${repo_path}
 }
 
