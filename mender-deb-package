@@ -84,11 +84,18 @@ checkout_repo_clean_local_path() {
 
 checkout_repo() {
   local -r repo_path=$(checkout_repo_clean_local_path "${REPO_URL}")
+  local cloned=false
   for retry in 1 2 3 4 5; do
     rm -rf "${repo_path}"
-    git clone --recurse-submodules --branch "${VERSION}" "${REPO_URL}" "${repo_path}" && break || sleep "${retry}"
+    if git clone --recurse-submodules --branch "${VERSION}" "${REPO_URL}" "${repo_path}"; then
+      cloned=true
+      break
+    fi
+    sleep "${retry}"
   done
-  if [ ! -d "${repo_path}" ]; then
+  # Not [ -d "${repo_path}" ]: git leaves the parent clone behind when only a
+  # submodule fails, which is the common failure here.
+  if [ "${cloned}" != "true" ]; then
     echo "ERROR: failed to clone ${REPO_URL} after 5 attempts" >&2
     exit 192
   fi
