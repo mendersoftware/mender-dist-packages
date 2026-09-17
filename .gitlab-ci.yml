@@ -167,6 +167,12 @@ variables:
   # Don't slow down aws cli commands with connections to IMDS: we're not in AWS
   AWS_EC2_METADATA_DISABLED: "true"
 
+  # DinD over TLS on the k8s runners
+  DOCKER_HOST: "tcp://docker:2376"
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+
 include:
   - project: Northern.tech/Mender/mendertesting
     file:
@@ -328,7 +334,7 @@ build:orig:all:
     - when: on_success
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
-    - mender-qa-worker-generic
+    - k8s
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
@@ -369,7 +375,7 @@ build:pkgs:device-components:
     - when: on_success
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
-    - hetzner-amd-beefy
+    - k8s
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
@@ -412,7 +418,7 @@ build:pkgs:workstation-tools:
     - when: on_success
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
-    - hetzner-amd-beefy
+    - k8s
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
@@ -444,10 +450,12 @@ test:check-python3-formatting:
 # from a specified Debian version
 .test:pkgs:
   stage: test
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:dind
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
-    #- mender-qa-worker-generic
-    - hetzner-amd-beefy
+    - k8s
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
+      alias: docker
   # Bellow will be overwritten in the final pipeline definition with something like
   # "build:pkgs:workstation-tools: [debian, trixie, amd64]"
   needs: []
@@ -459,21 +467,7 @@ test:check-python3-formatting:
     # OS_VERSION  (example: 13)
     # OS_VERSION_NAME  (example: "trixie")
   before_script:
-    # DinD setup in Mender CI runners
-    - unset DOCKER_HOST
-    - unset DOCKER_TLS_VERIFY
-    - unset DOCKER_CERT_PATH
-    # Start dockerd in the background
-    - /usr/local/bin/dockerd &
-    # Wait for dockerd to start
-    - |-
-      MAX_WAIT=30
-      while [ ! -e "/var/run/docker.sock" ] && [ $MAX_WAIT -gt 0 ]; do
-        MAX_WAIT=$(($MAX_WAIT - 1))
-        sleep 1
-      done
-    # Verify that the docker server is up and running
-    - docker version
+    - *requires-docker
     # Git submodules
     - apk --update --no-cache add git
     - git submodule sync --recursive
@@ -546,8 +540,10 @@ test:check-python3-formatting:
 .test:pkgs:device-components:
   extends: .test:pkgs
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/${OS_FAMILY}:${OS_VERSION_NAME}
+  # Runs armhf packages under qemu binfmt, no Docker needed
+  services: []
   tags:
-    - hetzner-arm
+    - k8s-qemu
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
@@ -674,8 +670,6 @@ test:install-script:resolute:
     OS_VERSION: 12
     OS_VERSION_NAME: "bookworm"
   stage: test
-  tags:
-    - hetzner-amd-beefy
   needs:
     - 'build:pkgs:workstation-tools: [debian, amd64]'
   rules:
