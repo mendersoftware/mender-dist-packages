@@ -201,6 +201,7 @@ docker run --rm \
         --volume $(pwd)/${orig_dir}:/orig \
         --volume $(pwd)/mender-deb-package:/script \
         --env MENDER_PRIVATE_REPO_ACCESS_USER \
+        --env GITHUB_SIMPLE_AUTH_TOKEN \
         --env MENDER_PRIVATE_GPG_KEY_BUILD \
         --env GOLANG_VERSION \
         --env OVERRIDE_DEBIAN_SUFFIX \

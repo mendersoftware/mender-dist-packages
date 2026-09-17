@@ -43,6 +43,35 @@ maybe_import_gpg_key() {
   fi
 }
 
+# GitHub throttles anonymous HTTPS clones per source IP, answering 401, which
+# git reports as "could not read Username for 'https://github.com'".
+# extraHeader is needed on top of insteadOf because git only sends URL
+# credentials after a 401 challenge, and github.com answers 200 to anonymous
+# requests for public repos. Scoped to the x-access-token user name so the
+# commercial recipes, whose URLs embed their own user, are unaffected.
+configure_github_auth() {
+  local -r auth_user="x-access-token"
+  local message
+
+  export GIT_TERMINAL_PROMPT=0
+
+  # This script runs under "set -x", which would echo the token.
+  set +x
+  if [ -z "${GITHUB_SIMPLE_AUTH_TOKEN}" ]; then
+    message="GITHUB_SIMPLE_AUTH_TOKEN is unset, cloning from github.com anonymously"
+  else
+    git config --global \
+      "url.https://${auth_user}:${GITHUB_SIMPLE_AUTH_TOKEN}@github.com/.insteadOf" \
+      "https://github.com/"
+    git config --global \
+      "http.https://${auth_user}@github.com/.extraHeader" \
+      "Authorization: Basic $(printf '%s:%s' "${auth_user}" "${GITHUB_SIMPLE_AUTH_TOKEN}" | base64 -w0)"
+    message="Using authenticated clones for github.com"
+  fi
+  set -x
+  echo "${message}"
+}
+
 # Clean the URL of the login information
 checkout_repo_clean_local_path() {
   local -r repo_url="$1"
@@ -55,11 +84,18 @@ checkout_repo_clean_local_path() {
 
 checkout_repo() {
   local -r repo_path=$(checkout_repo_clean_local_path "${REPO_URL}")
+  local cloned=false
   for retry in 1 2 3 4 5; do
     rm -rf "${repo_path}"
-    git clone --recurse-submodules --branch "${VERSION}" "${REPO_URL}" "${repo_path}" && break || sleep "${retry}"
+    if git clone --recurse-submodules --branch "${VERSION}" "${REPO_URL}" "${repo_path}"; then
+      cloned=true
+      break
+    fi
+    sleep "${retry}"
   done
-  if [ ! -d "${repo_path}" ]; then
+  # Not [ -d "${repo_path}" ]: git leaves the parent clone behind when only a
+  # submodule fails, which is the common failure here.
+  if [ "${cloned}" != "true" ]; then
     echo "ERROR: failed to clone ${REPO_URL} after 5 attempts" >&2
     exit 192
   fi
@@ -352,6 +388,8 @@ verify_output_directory_exists
 verify_script_arguments "$@"
 
 maybe_import_gpg_key
+
+configure_github_auth
 
 checkout_repo
 
