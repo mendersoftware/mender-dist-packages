@@ -314,6 +314,7 @@ include:
       - 192
 
 default:
+  interruptible: true
   tags: !reference [.qa-common-default-runner, tags]
   retry: !reference [.qa-common-default-retry, retry]
 
@@ -740,6 +741,8 @@ test:pkgs:workstation-tools:resolute:
   }
 
 .template:publish:s3:device-components:
+  # Cancelling mid-upload strands the S3 lock
+  interruptible: false
   dependencies:
     - 'build:pkgs:device-components: [debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [debian, bookworm, arm64]'
@@ -780,6 +783,8 @@ publish:s3:device-components:automatic:
   extends: .template:publish:s3:device-components
 
 .template:publish:s3:workstation_tools:
+  # Cancelling mid-upload strands the S3 lock
+  interruptible: false
   dependencies:
     - 'build:pkgs:workstation-tools: [debian, bookworm, amd64]'
     - 'build:pkgs:workstation-tools: [debian, bookworm, arm64]'
@@ -816,6 +821,7 @@ publish:s3:workstation_tools:automatic:
   extends: .template:publish:s3:workstation_tools
 
 .publish-template:s3:scripts:install-mender-sh:
+  interruptible: false
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   id_tokens:
@@ -848,6 +854,7 @@ publish:production:s3:scripts:install-mender-sh:
       - production
 
 .template:publish:s3:
+  interruptible: false
   dependencies:
     - 'build:pkgs:device-components: [debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [debian, bookworm, arm64]'
