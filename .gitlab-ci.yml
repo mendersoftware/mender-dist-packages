@@ -167,6 +167,12 @@ variables:
   # Don't slow down aws cli commands with connections to IMDS: we're not in AWS
   AWS_EC2_METADATA_DISABLED: "true"
 
+  # DinD over TLS on the k8s runners
+  DOCKER_HOST: "tcp://docker:2376"
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+
 include:
   - project: Northern.tech/Mender/mendertesting
     file:
@@ -308,6 +314,7 @@ include:
       - 192
 
 default:
+  interruptible: true
   tags: !reference [.qa-common-default-runner, tags]
   retry: !reference [.qa-common-default-retry, retry]
 
@@ -328,7 +335,7 @@ build:orig:all:
     - when: on_success
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
-    - mender-qa-worker-generic
+    - k8s
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
@@ -369,7 +376,7 @@ build:pkgs:device-components:
     - when: on_success
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
-    - hetzner-amd-beefy
+    - k8s
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
@@ -412,7 +419,7 @@ build:pkgs:workstation-tools:
     - when: on_success
   image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
-    - hetzner-amd-beefy
+    - k8s
   services:
     - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
       alias: docker
@@ -444,10 +451,12 @@ test:check-python3-formatting:
 # from a specified Debian version
 .test:pkgs:
   stage: test
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:dind
+  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-cli
   tags:
-    #- mender-qa-worker-generic
-    - hetzner-amd-beefy
+    - k8s
+  services:
+    - name: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/docker:29-dind
+      alias: docker
   # Bellow will be overwritten in the final pipeline definition with something like
   # "build:pkgs:workstation-tools: [debian, trixie, amd64]"
   needs: []
@@ -459,21 +468,7 @@ test:check-python3-formatting:
     # OS_VERSION  (example: 13)
     # OS_VERSION_NAME  (example: "trixie")
   before_script:
-    # DinD setup in Mender CI runners
-    - unset DOCKER_HOST
-    - unset DOCKER_TLS_VERIFY
-    - unset DOCKER_CERT_PATH
-    # Start dockerd in the background
-    - /usr/local/bin/dockerd &
-    # Wait for dockerd to start
-    - |-
-      MAX_WAIT=30
-      while [ ! -e "/var/run/docker.sock" ] && [ $MAX_WAIT -gt 0 ]; do
-        MAX_WAIT=$(($MAX_WAIT - 1))
-        sleep 1
-      done
-    # Verify that the docker server is up and running
-    - docker version
+    - *requires-docker
     # Git submodules
     - apk --update --no-cache add git
     - git submodule sync --recursive
@@ -486,56 +481,7 @@ test:check-python3-formatting:
       libffi-dev libc-dev python3-dev bash musl-dev rust cargo curl jq
     - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
   script:
-    - cd tests
-    - |-
-        pkg_flags=""
-        # Only adds the pytest --foo-version / --foo-deb-version pair when the
-        # build job for that package produced a deb-version artifact (i.e. the
-        # package was actually built).
-        maybe_add_pkg_flag() {
-          local pkg="$1" version="$2" filename="$3"
-          local path="${CI_PROJECT_DIR}/output/opensource/${OS_FAMILY}-${OS_VERSION_NAME}-amd64/$filename"
-          if [ -f "$path" ]; then
-            pkg_flags="$pkg_flags --$pkg-version $version --$pkg-deb-version $(cat "$path")"
-          else
-            echo "Skipping $pkg in pytest args: $path not present"
-          fi
-        }
-        maybe_add_pkg_flag mender-client "$MENDER_VERSION" mender-client4-deb-version
-        maybe_add_pkg_flag mender-connect "$MENDER_CONNECT_VERSION" mender-connect-deb-version
-        maybe_add_pkg_flag mender-configure "$MENDER_CONFIGURE_VERSION" mender-configure-deb-version
-        maybe_add_pkg_flag mender-setup "$MENDER_SETUP_VERSION" mender-setup-deb-version
-        maybe_add_pkg_flag mender-snapshot "$MENDER_SNAPSHOT_VERSION" mender-snapshot-deb-version
-        maybe_add_pkg_flag mender-flash "$MENDER_FLASH_VERSION" mender-flash-deb-version
-        maybe_add_pkg_flag mender-container-modules "$MENDER_CONTAINER_MODULES_VERSION" mender-container-modules-deb-version
-        maybe_add_pkg_flag mender-client-version-inventory-script "$MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION" mender-client-version-inventory-script-deb-version
-
-        COMMERCIAL_OUTPUT="${CI_PROJECT_DIR}/output/commercial/${OS_FAMILY}-${OS_VERSION_NAME}-amd64"
-        commercial_tests_flags=""
-        if [ -f "$COMMERCIAL_OUTPUT/mender-gateway-deb-version" ] &&
-           [ -f "$COMMERCIAL_OUTPUT/mender-monitor-deb-version" ]; then
-          commercial_tests_flags="--commercial-tests"
-          commercial_tests_flags="$commercial_tests_flags --mender-gateway-version $MENDER_GATEWAY_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-gateway-deb-version $(cat $COMMERCIAL_OUTPUT/mender-gateway-deb-version)"
-          commercial_tests_flags="$commercial_tests_flags --mender-monitor-version $MENDER_MONITOR_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-monitor-deb-version $(cat $COMMERCIAL_OUTPUT/mender-monitor-deb-version)"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-version $MENDER_ORCHESTRATOR_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-deb-version $(cat $COMMERCIAL_OUTPUT/mender-orchestrator-deb-version)"
-          # NOTE: Although mender-orchestrator-support is built with no closed source secrets, it cannot be tested without mender-orchestrator so it belongs to "commercial tests"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-version $MENDER_ORCHESTRATOR_SUPPORT_VERSION"
-          commercial_tests_flags="$commercial_tests_flags --mender-orchestrator-support-deb-version $(cat $COMMERCIAL_OUTPUT/mender-orchestrator-support-deb-version)"
-        fi
-
-        # Fail loudly if no packages were built at all, otherwise pytest would
-        # silently skip every test and the test job would falsely report green.
-        if [ -z "${pkg_flags}${commercial_tests_flags}" ]; then
-          echo "ERROR: no packages produced *-deb-version artifacts; refusing to run pytest with empty arguments" >&2
-          exit 1
-        fi
-    - python3 -m pytest -v
-      ${pkg_flags}
-      ${commercial_tests_flags}
-      --junit-xml results.xml
+    - ./tests/run-ci-tests.sh
   after_script:
   - export MANTRA_PROJECT_NAME="client_general"
   - !reference [.mantra-push-results]
@@ -545,24 +491,54 @@ test:check-python3-formatting:
 
 .test:pkgs:device-components:
   extends: .test:pkgs
-  image: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/${OS_FAMILY}:${OS_VERSION_NAME}
   tags:
-    - hetzner-arm
+    - k8s
+  variables:
+    ARM_IMAGE: ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/arm32v7/${OS_FAMILY}:${OS_VERSION_NAME}
+    ARM_CONTAINER: armhf-tests
   rules:
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION =~ /^[456789]\.[0-9x]\.[0-9x]/'
     - if: '$TEST_MENDER_DIST_PACKAGES == "true" && $MENDER_VERSION == "master"'
   before_script:
-    - !reference [.qa-common-network-apt-retry, before_script]
-    - apt-get update
-    - apt-get -yyq install bash git python3-pip wget sudo python3-venv
-    - git submodule sync --recursive
-    - git submodule update --init --recursive
-    - git submodule status --recursive
-    - python3 -m venv venv
-    - source venv/bin/activate
-    - PIP_BREAK_SYSTEM_PACKAGES=1 pip3 install -r tests/requirements.txt
+    - *requires-docker
+    - docker login -u ${CI_DEPENDENCY_PROXY_USER} -p ${CI_DEPENDENCY_PROXY_PASSWORD} ${CI_DEPENDENCY_PROXY_SERVER}
+    # kubelet cannot pull a linux/arm/v7 image onto an amd64 node, so the suite
+    # runs emulated under dind, which does accept an explicit --platform
+    - docker run --privileged --rm ${CI_DEPENDENCY_PROXY_DIRECT_GROUP_IMAGE_PREFIX}/tonistiigi/binfmt:qemu-v10.2.3 --install arm
+    # Allowlist: MENDER_PRIVATE_REPO_ACCESS_TOKEN must not reach the test container
+    - |
+      cat > armhf-tests.env <<EOF
+      OS_FAMILY=${OS_FAMILY}
+      OS_VERSION_NAME=${OS_VERSION_NAME}
+      MENDER_VERSION=${MENDER_VERSION}
+      MENDER_CONNECT_VERSION=${MENDER_CONNECT_VERSION}
+      MENDER_CONFIGURE_VERSION=${MENDER_CONFIGURE_VERSION}
+      MENDER_SETUP_VERSION=${MENDER_SETUP_VERSION}
+      MENDER_SNAPSHOT_VERSION=${MENDER_SNAPSHOT_VERSION}
+      MENDER_FLASH_VERSION=${MENDER_FLASH_VERSION}
+      MENDER_CONTAINER_MODULES_VERSION=${MENDER_CONTAINER_MODULES_VERSION}
+      MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION=${MENDER_CLIENT_VERSION_INVENTORY_SCRIPT_VERSION}
+      MENDER_GATEWAY_VERSION=${MENDER_GATEWAY_VERSION}
+      MENDER_MONITOR_VERSION=${MENDER_MONITOR_VERSION}
+      MENDER_ORCHESTRATOR_VERSION=${MENDER_ORCHESTRATOR_VERSION}
+      MENDER_ORCHESTRATOR_SUPPORT_VERSION=${MENDER_ORCHESTRATOR_SUPPORT_VERSION}
+      EOF
+    - docker run -d --name ${ARM_CONTAINER} --platform linux/arm/v7
+      --env-file armhf-tests.env ${ARM_IMAGE} sleep infinity
+    - docker cp ${CI_PROJECT_DIR} ${ARM_CONTAINER}:/build
+    - docker exec ${ARM_CONTAINER} apt-get update
+    - docker exec ${ARM_CONTAINER} apt-get -yyq install bash python3-pip wget sudo python3-venv
+    - docker exec -w /build ${ARM_CONTAINER} bash -c
+      "python3 -m venv venv && . venv/bin/activate && pip3 install -r tests/requirements.txt"
+  script:
+    - docker exec -w /build ${ARM_CONTAINER} bash -c
+      ". venv/bin/activate && ./tests/run-ci-tests.sh"
+  after_script:
+    - docker cp ${ARM_CONTAINER}:/build/tests/results.xml tests/results.xml || true
+    - export MANTRA_PROJECT_NAME="client_general"
+    - !reference [.mantra-push-results]
 
 test:pkgs:device-components:bookworm:
   extends: .test:pkgs:device-components
@@ -674,8 +650,6 @@ test:install-script:resolute:
     OS_VERSION: 12
     OS_VERSION_NAME: "bookworm"
   stage: test
-  tags:
-    - hetzner-amd-beefy
   needs:
     - 'build:pkgs:workstation-tools: [debian, amd64]'
   rules:
@@ -746,6 +720,8 @@ test:pkgs:workstation-tools:resolute:
   }
 
 .template:publish:s3:device-components:
+  # Cancelling mid-upload strands the S3 lock
+  interruptible: false
   dependencies:
     - 'build:pkgs:device-components: [debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [debian, bookworm, arm64]'
@@ -786,6 +762,8 @@ publish:s3:device-components:automatic:
   extends: .template:publish:s3:device-components
 
 .template:publish:s3:workstation_tools:
+  # Cancelling mid-upload strands the S3 lock
+  interruptible: false
   dependencies:
     - 'build:pkgs:workstation-tools: [debian, bookworm, amd64]'
     - 'build:pkgs:workstation-tools: [debian, bookworm, arm64]'
@@ -822,6 +800,7 @@ publish:s3:workstation_tools:automatic:
   extends: .template:publish:s3:workstation_tools
 
 .publish-template:s3:scripts:install-mender-sh:
+  interruptible: false
   stage: publish
   image: registry.gitlab.com/northern.tech/mender/mender-test-containers/base-debian:master
   id_tokens:
@@ -854,6 +833,7 @@ publish:production:s3:scripts:install-mender-sh:
       - production
 
 .template:publish:s3:
+  interruptible: false
   dependencies:
     - 'build:pkgs:device-components: [debian, bookworm, amd64]'
     - 'build:pkgs:device-components: [debian, bookworm, arm64]'
