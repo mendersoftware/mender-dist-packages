@@ -62,10 +62,9 @@ variables:
   S3_BUCKET_SUBPATH_GATEWAY: "mender-gateway/debian"
   S3_BUCKET_SUBPATH_MONITOR: "mender-monitor/debian"
   S3_BUCKET_SUBPATH_ORCHESTRATOR: "mender-orchestrator/debian"
-  # APT repo path for incoming packages (must be set/overwritten by individual
-  # jobs, only listed here for reference/documentation and nicer errors in case
-  # of not overwritten)
-  S3_BUCKET_REPO_PATH: "invalid"
+  # APT repo paths for incoming packages
+  S3_BUCKET_REPO_PATH_DEVICE_COMPONENTS: "repos/device-components/incoming"
+  S3_BUCKET_REPO_PATH_WORKSTATION_TOOLS: "repos/workstation-tools/incoming"
   # Scripts folder subpath
   S3_BUCKET_SCRIPTS_PATH: "repos/scripts"
   TEST_MENDER_DIST_PACKAGES:
@@ -752,8 +751,7 @@ test:pkgs:workstation-tools:resolute:
     AWS_OIDC_TOKEN:
       aud: https://gitlab.com
   variables:
-    # APT repo path for incoming device-components packages
-    S3_BUCKET_REPO_PATH: "repos/device-components/incoming"
+    S3_BUCKET_REPO_PATH: "$S3_BUCKET_REPO_PATH_DEVICE_COMPONENTS"
   before_script:
     - *wait-for-s3-lock
   script:
@@ -790,8 +788,7 @@ publish:s3:device-components:automatic:
     AWS_OIDC_TOKEN:
       aud: https://gitlab.com
   variables:
-    # APT repo path for incoming workstation-tools packages
-    S3_BUCKET_REPO_PATH: "repos/workstation-tools/incoming"
+    S3_BUCKET_REPO_PATH: "$S3_BUCKET_REPO_PATH_WORKSTATION_TOOLS"
   before_script:
     - *wait-for-s3-lock
   script:
