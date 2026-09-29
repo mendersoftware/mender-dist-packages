@@ -1,0 +1,13 @@
+Source: mender-container-modules-generators
+Maintainer: Mender Team <mender@northern.tech>
+Section: devel
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: mender-docker-compose-generator
+Architecture: all
+Depends: jq, mender-artifact, skopeo, coreutils, ${misc:Depends}
+Description: Generator for docker-compose Mender Artifacts
+ mender-docker-compose-generator provides the gen_docker-compose generator for Mender Artifacts
+ of type docker-compose.
