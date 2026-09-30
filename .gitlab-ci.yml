@@ -242,23 +242,43 @@ include:
   -  exit 192
   - fi
 
+.assert-repo-path: &assert-repo-path
+  - |
+    echo "S3_BUCKET_REPO_PATH=${S3_BUCKET_REPO_PATH}"
+    case "${S3_BUCKET_REPO_PATH}" in
+      repos/device-components/incoming|repos/workstation-tools/incoming) ;;
+      *)
+        echo "refusing to publish: unexpected S3_BUCKET_REPO_PATH='${S3_BUCKET_REPO_PATH}'"
+        echo "expected 'repos/device-components/incoming' or 'repos/workstation-tools/incoming'"
+        echo "the value was overridden outside .gitlab-ci.yml; repo paths seen by this job:"
+        echo "S3_BUCKET_REPO_PATH_DEVICE_COMPONENTS=${S3_BUCKET_REPO_PATH_DEVICE_COMPONENTS}"
+        echo "S3_BUCKET_REPO_PATH_WORKSTATION_TOOLS=${S3_BUCKET_REPO_PATH_WORKSTATION_TOOLS}"
+        exit 1
+        ;;
+    esac
+
 .wait-for-s3-lock: &wait-for-s3-lock
   - *aws-oidc-auth
-  # Lock the bucket to block concurrent jobs
-  - while aws s3 ls s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock; do
-  -   rm -f /tmp/lock.in
-  -   aws s3 cp s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock /tmp/lock.in
-  -   echo "$S3_BUCKET_REPO_PATH locked by:"
-  -   cat /tmp/lock.in
-  -   echo "waiting 10s"
-  -   sleep 10
-  - done
-  - rm -f /tmp/lock.in lock
+  - *assert-repo-path
+  - |
+    while :; do
+      if ! keycount=$(aws s3api list-objects-v2 --bucket "$S3_BUCKET_NAME" --prefix "$S3_BUCKET_REPO_PATH/lock" --max-keys 1 --query 'KeyCount' --output text 2>&1); then
+        echo "$keycount"
+        exit 1
+      fi
+      [ "$keycount" = "0" ] && break
+      echo "$S3_BUCKET_REPO_PATH locked by:"
+      aws s3 cp s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock - || true
+      echo "waiting 10s"
+      sleep 10
+    done
+  - rm -f lock
   - echo "${CI_PIPELINE_ID}.${CI_PROJECT_NAME}" >> lock
   - aws s3 mv lock s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .release-s3-lock: &release-s3-lock
   - *aws-oidc-auth
+  - *assert-repo-path
   - aws s3 rm s3://$S3_BUCKET_NAME/$S3_BUCKET_REPO_PATH/lock
 
 .upload-packages-to-s3: &upload-packages-to-s3
