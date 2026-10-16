@@ -87,7 +87,8 @@ checkout_repo() {
   local cloned=false
   for retry in 1 2 3 4 5; do
     rm -rf "${repo_path}"
-    if git clone --recurse-submodules --branch "${VERSION}" "${REPO_URL}" "${repo_path}"; then
+    if git clone --recurse-submodules --filter=blob:none --also-filter-submodules \
+      --branch "${VERSION}" "${REPO_URL}" "${repo_path}"; then
       cloned=true
       break
     fi
