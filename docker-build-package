@@ -202,6 +202,14 @@ fi
 
 echo
 
+image="${IMAGE_NAME_PREFIX}:crosscompile-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master}"
+if ! docker image inspect "${image}" >/dev/null 2>&1; then
+    for retry in 1 2 3 4 5; do
+        docker pull "${image}" && break
+        sleep "${retry}"
+    done
+fi
+
 docker run --rm \
         --volume $(pwd)/recipes:/recipes \
         --volume $(pwd)/${output_dir}:/output \
@@ -213,7 +221,7 @@ docker run --rm \
         --env GOLANG_VERSION \
         --env OVERRIDE_DEBIAN_SUFFIX \
         --env DEBIAN_EXTRA_CHANGELOG \
-        ${IMAGE_NAME_PREFIX}:crosscompile-${DISTRO}-${RELEASE}-${ARCH}-${IMAGE_VERSION:-master} \
+        ${image} \
         /script \
         ${recipe_name} \
         ${BUILD_TYPE} \
