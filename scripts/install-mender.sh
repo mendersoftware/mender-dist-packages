@@ -398,10 +398,10 @@ do_install_commercial() {
         fi
     done
 
-    # Install all of them at once and fallback to install missing dependencies
-    local -r deb_packages_glob=$(echo $selected_components_commercial | sed -e 's/ /*.deb /g; s/$/*.deb/')
+    # Turn 'component' into './component*.deb'
+    local -r deb_packages_glob=$(echo $selected_components_commercial | sed -e 's/^/.\//; s/ /*.deb .\//g; s/$/*.deb/')
     local -r deb_packages_expanded=$(echo $deb_packages_glob | tr ' ' '\n' | sort | uniq )
-    dpkg --install $deb_packages_expanded || apt-get -f -y install
+    apt-get install --assume-yes --quiet --no-install-recommends $deb_packages_expanded
 
     # Check individually each package
     for c in $selected_components_commercial; do
