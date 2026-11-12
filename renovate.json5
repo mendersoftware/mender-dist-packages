@@ -5,7 +5,28 @@
     "github>mendersoftware/mendertesting//renovate/common.json5"
   ],
 
+  // config:recommended also ignores tests/, which hides tests/requirements.txt.
+  "ignorePaths": ["**/node_modules/**", "**/vendor/**"],
+
+  // tests/requirements.txt is pip-compile output: bump the .in and recompile it.
+  "pip-compile": {
+    "managerFilePatterns": ["/^tests/requirements\\.txt$/"]
+  },
+  // pip-compile owns it, so pip_requirements must not bump it as well.
+  "pip_requirements": {
+    "ignorePaths": ["tests/requirements.txt"]
+  },
+
   "baseBranchPatterns": ["master"],
+
+  "packageRules": [
+    // Python test deps: one PR.
+    {
+      "matchManagers": ["pip-compile"],
+      "groupName": "python-dependencies",
+      "groupSlug": "python-dependencies"
+    },
+  ],
 
   "customManagers": [
     {
