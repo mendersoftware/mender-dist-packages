@@ -2,45 +2,29 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
 
   "extends": [
-    "config:recommended",
-    ":gitSignOff",
-    ":rebaseStalePrs"
+    "github>mendersoftware/mendertesting//renovate/common.json5"
   ],
 
-  // CODEOWNERS drives reviewer assignment. Keep CODEOWNERS complete.
-  "reviewersFromCodeOwners": true,
+  // config:recommended also ignores tests/, which hides tests/requirements.txt.
+  "ignorePaths": ["**/node_modules/**", "**/vendor/**"],
 
-  // chore(deps): <desc>, matching the old Dependabot prefix. CI files get ci: below.
-  "semanticCommits": "enabled",
-  "semanticCommitType": "chore",
-  "semanticCommitScope": "deps",
-
-  // Drain backlogs gradually. 10 concurrent because there are three base branches.
-  "prHourlyLimit": 2,
-  "prConcurrentLimit": 10,
+  // tests/requirements.txt is pip-compile output: bump the .in and recompile it.
+  "pip-compile": {
+    "managerFilePatterns": ["/^tests/requirements\\.txt$/"]
+  },
+  // pip-compile owns it, so pip_requirements must not bump it as well.
+  "pip_requirements": {
+    "ignorePaths": ["tests/requirements.txt"]
+  },
 
   "baseBranchPatterns": ["master"],
 
-  // Security PRs bypass the schedule
-  "vulnerabilityAlerts": {
-    "enabled": true,
-    "schedule": ["at any time"],
-    "labels": ["security"]
-  },
-
   "packageRules": [
-    // GitLab CI image bumps -> ci: (keeps them out of the deps changelog section).
+    // Python test deps: one PR.
     {
-      "matchManagers": ["gitlabci", "gitlabci-include"],
-      "semanticCommitType": "ci",
-      "semanticCommitScope": ""
-    },
-
-    // Docker base images: one grouped PR.
-    {
-      "matchManagers": ["dockerfile"],
-      "groupName": "docker-base-images",
-      "groupSlug": "docker-base-images"
+      "matchManagers": ["pip-compile"],
+      "groupName": "python-dependencies",
+      "groupSlug": "python-dependencies"
     },
   ],
 
