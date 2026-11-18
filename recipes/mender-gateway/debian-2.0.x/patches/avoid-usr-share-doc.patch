@@ -1,0 +1,62 @@
+From 03f39e920e0719e8dfcba60eb01221a5c1e1ee7e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Pawe=C5=82=20Po=C5=82awski?= <pawel.polawski@northern.tech>
+Date: Wed, 15 Jul 2026 23:53:47 +0200
+Subject: [PATCH] chore: Avoid using /usr/share/doc due to mask on Ubuntu
+ minimal images
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+On minimal Ubuntu images the path /usr/share/doc/* is frequently
+mask in the dpkg config:
+```
+root@8decc8179136:/# grep -R "path-exclude" /etc/dpkg/dpkg.cfg.d/
+/etc/dpkg/dpkg.cfg.d/excludes:path-exclude=/usr/share/man/*
+/etc/dpkg/dpkg.cfg.d/excludes:path-exclude=/usr/share/locale/*/LC_MESSAGES/*.mo
+/etc/dpkg/dpkg.cfg.d/excludes:path-exclude=/usr/share/doc/*
+```
+
+Putting the files there will result in files missing after package
+install. Mender Gateway was using /usr/share/doc/mender-gateway/examples
+to store sample configuration file symilnked to
+/etc/mender/mender-gateway.conf.
+
+Ticket: MEN-9952
+
+Signed-off-by: Paweł Poławski <pawel.polawski@northern.tech>
+---
+ Makefile                     | 2 +-
+ examples/mender-gateway.conf | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 0a07d2c2..00c94acb 100644
+--- a/Makefile
++++ b/Makefile
+@@ -5,7 +5,7 @@ datadir ?= /usr/share
+ sysconfdir ?= /etc
+ systemd_unitdir ?= /lib/systemd
+ inventorydir ?= /usr/share/mender/inventory
+-docdir ?= /usr/share/doc
++docdir ?= /usr/share
+ 
+ GO ?= go
+ GOFMT ?= gofmt
+diff --git a/examples/mender-gateway.conf b/examples/mender-gateway.conf
+index ef52d52c..82aeb63d 100644
+--- a/examples/mender-gateway.conf
++++ b/examples/mender-gateway.conf
+@@ -2,8 +2,8 @@
+ 	"HTTPS": {
+ 		"Enabled": true,
+ 		"Listen": ":443",
+-		"ServerCertificate": "/usr/share/doc/mender-gateway/examples/cert/cert.crt",
+-		"ServerKey": "/usr/share/doc/mender-gateway/examples/cert/private.key",
++		"ServerCertificate": "/usr/share/mender-gateway/examples/cert/cert.crt",
++		"ServerKey": "/usr/share/mender-gateway/examples/cert/private.key",
+ 		"MinimumTLSVersion": "1.2"
+ 	},
+ 	"Features": {
+-- 
+2.39.5
+
